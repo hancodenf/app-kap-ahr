@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AuditController;
 use App\Http\Controllers\KlienController;
 use App\Http\Controllers\PartnerController;
 use App\Http\Controllers\ProfileController;
@@ -56,6 +57,13 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::resource('users', UserController::class);
+    
+    // Audit Management Routes
+    Route::get('/audit', [AuditController::class, 'index'])->name('audit.index');
+    Route::get('/audit/client/{client}', [AuditController::class, 'show'])->name('audit.show');
+    Route::post('/audit/client/{client}/generate', [AuditController::class, 'generateFromTemplate'])->name('audit.generate');
+    Route::get('/audit-data/{auditKlien}/edit', [AuditController::class, 'edit'])->name('audit.edit');
+    Route::put('/audit-data/{auditKlien}', [AuditController::class, 'update'])->name('audit.update');
 });
 
 // Template Routes (Admin only)

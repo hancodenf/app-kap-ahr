@@ -71,7 +71,7 @@ class TemplateSeeder extends Seeder
                 Template::create([
                     'sub_level_id' => $subLevel->id,
                     'document_id' => null,
-                    'document_name' => $subLevel->name . ' Document',
+                    'document_name' => $subLevel->nama . ' Document',
                     'file' => null,
                     'time' => null,
                     'comment' => null,

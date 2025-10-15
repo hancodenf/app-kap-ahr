@@ -10,6 +10,7 @@ class Template extends Model
     use HasFactory;
 
     protected $fillable = [
+        'level_id',
         'sub_level_id',
         'document_id',
         'document_name',
@@ -24,6 +25,11 @@ class Template extends Model
         'acc_klien_id',
         'acc_klien_time',
     ];
+
+    public function level()
+    {
+        return $this->belongsTo(Level::class);
+    }
 
     public function subLevel()
     {

@@ -20,8 +20,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             LevelSeeder::class,
             SubLevelSeeder::class,
-            DocumentSeeder::class,
-            AuditKlienSeeder::class,
+            DocumentSeeder::class, 
             TemplateSeeder::class,
         ]);
     }

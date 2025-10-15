@@ -25,6 +25,7 @@ class UserController extends Controller
                                   $roleQuery->where('display_name', 'like', '%' . $search . '%');
                               });
                     })
+                    ->where('id', '!=', Auth::id())
                     ->orderBy('created_at', 'desc')
                     ->paginate(10)
                     ->withQueryString();
