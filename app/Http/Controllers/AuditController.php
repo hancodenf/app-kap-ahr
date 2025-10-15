@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AuditKlien;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class AuditController extends Controller
@@ -43,28 +44,30 @@ class AuditController extends Controller
                            ->with('error', 'User yang dipilih bukan klien.');
         }
 
-        // Get audit data for the client
-        $auditDataQuery = AuditKlien::with(['level', 'subLevel', 'document'])
-                                   ->where('klien_id', $client->id);
+        // Get audit data for the client with complete relationships (same as TemplateController)
+        $auditDataQuery = AuditKlien::with(['level', 'subLevel.level', 'document'])
+                                   ->where('klien_id', $client->id); 
 
         // Check if any audit data exists for this client
         $hasAuditData = $auditDataQuery->exists(); 
 
         if ($hasAuditData) {
             // Get the data with proper relationships and group by level
-            $auditData = $auditDataQuery->whereNotNull('level_id')
-                                       ->whereNotNull('sub_level_id')
-                                       ->whereNotNull('document_id')
-                                       ->orderBy('level_id')
-                                       ->orderBy('sub_level_id')
-                                       ->orderBy('document_id')
-                                       ->get()
-                                       ->groupBy(function($item) {
-                                           return $item->level ? $item->level->name : 'Level Tidak Diketahui';
-                                       });
+            $auditItems = $auditDataQuery->orderBy('level_id')
+                                        ->orderBy('sub_level_id')
+                                        ->orderBy('document_id')
+                                        ->get();
+            
+
+            
+            $auditData = $auditItems->groupBy(function($item) {
+                return $item->level ? $item->level->name : 'Level Tidak Diketahui';
+            });
         } else {
             $auditData = collect();
-        } 
+        }  
+
+
 
         return Inertia::render('Admin/Audit/Show', [
             'client' => $client,
@@ -133,7 +136,7 @@ class AuditController extends Controller
      */
     public function edit(AuditKlien $auditKlien)
     {
-        $auditKlien->load(['level', 'subLevel', 'document', 'klien']);
+        $auditKlien->load(['level', 'subLevel.level', 'document', 'klien']);
 
         return Inertia::render('Admin/Audit/Edit', [
             'auditKlien' => $auditKlien,

@@ -51,6 +51,7 @@ class TemplateSeeder extends Seeder
                         $for = 'klien';
                     } 
                     Template::create([
+                        'level_id' => $subLevel->level_id,
                         'sub_level_id' => $subLevel->id,
                         'document_id' => $doc->id,
                         'document_name' => $doc->name,
@@ -69,9 +70,10 @@ class TemplateSeeder extends Seeder
             } else {
                 // If no document, create with document_name only
                 Template::create([
+                    'level_id' => $subLevel->level_id,
                     'sub_level_id' => $subLevel->id,
                     'document_id' => null,
-                    'document_name' => $subLevel->nama . ' Document',
+                    'document_name' => $subLevel->name . ' Document',
                     'file' => null,
                     'time' => null,
                     'comment' => null,
