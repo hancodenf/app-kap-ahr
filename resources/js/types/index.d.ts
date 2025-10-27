@@ -1,16 +1,11 @@
-export interface Role {
-    id: number;
-    name: string;
-    display_name: string;
-    description?: string;
-}
+export type RoleType = 'admin' | 'client' | 'company' | 'partner' | 'staff' | 'klien';
 
 export interface User {
     id: number;
     name: string;
     email: string;
     email_verified_at?: string;
-    role?: Role;
+    role?: RoleType;
 }
 
 export type PageProps<

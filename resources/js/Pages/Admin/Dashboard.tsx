@@ -28,20 +28,20 @@ interface AdminDashboardProps extends PageProps {
         };
         templates: {
             total: number;
-            byLevel: Record<string, number>;
+            byWorkingStep: Record<string, number>;
         };
         system: {
-            levels: number;
-            subLevels: number;
+            working_steps: number;
+            working_sub_steps: number;
             documents: number;
         };
     };
     recentActivities: {
         audits: Array<{
             id: number;
-            level: { name: string };
-            sub_level: { name: string };
-            document: { name: string };
+            working_step: { name: string };
+            working_sub_step: { name: string };
+            status: string;
             created_at: string;
         }>;
         users: Array<{
@@ -137,7 +137,7 @@ export default function AdminDashboard({ user, statistics, recentActivities }: A
                                     <h4 className="font-medium text-purple-900 mb-1">Templates</h4>
                                     <p className="text-2xl font-bold text-purple-800">{statistics.templates.total}</p>
                                     <p className="text-sm text-purple-600 mt-1">
-                                        {Object.keys(statistics.templates.byLevel).length} levels
+                                        {Object.keys(statistics.templates.byWorkingStep).length} working_steps
                                     </p>
                                 </div>
                                 <div className="bg-purple-100 p-3 rounded-full">
@@ -155,7 +155,7 @@ export default function AdminDashboard({ user, statistics, recentActivities }: A
                                     <h4 className="font-medium text-orange-900 mb-1">Documents</h4>
                                     <p className="text-2xl font-bold text-orange-800">{statistics.system.documents}</p>
                                     <p className="text-sm text-orange-600 mt-1">
-                                        {statistics.system.levels} levels, {statistics.system.subLevels} sub-levels
+                                        {statistics.system.working_steps} working_steps, {statistics.system.working_sub_steps} sub-working_steps
                                     </p>
                                 </div>
                                 <div className="bg-orange-100 p-3 rounded-full">
@@ -239,9 +239,9 @@ export default function AdminDashboard({ user, statistics, recentActivities }: A
                                         <div key={audit.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                                             <div>
                                                 <p className="text-sm font-medium text-gray-900">
-                                                    {audit.level.name} - {audit.sub_level.name}
+                                                    {audit.working_step.name} - {audit.working_sub_step.name}
                                                 </p>
-                                                <p className="text-xs text-gray-500">{audit.document.name}</p>
+                                                <p className="text-xs text-gray-500">{audit.status}</p>
                                             </div>
                                             <span className="text-xs text-gray-400">
                                                 {formatDate(audit.created_at)}

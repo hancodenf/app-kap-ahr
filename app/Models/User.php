@@ -5,6 +5,9 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -22,14 +25,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role_id',
+        'role',
+        'position',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
@@ -48,18 +47,35 @@ class User extends Authenticatable
         ];
     }
 
-    public function role(): BelongsTo
+    /**
+     * Get the client associated with the user.
+     */
+    public function client(): HasOne
     {
-        return $this->belongsTo(Role::class);
+        return $this->hasOne(Client::class);
     }
 
-    public function hasRole(string $role): bool
+    /**
+     * Get the project teams for the user.
+     */
+    public function projectTeams(): HasMany
     {
-        return $this->role && $this->role->name === $role;
+        return $this->hasMany(ProjectTeam::class);
     }
 
-    public function hasAnyRole(array $roles): bool
+    /**
+     * Get the projects associated with the user through project teams.
+     */
+    public function projects(): BelongsToMany
     {
-        return $this->role && in_array($this->role->name, $roles);
+        return $this->belongsToMany(Project::class, 'project_teams')->withPivot('role')->withTimestamps();
+    }
+
+    /**
+     * Get the registered AP associated with the user.
+     */
+    public function registeredAp(): HasOne
+    {
+        return $this->hasOne(RegisteredAp::class);
     }
 }

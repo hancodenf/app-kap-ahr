@@ -16,16 +16,34 @@ class Document extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        'working_sub_step_id',
+        'working_sub_step_name',
+        'working_step_name',
+        'project_name',
+        'project_client_name',
         'name',
         'slug',
-        'sub_level_id',
+        'file',
+        'uploaded_at',
     ];
 
     /**
-     * Get the sub level that owns the document.
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
      */
-    public function subLevel(): BelongsTo
+    protected function casts(): array
     {
-        return $this->belongsTo(SubLevel::class);
+        return [
+            'uploaded_at' => 'datetime',
+        ];
+    }
+
+    /**
+     * Get the working sub step that owns the document.
+     */
+    public function workingSubStep(): BelongsTo
+    {
+        return $this->belongsTo(WorkingSubStep::class);
     }
 }

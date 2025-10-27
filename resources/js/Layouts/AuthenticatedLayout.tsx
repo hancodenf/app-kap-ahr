@@ -12,7 +12,7 @@ export default function Authenticated({
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     const getDashboardRoute = () => {
-        const role = user.role?.name;
+        const role = user.role;
         switch (role) {
             case 'admin':
                 return 'admin.dashboard';
@@ -21,6 +21,7 @@ export default function Authenticated({
             case 'staff':
                 return 'staff.dashboard';
             case 'klien':
+            case 'client':
                 return 'klien.dashboard';
             default:
                 return 'dashboard';
@@ -39,26 +40,26 @@ export default function Authenticated({
             ),
             active: route().current(getDashboardRoute()) || route().current('dashboard'),
         },
-        ...(user.role?.name === 'admin' ? [
+        ...(user.role === 'admin' ? [
             {
-                name: 'Audit',
-                href: route('admin.audit.index'),
+                name: 'Project',
+                href: route('admin.project.index'),
                 icon: (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 ),
-                active: route().current('admin.audit.*'),
+                active: route().current('admin.project.*'),
             },
             {
-                name: 'Template',
-                href: route('templates.index'),
+                name: 'Project Template',
+                href: route('admin.project-templates.template-bundles.index'),
                 icon: (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                 ),
-                active: route().current('templates.*'),
+                active: route().current('admin.project-templates.*'),
             },
             {
                 name: 'User Management',
@@ -69,6 +70,16 @@ export default function Authenticated({
                     </svg>
                 ),
                 active: route().current('admin.users.*'),
+            },
+            {
+                name: 'Client Management',
+                href: route('admin.clients.index'),
+                icon: (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                ),
+                active: route().current('admin.clients.*'),
             }
         ] : []),
     ];
@@ -149,7 +160,7 @@ export default function Authenticated({
                             {!sidebarCollapsed && (
                                 <div className="ml-3">
                                     <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                                    <div className="text-xs text-gray-500">{user.role?.display_name || 'User'}</div>
+                                    <div className="text-xs text-gray-500">{user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User'}</div>
                                 </div>
                             )}
                         </div>
