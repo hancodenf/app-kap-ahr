@@ -21,14 +21,14 @@ class ProjectTemplateController extends Controller
             ->orderBy('name')
             ->get();
 
-        return Inertia::render('Admin/ProjectTemplates/BundleIndex', [
+        return Inertia::render('Admin/ProjectTemplates/TemplateIndex', [
             'bundles' => $templates, // Keep 'bundles' key for frontend compatibility
         ]);
     }
 
     public function createBundle()
     {
-        return Inertia::render('Admin/ProjectTemplates/BundleCreate');
+        return Inertia::render('Admin/ProjectTemplates/TemplateCreate');
     }
 
     public function storeBundle(Request $request)
@@ -56,7 +56,7 @@ class ProjectTemplateController extends Controller
         // Initialize project_templates as empty array for compatibility with frontend
         $templateBundle->project_templates = [];
 
-        return Inertia::render('Admin/ProjectTemplates/BundleShow', [
+        return Inertia::render('Admin/ProjectTemplates/TemplateShow', [
             'bundle' => $templateBundle,
             'workingSteps' => $workingSteps,
         ]);
@@ -75,7 +75,7 @@ class ProjectTemplateController extends Controller
         // Initialize project_templates as empty array for compatibility with frontend
         $templateBundle->project_templates = [];
 
-        return Inertia::render('Admin/ProjectTemplates/BundleEdit', [
+        return Inertia::render('Admin/ProjectTemplates/TemplateEdit', [
             'bundle' => $templateBundle,
             'workingSteps' => $workingSteps,
         ]);
