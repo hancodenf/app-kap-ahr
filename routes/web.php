@@ -71,7 +71,40 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     // Client Management Routes  
     Route::resource('clients', AdminClientController::class);
 
-    // Audit Management Routes
+    // Project Bundles Management Routes (CRUD for projects themselves)
+    Route::prefix('projects')->name('projects.')->group(function () {
+        Route::get('/', [ProjectController::class, 'index'])->name('bundles.index');
+        Route::get('/create', [ProjectController::class, 'createBundle'])->name('bundles.create');
+        Route::post('/', [ProjectController::class, 'storeBundle'])->name('bundles.store');
+        Route::get('/{bundle}', [ProjectController::class, 'showBundle'])->name('bundles.show');
+        Route::get('/{bundle}/edit', [ProjectController::class, 'editBundle'])->name('bundles.edit');
+        Route::put('/{bundle}', [ProjectController::class, 'updateBundle'])->name('bundles.update');
+        Route::delete('/{bundle}', [ProjectController::class, 'destroyBundle'])->name('bundles.destroy');
+
+        // Project Working Steps (for non-template projects)
+        Route::post('working-steps', [ProjectController::class, 'storeWorkingStep'])->name('working-steps.store');
+        Route::put('working-steps/{workingStep}', [ProjectController::class, 'updateWorkingStep'])->name('working-steps.update');
+        Route::delete('working-steps/{workingStep}', [ProjectController::class, 'destroyWorkingStep'])->name('working-steps.destroy');
+
+        // Project Working Sub Steps (for non-template projects)
+        Route::post('working-sub-steps', [ProjectController::class, 'storeWorkingSubStep'])->name('working-sub-steps.store');
+        Route::put('working-sub-steps/{workingSubStep}', [ProjectController::class, 'updateWorkingSubStep'])->name('working-sub-steps.update');
+        Route::delete('working-sub-steps/{workingSubStep}', [ProjectController::class, 'destroyWorkingSubStep'])->name('working-sub-steps.destroy');
+
+        // Reordering routes for projects
+        Route::post('working-steps/reorder', [ProjectController::class, 'reorderWorkingSteps'])->name('working-steps.reorder');
+        Route::post('working-sub-steps/reorder', [ProjectController::class, 'reorderWorkingSubSteps'])->name('working-sub-steps.reorder');
+        
+        // Project name update
+        Route::put('{project}/update-name', [ProjectController::class, 'updateProject'])->name('update-name');
+        
+        // Team management routes
+        Route::post('team-members', [ProjectController::class, 'storeTeamMember'])->name('team-members.store');
+        Route::put('team-members/{teamMember}', [ProjectController::class, 'updateTeamMember'])->name('team-members.update');
+        Route::delete('team-members/{teamMember}', [ProjectController::class, 'destroyTeamMember'])->name('team-members.destroy');
+    });
+
+    // Audit Management Routes (Old routes - might be deprecated)
     Route::get('/project', [ProjectController::class, 'index'])->name('project.index');
     Route::get('/project/client/{client}', [ProjectController::class, 'show'])->name('project.show');
     Route::get('/project/client/{client}/manage', [ProjectController::class, 'manage'])->name('project.manage');
@@ -79,9 +112,22 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::get('/project-data/{projectKlien}/edit', [ProjectController::class, 'edit'])->name('project.edit');
     Route::put('/project-data/{projectKlien}', [ProjectController::class, 'update'])->name('project.update');
     
-    // Project Working Steps Reorder
+    // Project Working Steps Reorder (Old routes - might be deprecated)
     Route::post('/project/working-steps/reorder', [ProjectController::class, 'reorderWorkingSteps'])->name('project.working-steps.reorder');
     Route::post('/project/working-sub-steps/reorder', [ProjectController::class, 'reorderWorkingSubSteps'])->name('project.working-sub-steps.reorder');
+    
+    // Project Working Steps CRUD (Old routes - might be deprecated)
+    Route::post('/project/working-steps', [ProjectController::class, 'storeWorkingStep'])->name('project.working-steps.store');
+    Route::put('/project/working-steps/{workingStep}', [ProjectController::class, 'updateWorkingStep'])->name('project.working-steps.update');
+    Route::delete('/project/working-steps/{workingStep}', [ProjectController::class, 'destroyWorkingStep'])->name('project.working-steps.destroy');
+    
+    // Project Working Sub Steps CRUD (Old routes - might be deprecated)
+    Route::post('/project/working-sub-steps', [ProjectController::class, 'storeWorkingSubStep'])->name('project.working-sub-steps.store');
+    Route::put('/project/working-sub-steps/{workingSubStep}', [ProjectController::class, 'updateWorkingSubStep'])->name('project.working-sub-steps.update');
+    Route::delete('/project/working-sub-steps/{workingSubStep}', [ProjectController::class, 'destroyWorkingSubStep'])->name('project.working-sub-steps.destroy');
+    
+    // Project Update (Old routes - might be deprecated)
+    Route::put('/project/{project}', [ProjectController::class, 'updateProject'])->name('project.update-name');
     
     Route::prefix('project-templates')->name('project-templates.')->group(function () {
         Route::get('/', [ProjectTemplateController::class, 'index'])->name('template-bundles.index');

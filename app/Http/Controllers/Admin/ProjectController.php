@@ -3,281 +3,246 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-
-use App\Models\WorkingSubStep;
-use App\Models\WorkingStep;
 use App\Models\Project;
+use App\Models\ProjectTeam;
 use App\Models\User;
-use App\Models\Client;
+use App\Models\WorkingStep;
+use App\Models\WorkingSubStep;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class ProjectController extends Controller
 {
-    /**
-     * Display list of all clients
-     */
-    public function index(Request $request)
+    // ==================== BUNDLE MANAGEMENT ====================
+    
+    public function index()
     {
-        $clients = Client::with('user')
-            ->when($request->search, function ($query, $search) {
-                $query->where('name', 'like', '%' . $search . '%')
-                    ->orWhereHas('user', function ($userQuery) use ($search) {
-                        $userQuery->where('name', 'like', '%' . $search . '%')
-                            ->orWhere('email', 'like', '%' . $search . '%');
-                    });
-            })
-            ->orderBy('name')
-            ->paginate(10)
-            ->withQueryString();
+        $projects = Project::orderBy('name')->get();
 
         return Inertia::render('Admin/Project/Index', [
-            'clients' => $clients,
-            'filters' => $request->only(['search']),
+            'bundles' => $projects,
         ]);
     }
 
-    /**
-     * Display project data for specific client
-     */
-    public function show(Client $client)
+    public function createBundle()
     {
-        // Load the user relationship
-        $client->load('user');
-
-        // Get project for the client first
-        $project = Project::where('client_id', $client->id)->first();
-
-        $hasProjectData = false;
-        $projectData = collect();
-
-        if ($project) {
-            // Get working sub steps for this project with complete relationships
-            $workingSubSteps = WorkingSubStep::with(['workingStep', 'documents'])
-                ->where('project_id', $project->id)
-                ->orderBy('working_step_id')
-                ->orderBy('order')
-                ->get();
-
-            $hasProjectData = $workingSubSteps->isNotEmpty();
-
-            if ($hasProjectData) {
-                // Transform data to match frontend expectations
-                $projectData = $workingSubSteps->map(function ($subStep) {
-                    return [
-                        'id' => $subStep->id,
-                        'project_id' => $subStep->project_id,
-                        'working_step_id' => $subStep->working_step_id,
-                        'working_sub_step_id' => $subStep->id,
-                        'time' => $subStep->time,
-                        'comment' => $subStep->comment,
-                        'client_comment' => $subStep->client_comment,
-                        'client_interact' => $subStep->client_interact,
-                        'multiple_files' => $subStep->multiple_files,
-                        'status' => $subStep->status ?? 'Draft',
-                        'created_at' => $subStep->created_at,
-                        'updated_at' => $subStep->updated_at,
-                        'working_step' => $subStep->workingStep ? [
-                            'id' => $subStep->workingStep->id,
-                            'name' => $subStep->workingStep->name,
-                            'slug' => $subStep->workingStep->slug,
-                        ] : null,
-                        'working_sub_step' => [
-                            'id' => $subStep->id,
-                            'name' => $subStep->name,
-                            'slug' => $subStep->slug,
-                            'working_step_id' => $subStep->working_step_id,
-                            'working_step' => $subStep->workingStep ? [
-                                'id' => $subStep->workingStep->id,
-                                'name' => $subStep->workingStep->name,
-                                'slug' => $subStep->workingStep->slug,
-                            ] : null,
-                        ],
-                        'documents' => $subStep->documents ? $subStep->documents->map(function ($doc) {
-                            return [
-                                'id' => $doc->id,
-                                'name' => $doc->name,
-                                'slug' => $doc->slug,
-                                'working_sub_step_id' => $doc->working_sub_step_id,
-                            ];
-                        })->toArray() : [],
-                    ];
-                })->groupBy(function ($item) {
-                    return $item['working_step']['name'] ?? 'Working Step Tidak Diketahui';
-                });
-            }
-        }
-
-
-
-        return Inertia::render('Admin/Project/Show', [
-            'client' => $client,
-            'project' => $projectData,
-            'hasProjectData' => $hasProjectData,
-        ]);
+        return Inertia::render('Admin/Project/Create');
     }
 
-    /**
-     * Generate project data from templates for a client
-     */
-    public function generateFromProjectTemplate(Client $client)
-    {
-        // Load the user relationship
-        $client->load('user');
-
-        // Check if client already has a project
-        $existingProject = Project::where('client_id', $client->id)->first();
-        if ($existingProject) {
-            // Check if project already has working sub steps
-            $existingWorkingData = WorkingSubStep::where('project_id', $existingProject->id)->count();
-            if ($existingWorkingData > 0) {
-                return redirect()->route('admin.project.show', $client)
-                    ->with('error', 'Klien ini sudah memiliki data project.');
-            }
-        } else {
-            // Create new project for client if doesn't exist
-            $existingProject = Project::create([
-                'name' => "Project untuk {$client->name}",
-                'client_id' => $client->id,
-            ]);
-        }
-
-        // Get all template working sub steps and create working sub steps for client project
-        $templateSubSteps = \App\Models\TemplateWorkingSubStep::with(['templateWorkingStep'])->get();
-
-        if ($templateSubSteps->isEmpty()) {
-            return redirect()->route('admin.project.show', $client)
-                ->with('error', 'Tidak ada template sub step yang tersedia. Silakan buat template terlebih dahulu.');
-        }
-
-        $createdCount = 0;
-        foreach ($templateSubSteps as $templateSubStep) {
-            // Create or get working step for this project
-            $workingStep = WorkingStep::firstOrCreate([
-                'project_id' => $existingProject->id,
-                'name' => $templateSubStep->templateWorkingStep?->name ?? 'Default Step',
-                'slug' => \Illuminate\Support\Str::slug($templateSubStep->templateWorkingStep?->name ?? 'default-step'),
-            ], [
-                'order' => $templateSubStep->templateWorkingStep?->order ?? 0,
-            ]);
-
-            // Create working sub step
-            WorkingSubStep::create([
-                'order' => $templateSubStep->order ?? 0,
-                'name' => $templateSubStep->name,
-                'slug' => \Illuminate\Support\Str::slug($templateSubStep->name . '-' . $existingProject->id),
-                'project_id' => $existingProject->id,
-                'working_step_id' => $workingStep->id,
-                'time' => $templateSubStep->time,
-                'comment' => $templateSubStep->comment,
-                'client_comment' => $templateSubStep->client_comment,
-                'client_interact' => $templateSubStep->client_interact ?? false,
-                'multiple_files' => $templateSubStep->multiple_files ?? false,
-                'status' => 'Draft',
-            ]);
-            $createdCount++;
-        }
-
-        return redirect()->route('admin.project.show', $client)
-            ->with('success', "Berhasil generate {$createdCount} data project dari template untuk klien {$client->name}.");
-    }
-
-    /**
-     * Show edit form for specific working sub step data
-     */
-    public function edit(WorkingSubStep $projectKlien)
-    {
-        $projectKlien->load(['workingStep', 'documents', 'project.client.user']);
-
-        return Inertia::render('Admin/Project/Edit', [
-            'project' => $projectKlien,
-        ]);
-    }
-
-    /**
-     * Update specific working sub step data
-     */
-    public function update(Request $request, WorkingSubStep $projectKlien)
+    public function storeBundle(Request $request)
     {
         $request->validate([
-            'time' => 'nullable|date',
-            'comment' => 'nullable|string',
-            'client_comment' => 'nullable|string',
-            'client_interact' => 'nullable|boolean',
-            'multiple_files' => 'nullable|boolean',
-            'status' => 'required|in:Draft,Submitted,Under Review by Team Leader,Approved by Team Leader,Returned for Revision (by Team Leader),Under Review by Manager,Approved by Manager,Returned for Revision (by Manager),Under Review by Supervisor,Approved by Supervisor,Returned for Revision (by Supervisor),Under Review by Partner,Approved by Partner,Returned for Revision (by Partner),Submitted to Client,Client Reply',
+            'name' => 'required|string|max:255|unique:projects,name',
         ]);
 
-        $projectKlien->update([
-            'time' => $request->time,
-            'comment' => $request->comment,
-            'client_comment' => $request->client_comment,
-            'client_interact' => $request->client_interact ?? false,
-            'multiple_files' => $request->multiple_files ?? false,
-            'status' => $request->status,
-        ]);
+        Project::create($request->only('name'));
 
-        return redirect()->route('admin.project.show', $projectKlien->project->client)
-            ->with('success', 'Data project berhasil diupdate.');
+        return redirect()->route('admin.projects.bundles.index')
+            ->with('success', 'Project berhasil dibuat!');
     }
 
-    /**
-     * Show project management page (like template bundle edit)
-     */
-    public function manage(Client $client)
+    public function showBundle(Project $bundle)
     {
-        $project = Project::where('client_id', $client->id)->with('client.user')->first();
-
-        if (!$project) {
-            return redirect()->route('admin.project.index')
-                ->with('error', 'Project not found for this client.');
-        }
-
-        // Get working steps with sub steps
-        $workingSteps = WorkingStep::with('workingSubSteps')
-            ->where('project_id', $project->id)
+        // Get working steps for this project
+        $workingSteps = WorkingStep::where('project_id', $bundle->id)
+            ->with(['workingSubSteps' => function($query) {
+                $query->orderBy('order');
+            }])
             ->orderBy('order')
             ->get();
 
-        return Inertia::render('Admin/Project/ProjectManage', [
-            'project' => $project,
+        return Inertia::render('Admin/Project/Show', [
+            'bundle' => $bundle,
             'workingSteps' => $workingSteps,
         ]);
     }
 
-    /**
-     * Reorder working steps
-     */
-    public function reorderWorkingSteps(Request $request)
+    public function editBundle(Project $bundle)
+    {
+        // Get working steps for this project
+        $workingSteps = WorkingStep::where('project_id', $bundle->id)
+            ->with(['workingSubSteps' => function($query) {
+                $query->orderBy('order');
+            }])
+            ->orderBy('order')
+            ->get();
+
+        // Get team members
+        $teamMembers = ProjectTeam::where('project_id', $bundle->id)
+            ->with('user')
+            ->orderBy('role')
+            ->orderBy('user_name')
+            ->get();
+
+        // Get available users (company level only)
+        $availableUsers = User::where('role', 'company')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'position']);
+
+        return Inertia::render('Admin/Project/Edit', [
+            'bundle' => $bundle,
+            'workingSteps' => $workingSteps,
+            'teamMembers' => $teamMembers,
+            'availableUsers' => $availableUsers,
+        ]);
+    }
+
+    public function updateBundle(Request $request, Project $bundle)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255|unique:projects,name,' . $bundle->id,
+        ]);
+
+        $bundle->update($request->only('name'));
+
+        return redirect()->route('admin.projects.bundles.edit', $bundle->id)
+            ->with('success', 'Project berhasil diupdate!');
+    }
+
+    public function destroyBundle(Project $bundle)
+    {
+        // Check if project has working steps
+        if ($bundle->workingSteps()->exists()) {
+            return redirect()->route('admin.projects.bundles.index')
+                ->with('error', 'Tidak dapat menghapus project yang masih memiliki working steps!');
+        }
+
+        $bundle->delete();
+
+        return redirect()->route('admin.projects.bundles.index')
+            ->with('success', 'Project berhasil dihapus!');
+    }
+
+    // ==================== WORKING STEP MANAGEMENT ====================
+
+    public function storeWorkingStep(Request $request)
     {
         try {
+            // Support multiple parameter names for project ID
+            $projectId = $request->bundle_id ?? $request->project_id;
+            
             $request->validate([
-                'steps' => 'required|array',
-                'steps.*.id' => 'required|exists:working_steps,id',
-                'steps.*.order' => 'required|integer|min:1',
+                'name' => 'required|string|max:255',
             ]);
 
-            foreach ($request->steps as $stepData) {
-                WorkingStep::where('id', $stepData['id'])
-                    ->update(['order' => $stepData['order']]);
+            // Validate project exists
+            if (!$projectId || !Project::find($projectId)) {
+                return redirect()->back()->with('error', 'Project ID tidak valid. Parameter: ' . json_encode($request->all()));
             }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Working steps reordered successfully'
+            // Get next order number for this project
+            $nextOrder = WorkingStep::where('project_id', $projectId)
+                ->max('order') + 1;
+
+            // Create working step (slug will be auto-generated by Model)
+            $workingStep = WorkingStep::create([
+                'name' => $request->name,
+                'project_id' => $projectId,
+                'order' => $nextOrder,
             ]);
+
+            return redirect()->back()->with('success', 'Working Step berhasil dibuat!');
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error reordering steps: ' . $e->getMessage()
-            ], 500);
+            return redirect()->back()->with('error', 'Gagal membuat working step: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Reorder working sub steps
-     */
+    public function updateWorkingStep(Request $request, WorkingStep $workingStep)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        // Update name (slug will be auto-updated by Model if name changed)
+        $workingStep->update([
+            'name' => $request->name,
+        ]);
+
+        return redirect()->back()->with('success', 'Working Step berhasil diupdate!');
+    }
+
+    public function destroyWorkingStep(WorkingStep $workingStep)
+    {
+        // Delete all related sub steps
+        $workingStep->workingSubSteps()->delete();
+        
+        // Delete the working step
+        $workingStep->delete();
+
+        return redirect()->back()->with('success', 'Working Step dan sub steps berhasil dihapus!');
+    }
+
+    // ==================== WORKING SUB STEP MANAGEMENT ====================
+
+    public function storeWorkingSubStep(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'working_step_id' => 'required|exists:working_steps,id',
+        ]);
+
+        // Get the working step to get project_id
+        $workingStep = WorkingStep::findOrFail($request->working_step_id);
+
+        // Get next order number for this working step
+        $nextOrder = WorkingSubStep::where('working_step_id', $request->working_step_id)
+            ->max('order') + 1;
+
+        // Create sub step (slug will be auto-generated by Model)
+        $subStep = WorkingSubStep::create([
+            'name' => $request->name,
+            'working_step_id' => $request->working_step_id,
+            'project_id' => $workingStep->project_id,
+            'order' => $nextOrder,
+        ]);
+
+        return redirect()->back()->with('success', 'Working Sub Step berhasil dibuat!');
+    }
+
+    public function updateWorkingSubStep(Request $request, WorkingSubStep $workingSubStep)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'client_interact' => 'boolean',
+            'multiple_files' => 'boolean',
+        ]);
+
+        $workingSubStep->update([
+            'name' => $request->name,
+            'client_interact' => $request->boolean('client_interact'),
+            'multiple_files' => $request->boolean('multiple_files'),
+        ]);
+
+        return redirect()->back()->with('success', 'Working Sub Step berhasil diupdate!');
+    }
+
+    public function destroyWorkingSubStep(WorkingSubStep $workingSubStep)
+    {
+        $workingSubStep->delete();
+
+        return redirect()->back()->with('success', 'Working Sub Step berhasil dihapus!');
+    }
+
+    // ==================== REORDERING METHODS ====================
+
+    public function reorderWorkingSteps(Request $request)
+    {
+        $request->validate([
+            'steps' => 'required|array',
+            'steps.*.id' => 'required|exists:working_steps,id',
+            'steps.*.order' => 'required|integer|min:0',
+        ]);
+
+        foreach ($request->steps as $stepData) {
+            WorkingStep::where('id', $stepData['id'])
+                ->update(['order' => $stepData['order']]);
+        }
+
+        return response()->json(['message' => 'Working steps reordered successfully']);
+    }
+
     public function reorderWorkingSubSteps(Request $request)
     {
         try {
@@ -300,11 +265,93 @@ class ProjectController extends Controller
                 'success' => true,
                 'message' => 'Working sub steps reordered successfully'
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error reordering substeps: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    // ==================== PROJECT MANAGEMENT ====================
+    
+    public function updateProject(Request $request, Project $project)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        $project->update([
+            'name' => $request->name,
+        ]);
+
+        return redirect()->back()->with('success', 'Project berhasil diupdate!');
+    }
+
+    // ==================== TEAM MANAGEMENT ====================
+    
+    public function storeTeamMember(Request $request)
+    {
+        $request->validate([
+            'project_id' => 'required|exists:projects,id',
+            'user_id' => 'required|exists:users,id',
+            'role' => 'required|in:partner,manager,supervisor,team leader,member',
+        ]);
+
+        $project = Project::findOrFail($request->project_id);
+        $user = User::findOrFail($request->user_id);
+
+        // Check if user already in team
+        $exists = ProjectTeam::where('project_id', $project->id)
+            ->where('user_id', $user->id)
+            ->exists();
+
+        if ($exists) {
+            return redirect()->back()->with('error', 'User sudah ada dalam tim project ini!');
+        }
+
+        // Get client name from project (assuming you have client relationship)
+        $clientName = $project->client->name ?? 'N/A';
+
+        ProjectTeam::create([
+            'project_id' => $project->id,
+            'user_id' => $user->id,
+            'project_name' => $project->name,
+            'project_client_name' => $clientName,
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+            'user_position' => $user->position ?? null,
+            'role' => $request->role,
+        ]);
+
+        return redirect()->back()->with('success', 'Anggota tim berhasil ditambahkan!');
+    }
+
+    public function updateTeamMember(Request $request, $teamId)
+    {
+        $request->validate([
+            'role' => 'required|in:partner,manager,supervisor,team leader,member',
+        ]);
+
+        $teamMember = ProjectTeam::findOrFail($teamId);
+        $teamMember->update([
+            'role' => $request->role,
+        ]);
+
+        return redirect()->back()->with('success', 'Role anggota tim berhasil diupdate!');
+    }
+
+    public function destroyTeamMember($teamId)
+    {
+        $teamMember = ProjectTeam::findOrFail($teamId);
+        $teamMember->delete();
+
+        return redirect()->back()->with('success', 'Anggota tim berhasil dihapus!');
     }
 }

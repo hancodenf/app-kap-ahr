@@ -17,9 +17,7 @@ class ProjectTemplateController extends Controller
     
     public function index()
     {
-        $templates = ProjectTemplate::withCount(['templateWorkingSteps'])
-            ->orderBy('name')
-            ->get();
+        $templates = ProjectTemplate::orderBy('name')->get();
 
         return Inertia::render('Admin/ProjectTemplates/TemplateIndex', [
             'bundles' => $templates, // Keep 'bundles' key for frontend compatibility

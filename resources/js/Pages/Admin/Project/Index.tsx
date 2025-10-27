@@ -1,222 +1,125 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { PageProps } from '@/types';
-import { useState } from 'react';
 
-interface Client {
+interface ProjectBundle {
     id: number;
-    user_id: number;
     name: string;
-    alamat: string;
-    kementrian: string;
-    kode_satker: string;
     created_at: string;
-    user: {
-        id: number;
-        name: string;
-        email: string;
-        role: string;
-        email_verified_at: string | null;
-        created_at: string;
-    };
+    updated_at: string;
 }
 
-interface ProjectIndexPageProps extends PageProps {
-    clients: {
-        data: Client[];
-        current_page: number;
-        last_page: number;
-        per_page: number;
-        total: number;
-        links: Array<{
-            url: string | null;
-            label: string;
-            active: boolean;
-        }>;
-    };
-    filters: {
-        search?: string;
-    };
+interface Props extends PageProps {
+    bundles: ProjectBundle[];
 }
 
-export default function Index({ clients, filters }: ProjectIndexPageProps) {
-    const { flash } = usePage().props as any;
-    const [search, setSearch] = useState(filters.search || '');
-
-    const handleSearch = () => {
-        router.get(route('admin.project.index'), { search }, {
-            preserveState: true,
-            replace: true,
-        });
-    };
-
-    const handleReset = () => {
-        setSearch('');
-        router.get(route('admin.project.index'), {}, {
-            preserveState: true,
-            replace: true,
-        });
-    };
-
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('id-ID', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-        });
-    };
-
+export default function Index({ auth, bundles }: Props) {
     return (
         <AuthenticatedLayout
             header={
                 <div className="flex justify-between items-center">
                     <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                        Project Management - Pilih Klien
+                        Projects
                     </h2>
-                    <Link
-                        href={route('admin.clients.create')}
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors inline-flex items-center"
-                    >
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        Tambah Klien Baru
-                    </Link>
                 </div>
             }
         >
-            <Head title="Project Management" />
+            <Head title="Projects" />
 
-            <div className="py-6">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    {/* Flash Messages */}
-                    {flash?.success && (
-                        <div className="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-                            {flash.success}
-                        </div>
-                    )}
-                    {flash?.error && (
-                        <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                            {flash.error}
-                        </div>
-                    )}
-
-                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                        <div className="p-6">
-                            <div className="mb-6">
-                                <p className="text-gray-600 mb-4">
-                                    Pilih klien untuk melihat dan mengelola data project mereka.
-                                </p>
-                                
-                                {/* Search Bar */}
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        placeholder="Cari nama klien, email, atau kementrian..."
-                                        value={search}
-                                        onChange={(e) => setSearch(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                                        className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                    />
-                                    <button
-                                        onClick={handleSearch}
-                                        className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md transition-colors"
-                                    >
-                                        Cari
-                                    </button>
-                                    {filters.search && (
-                                        <button
-                                            onClick={handleReset}
-                                            className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition-colors"
-                                        >
-                                            Reset
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Clients Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {clients.data.map((client) => (
-                                    <div key={client.id} className="bg-gray-50 rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow">
-                                        <div className="flex items-center mb-4">
-                                            <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center">
-                                                <span className="text-lg font-medium text-primary-600">
-                                                    {client.name.charAt(0).toUpperCase()}
-                                                </span>
-                                            </div>
-                                            <div className="ml-4">
-                                                <h3 className="text-lg font-medium text-gray-900">{client.name}</h3>
-                                                <p className="text-sm text-gray-500">{client.user.email}</p>
-                                                <p className="text-xs text-gray-400">{client.kementrian}</p>
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="mb-4"> 
-                                            <div className="flex items-center justify-between text-sm">
-                                                <span className="text-gray-500">Kode Satker:</span>
-                                                <span className="text-gray-700">{client.kode_satker}</span>
-                                            </div>
-                                            <div className="flex items-center justify-between text-sm mt-1">
-                                                <span className="text-gray-500">Alamat:</span>
-                                                <span className="text-gray-700 text-right text-xs">{client.alamat}</span>
-                                            </div>
-                                            <div className="flex items-center justify-between text-sm mt-2">
-                                                <span className="text-gray-500">Bergabung:</span>
-                                                <span className="text-gray-700">{formatDate(client.created_at)}</span>
-                                            </div>
-                                        </div>
-
-                                        <Link
-                                            href={route('admin.project.show', client.id)}
-                                            className="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors inline-flex items-center justify-center"
-                                        >
-                                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            Lihat Data Project
-                                        </Link>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Empty State */}
-                            {clients.data.length === 0 && (
-                                <div className="text-center py-12">
-                                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                    </svg>
-                                    <h3 className="mt-2 text-sm font-medium text-gray-900">
-                                        {filters.search ? 'Tidak ada klien yang ditemukan' : 'Belum ada klien'}
-                                    </h3>
-                                    <p className="mt-1 text-sm text-gray-500">
-                                        {filters.search ? 'Coba ubah kata kunci pencarian Anda.' : 'Klien akan muncul di sini setelah terdaftar.'}
+            <div className="py-12">
+                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                        <div className="p-6 text-gray-900">
+                            <div className="flex justify-between items-center mb-6">
+                                <div>
+                                    <h3 className="text-lg font-medium text-gray-900 mb-2">Project Management</h3>
+                                    <p className="text-sm text-gray-600">
+                                        Kelola projects. Setiap project berisi working steps dan sub steps.
                                     </p>
                                 </div>
-                            )}
+                                <Link
+                                    href={route('admin.projects.bundles.create')}
+                                    className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                                >
+                                    Add New Project
+                                </Link>
+                            </div>
 
-                            {/* Pagination */}
-                            {clients.last_page > 1 && (
-                                <div className="mt-6 flex justify-between items-center">
-                                    <div className="text-sm text-gray-700">
-                                        Menampilkan {clients.data.length} dari {clients.total} klien
-                                    </div>
-                                    <div className="flex space-x-1">
-                                        {clients.links.map((link, index) => (
-                                            <button
-                                                key={index}
-                                                onClick={() => link.url && router.get(link.url)}
-                                                disabled={!link.url}
-                                                className={`px-3 py-2 text-sm rounded-md ${
-                                                    link.active
-                                                        ? 'bg-primary-600 text-white'
-                                                        : link.url
-                                                        ? 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                }`}
-                                                dangerouslySetInnerHTML={{ __html: link.label }}
-                                            />
-                                        ))}
+                            {bundles.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {bundles.map((bundle) => (
+                                        <div key={bundle.id} className="bg-gray-50 rounded-lg p-6 hover:bg-gray-100 transition-colors">
+                                            <div className="mb-4">
+                                                <h4 className="text-lg font-semibold text-gray-900">
+                                                    {bundle.name}
+                                                </h4>
+                                            </div>
+                                            
+                                            <p className="text-sm text-gray-600 mb-4">
+                                                Created: {new Date(bundle.created_at).toLocaleDateString('id-ID')}
+                                            </p>
+
+                                            <div className="flex flex-wrap gap-2">
+                                                <Link
+                                                    href={route('admin.projects.bundles.show', bundle.id)}
+                                                    className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                                                >
+                                                    <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    </svg>
+                                                    View Details
+                                                </Link>
+                                                <Link
+                                                    href={route('admin.projects.bundles.edit', bundle.id)}
+                                                    className="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                                                >
+                                                    <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                    Edit
+                                                </Link>
+                                                <Link
+                                                    href={route('admin.projects.bundles.destroy', bundle.id)}
+                                                    method="delete"
+                                                    as="button"
+                                                    className="inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                                                    onClick={(e) => {
+                                                        if (!confirm('Are you sure you want to delete this project?')) {
+                                                            e.preventDefault();
+                                                        }
+                                                    }}
+                                                >
+                                                    <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                    Delete
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12">
+                                    <div className="text-gray-500">
+                                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                        </svg>
+                                        <h3 className="mt-2 text-sm font-medium text-gray-900">No projects found</h3>
+                                        <p className="mt-1 text-sm text-gray-500">
+                                            Get started by creating your first project.
+                                        </p>
+                                        <div className="mt-6">
+                                            <Link
+                                                href={route('admin.projects.bundles.create')}
+                                                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
+                                            >
+                                                <svg className="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                </svg>
+                                                Add First Project
+                                            </Link>
+                                        </div>
                                     </div>
                                 </div>
                             )}

@@ -55,34 +55,9 @@ interface ProjectBundle {
     updated_at: string;
 }
 
-interface TeamMember {
-    id: number;
-    project_id: number;
-    user_id: number;
-    user_name: string;
-    user_email: string;
-    user_position: string | null;
-    role: 'partner' | 'manager' | 'supervisor' | 'team leader' | 'member';
-    user?: {
-        id: number;
-        name: string;
-        email: string;
-        position?: string;
-    };
-}
-
-interface AvailableUser {
-    id: number;
-    name: string;
-    email: string;
-    position: string | null;
-}
-
 interface Props extends PageProps {
     bundle: ProjectBundle;
     workingSteps: WorkingStep[];
-    teamMembers: TeamMember[];
-    availableUsers: AvailableUser[];
 }
 
 // Draggable Step Component
@@ -195,7 +170,7 @@ function DraggableSubStep({ subStep, onEdit, onDelete }: {
                         {subStep.name}
                     </h4>
                     
-                    {(subStep.client_interact || subStep.multiple_files) ? (
+                    {(subStep.client_interact || subStep.multiple_files) && (
                         <div className="flex flex-wrap gap-2 mt-2">
                             {subStep.client_interact && (
                                 <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
@@ -208,7 +183,7 @@ function DraggableSubStep({ subStep, onEdit, onDelete }: {
                                 </span>
                             )}
                         </div>
-                    ) : null}
+                    )}
                 </div>
 
                 <div className="flex items-center space-x-2 ml-4 flex-shrink-0">
@@ -242,21 +217,18 @@ function DraggableSubStep({ subStep, onEdit, onDelete }: {
     );
 }
 
-export default function Show({ auth, bundle, workingSteps, teamMembers, availableUsers }: Props) {
+export default function Show({ auth, bundle, workingSteps }: Props) {
     const [steps, setSteps] = useState(workingSteps || []);
-    const [activeStep, setActiveStep] = useState<WorkingStep | null>(null);
-    const [activeSubStep, setActiveSubStep] = useState<WorkingSubStep | null>(null);
+    const [activeStep, setActiveStep] = useState<TemplateWorkingStep | null>(null);
+    const [activeSubStep, setActiveSubStep] = useState<TemplateWorkingSubStep | null>(null);
     const [showAddStepModal, setShowAddStepModal] = useState(false);
     const [showAddSubStepModal, setShowAddSubStepModal] = useState(false);
     const [showEditStepModal, setShowEditStepModal] = useState(false);
     const [showEditSubStepModal, setShowEditSubStepModal] = useState(false);
     const [showEditTemplateModal, setShowEditTemplateModal] = useState(false);
-    const [showAddTeamMemberModal, setShowAddTeamMemberModal] = useState(false);
-    const [showEditTeamMemberModal, setShowEditTeamMemberModal] = useState(false);
     const [selectedStepId, setSelectedStepId] = useState<number | null>(null);
     const [editingStep, setEditingStep] = useState<{ id: number; name: string } | null>(null);
-    const [editingSubStep, setEditingSubStep] = useState<WorkingSubStep | null>(null);
-    const [editingTeamMember, setEditingTeamMember] = useState<TeamMember | null>(null);
+    const [editingSubStep, setEditingSubStep] = useState<TemplateWorkingSubStep | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [collapsedSteps, setCollapsedSteps] = useState<Set<number>>(new Set());
     const [dragHoverStepId, setDragHoverStepId] = useState<number | null>(null);
@@ -345,7 +317,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
 
     const { data: subStepData, setData: setSubStepData, post: postSubStep, reset: resetSubStep } = useForm({
         name: '',
-        working_step_id: 0,
+        template_working_step_id: 0,
     });
 
     const { data: editStepData, setData: setEditStepData, put: putStep, processing: editStepProcessing, errors: editStepErrors, reset: resetEditStep } = useForm({
@@ -363,20 +335,9 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         multiple_files: false,
     });
 
-    // Team Member Forms
-    const { data: teamMemberData, setData: setTeamMemberData, post: postTeamMember, reset: resetTeamMember } = useForm({
-        project_id: bundle.id,
-        user_id: 0,
-        role: 'member' as 'partner' | 'manager' | 'supervisor' | 'team leader' | 'member',
-    });
-
-    const { data: editTeamMemberData, setData: setEditTeamMemberData, put: putTeamMember, reset: resetEditTeamMember } = useForm({
-        role: 'member' as 'partner' | 'manager' | 'supervisor' | 'team leader' | 'member',
-    });
-
     const handleAddStep = (e: React.FormEvent) => {
         e.preventDefault();
-        postStep(route('admin.projects.working-steps.store'), {
+        postStep(route('admin.project-templates.template-working-steps.store'), {
             onSuccess: () => {
                 setShowAddStepModal(false);
                 resetStep();
@@ -388,7 +349,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
 
     const handleAddSubStep = (e: React.FormEvent) => {
         e.preventDefault();
-        postSubStep(route('admin.projects.working-sub-steps.store'), {
+        postSubStep(route('admin.project-templates.template-working-sub-steps.store'), {
             onSuccess: (response) => {
                 setShowAddSubStepModal(false);
                 resetSubStep();
@@ -396,7 +357,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                 // Reset form data manually
                 setSubStepData({
                     name: '',
-                    working_step_id: 0,
+                    template_working_step_id: 0,
                 });
                 router.reload(); // Refresh to get updated data
             },
@@ -408,17 +369,17 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
 
     const handleDeleteStep = (stepId: number) => {
         if (confirm('Are you sure you want to delete this working step and all its sub-steps?')) {
-            router.delete(route('admin.projects.working-steps.destroy', stepId));
+            router.delete(route('admin.project-templates.template-working-steps.destroy', stepId));
         }
     };
 
     const handleDeleteSubStep = (subStepId: number) => {
         if (confirm('Are you sure you want to delete this sub-step?')) {
-            router.delete(route('admin.projects.working-sub-steps.destroy', subStepId));
+            router.delete(route('admin.project-templates.template-working-sub-steps.destroy', subStepId));
         }
     };
 
-    const handleEditSubStep = (subStep: WorkingSubStep) => {
+    const handleEditSubStep = (subStep: TemplateWorkingSubStep) => {
         setEditingSubStep(subStep);
         setEditSubStepData({
             name: subStep.name,
@@ -428,7 +389,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         setShowEditSubStepModal(true);
     };
 
-    const handleEditStep = (step: WorkingStep) => {
+    const handleEditStep = (step: TemplateWorkingStep) => {
         setEditingStep({ id: step.id, name: step.name });
         setEditStepData({
             name: step.name,
@@ -440,7 +401,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         e.preventDefault();
         if (!editingStep) return;
         
-        putStep(route('admin.projects.working-steps.update', editingStep.id), {
+        putStep(route('admin.project-templates.template-working-steps.update', editingStep.id), {
             onSuccess: () => {
                 setShowEditStepModal(false);
                 setEditingStep(null);
@@ -461,7 +422,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     const handleUpdateTemplate = (e: React.FormEvent) => {
         e.preventDefault();
         
-        putTemplate(route('admin.projects.bundles.update', bundle.id), {
+        putTemplate(route('admin.project-templates.template-bundles.update', bundle.id), {
             onSuccess: () => {
                 setShowEditTemplateModal(false);
                 resetEditTemplate();
@@ -475,7 +436,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         e.preventDefault();
         if (!editingSubStep) return;
         
-        putSubStep(route('admin.projects.working-sub-steps.update', editingSubStep.id), {
+        putSubStep(route('admin.project-templates.template-working-sub-steps.update', editingSubStep.id), {
             onSuccess: () => {
                 setShowEditSubStepModal(false);
                 setEditingSubStep(null);
@@ -484,51 +445,6 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                 router.reload();
             },
         });
-    };
-
-    // Team Member Handlers
-    const handleAddTeamMember = (e: React.FormEvent) => {
-        e.preventDefault();
-        postTeamMember(route('admin.projects.team-members.store'), {
-            onSuccess: () => {
-                setShowAddTeamMemberModal(false);
-                resetTeamMember();
-                setTeamMemberData({
-                    project_id: bundle.id,
-                    user_id: 0,
-                    role: 'member',
-                });
-                router.reload();
-            },
-        });
-    };
-
-    const handleEditTeamMember = (member: TeamMember) => {
-        setEditingTeamMember(member);
-        setEditTeamMemberData({
-            role: member.role,
-        });
-        setShowEditTeamMemberModal(true);
-    };
-
-    const handleUpdateTeamMember = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!editingTeamMember) return;
-        
-        putTeamMember(route('admin.projects.team-members.update', editingTeamMember.id), {
-            onSuccess: () => {
-                setShowEditTeamMemberModal(false);
-                setEditingTeamMember(null);
-                resetEditTeamMember();
-                router.reload();
-            },
-        });
-    };
-
-    const handleDeleteTeamMember = (memberId: number) => {
-        if (confirm('Are you sure you want to remove this team member?')) {
-            router.delete(route('admin.projects.team-members.destroy', memberId));
-        }
     };
 
     // Toggle collapse state for a step
@@ -567,7 +483,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         if (String(active.id).startsWith('substep-')) {
             const subStepId = Number(String(active.id).replace('substep-', ''));
             for (const step of steps) {
-                const subStep = step.working_sub_steps?.find(ss => ss.id === subStepId);
+                const subStep = step.template_working_sub_steps?.find(ss => ss.id === subStepId);
                 if (subStep) {
                     setActiveSubStep(subStep);
                     return;
@@ -620,7 +536,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                     order: step.order
                 }));
 
-                fetch(route('admin.projects.working-steps.reorder'), {
+                fetch(route('admin.project-templates.template-working-steps.reorder'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -649,7 +565,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
             let sourceStepId = 0;
             let activeSubStepObj = null;
             for (const step of steps) {
-                const subStep = step.working_sub_steps?.find(ss => ss.id === activeSubStepId);
+                const subStep = step.template_working_sub_steps?.find(ss => ss.id === activeSubStepId);
                 if (subStep) {
                     activeSubStepObj = subStep;
                     sourceStepId = step.id;
@@ -670,7 +586,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                 // Dropped on another substep - find its parent step
                 targetSubStepId = Number(String(over.id).replace('substep-', ''));
                 for (const step of steps) {
-                    if (step.working_sub_steps?.some(ss => ss.id === targetSubStepId)) {
+                    if (step.template_working_sub_steps?.some(ss => ss.id === targetSubStepId)) {
                         targetStepId = step.id;
                         break;
                     }
@@ -682,20 +598,20 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
             // Case 1: Reordering within the same step
             if (sourceStepId === targetStepId && targetSubStepId) {
                 const sourceStep = newSteps.find(s => s.id === sourceStepId);
-                if (sourceStep?.working_sub_steps) {
-                    const oldIndex = sourceStep.working_sub_steps.findIndex(ss => ss.id === activeSubStepId);
-                    const newIndex = sourceStep.working_sub_steps.findIndex(ss => ss.id === targetSubStepId);
+                if (sourceStep?.template_working_sub_steps) {
+                    const oldIndex = sourceStep.template_working_sub_steps.findIndex(ss => ss.id === activeSubStepId);
+                    const newIndex = sourceStep.template_working_sub_steps.findIndex(ss => ss.id === targetSubStepId);
                     
                     if (oldIndex !== newIndex && oldIndex > -1 && newIndex > -1) {
                         // Use arrayMove for proper reordering
-                        sourceStep.working_sub_steps = arrayMove(
-                            sourceStep.working_sub_steps, 
+                        sourceStep.template_working_sub_steps = arrayMove(
+                            sourceStep.template_working_sub_steps, 
                             oldIndex, 
                             newIndex
                         );
                         
                         // Update order numbers
-                        sourceStep.working_sub_steps = sourceStep.working_sub_steps.map((ss, index) => ({
+                        sourceStep.template_working_sub_steps = sourceStep.template_working_sub_steps.map((ss, index) => ({
                             ...ss,
                             order: index + 1
                         }));
@@ -705,41 +621,41 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
             // Case 2: Moving to a different step
             else if (sourceStepId !== targetStepId) {
                 const sourceStep = newSteps.find(s => s.id === sourceStepId);
-                if (sourceStep?.working_sub_steps) {
-                    const subStepIndex = sourceStep.working_sub_steps.findIndex(ss => ss.id === activeSubStepId);
+                if (sourceStep?.template_working_sub_steps) {
+                    const subStepIndex = sourceStep.template_working_sub_steps.findIndex(ss => ss.id === activeSubStepId);
                     if (subStepIndex > -1) {
-                        const [movedSubStep] = sourceStep.working_sub_steps.splice(subStepIndex, 1);
+                        const [movedSubStep] = sourceStep.template_working_sub_steps.splice(subStepIndex, 1);
                         
                         // Add to target step
                         const targetStepObj = newSteps.find(s => s.id === targetStepId);
                         if (targetStepObj) {
-                            if (!targetStepObj.working_sub_steps) {
-                                targetStepObj.working_sub_steps = [];
+                            if (!targetStepObj.template_working_sub_steps) {
+                                targetStepObj.template_working_sub_steps = [];
                             }
                             
                             // Update substep's step reference
-                            movedSubStep.working_step_id = targetStepId;
+                            movedSubStep.template_working_step_id = targetStepId;
                             
                             // Insert at correct position if dropped on another substep
                             if (targetSubStepId) {
-                                const targetIndex = targetStepObj.working_sub_steps.findIndex(ss => ss.id === targetSubStepId);
+                                const targetIndex = targetStepObj.template_working_sub_steps.findIndex(ss => ss.id === targetSubStepId);
                                 if (targetIndex > -1) {
-                                    targetStepObj.working_sub_steps.splice(targetIndex, 0, movedSubStep);
+                                    targetStepObj.template_working_sub_steps.splice(targetIndex, 0, movedSubStep);
                                 } else {
-                                    targetStepObj.working_sub_steps.push(movedSubStep);
+                                    targetStepObj.template_working_sub_steps.push(movedSubStep);
                                 }
                             } else {
-                                targetStepObj.working_sub_steps.push(movedSubStep);
+                                targetStepObj.template_working_sub_steps.push(movedSubStep);
                             }
 
                             // Reorder substeps in target step
-                            targetStepObj.working_sub_steps = targetStepObj.working_sub_steps.map((ss, index) => ({
+                            targetStepObj.template_working_sub_steps = targetStepObj.template_working_sub_steps.map((ss, index) => ({
                                 ...ss,
                                 order: index + 1
                             }));
 
                             // Reorder remaining substeps in source step
-                            sourceStep.working_sub_steps = sourceStep.working_sub_steps.map((ss, index) => ({
+                            sourceStep.template_working_sub_steps = sourceStep.template_working_sub_steps.map((ss, index) => ({
                                 ...ss,
                                 order: index + 1
                             }));
@@ -753,18 +669,18 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
             // Send all affected substeps to backend
             const allSubSteps: any[] = [];
             newSteps.forEach(step => {
-                if (step.working_sub_steps) {
-                    step.working_sub_steps.forEach(ss => {
+                if (step.template_working_sub_steps) {
+                    step.template_working_sub_steps.forEach(ss => {
                         allSubSteps.push({
                             id: ss.id,
                             order: ss.order,
-                            working_step_id: ss.working_step_id
+                            template_working_step_id: ss.template_working_step_id
                         });
                     });
                 }
             });
 
-            fetch(route('admin.projects.working-sub-steps.reorder'), {
+            fetch(route('admin.project-templates.template-working-sub-steps.reorder'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -812,32 +728,32 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                 <div className="flex justify-between items-center">
                     <div>
                         <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                            {bundle.name} - Project Steps
+                            {bundle.name} - Template Steps
                         </h2>
                         <p className="text-sm text-gray-600 mt-1">
                             {steps?.length || 0} working steps
                         </p>
                     </div>
                     <Link
-                        href={route('admin.projects.bundles.index')}
+                        href={route('admin.project-templates.template-bundles.index')}
                         className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                     >
-                        Back to Projects
+                        Back to Templates
                     </Link>
                 </div>
             }
         >
-            <Head title={`${bundle.name} - Project Steps`} />
+            <Head title={`${bundle.name} - Template Steps`} />
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
                     
-                    {/* Project Name Header */}
+                    {/* Project Template Name Header */}
                     <div className="mb-6">
                         <div className="bg-white shadow-sm sm:rounded-lg p-6">
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <h3 className="text-lg font-medium text-gray-900 mb-2">Project Name</h3>
+                                    <h3 className="text-lg font-medium text-gray-900 mb-2">Project Template Name</h3>
                                     <p className="text-xl font-semibold text-gray-800">{bundle.name}</p>
                                 </div>
                                 <button
@@ -847,89 +763,9 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
-                                    Edit Project Name
+                                    Edit Template Name
                                 </button>
                             </div>
-                        </div>
-                    </div>
-
-
-                    {/* Team Members Section */}
-                    <div className="mb-6">
-                        <div className="bg-white shadow-sm sm:rounded-lg p-6">
-                            <div className="flex justify-between items-center mb-4">
-                                <div>
-                                    <h3 className="text-lg font-medium text-gray-900">Team Members</h3>
-                                    <p className="text-sm text-gray-600">Manage team members and their roles in this project</p>
-                                </div>
-                                <button 
-                                    onClick={() => setShowAddTeamMemberModal(true)}
-                                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors inline-flex items-center"
-                                >
-                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                    </svg>
-                                    Add Team Member
-                                </button>
-                            </div>
-
-                            {teamMembers && teamMembers.length > 0 ? (
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
-                                            {teamMembers.map((member) => (
-                                                <tr key={member.id} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{member.user_name}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{member.user_email}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{member.user_position || '-'}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                            member.role === 'partner' ? 'bg-purple-100 text-purple-800' :
-                                                            member.role === 'manager' ? 'bg-blue-100 text-blue-800' :
-                                                            member.role === 'supervisor' ? 'bg-indigo-100 text-indigo-800' :
-                                                            member.role === 'team leader' ? 'bg-green-100 text-green-800' :
-                                                            'bg-gray-100 text-gray-800'
-                                                        }`}>
-                                                            {member.role}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                        <button
-                                                            onClick={() => handleEditTeamMember(member)}
-                                                            className="text-indigo-600 hover:text-indigo-900 mr-4"
-                                                        >
-                                                            Edit Role
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteTeamMember(member.id)}
-                                                            className="text-red-600 hover:text-red-900"
-                                                        >
-                                                            Remove
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ) : (
-                                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                                    </svg>
-                                    <h3 className="mt-2 text-sm font-medium text-gray-900">No team members</h3>
-                                    <p className="mt-1 text-sm text-gray-500">Get started by adding team members to this project.</p>
-                                </div>
-                            )}
                         </div>
                     </div>
 
@@ -972,7 +808,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                 <button 
                                                     onClick={() => {
                                                         setSelectedStepId(step.id);
-                                                        setSubStepData('working_step_id', step.id);
+                                                        setSubStepData('template_working_step_id', step.id);
                                                         setShowAddSubStepModal(true);
                                                     }}
                                                     className="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
@@ -1011,10 +847,10 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                 </div>
                                                 <div className="space-y-1">
                                                     <SortableContext 
-                                                        items={(step.working_sub_steps || []).map(ss => `substep-${ss.id}`)} 
+                                                        items={(step.template_working_sub_steps || []).map(ss => `substep-${ss.id}`)} 
                                                         strategy={verticalListSortingStrategy}
                                                     >
-                                                        {(step.working_sub_steps || []).map((subStep) => (
+                                                        {(step.template_working_sub_steps || []).map((subStep) => (
                                                             <DraggableSubStep
                                                                 key={subStep.id}
                                                                 subStep={subStep}
@@ -1031,13 +867,13 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         {collapsedSteps.has(step.id) && (
                                             <div className="px-6 py-3 bg-gray-50 border-t cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => toggleStepCollapse(step.id)}>
                                                 <p className="text-sm text-gray-500 text-center">
-                                                    {step.working_sub_steps ? step.working_sub_steps.length : 0} sub-step{(step.working_sub_steps ? step.working_sub_steps.length : 0) !== 1 ? 's' : ''} hidden • Click to expand
+                                                    {step.template_working_sub_steps ? step.template_working_sub_steps.length : 0} sub-step{(step.template_working_sub_steps ? step.template_working_sub_steps.length : 0) !== 1 ? 's' : ''} hidden • Click to expand
                                                 </p>
                                             </div>
                                         )}
 
                                         {/* Empty Sub Steps State - only show when expanded */}
-                                        {!collapsedSteps.has(step.id) && (!step.working_sub_steps || step.working_sub_steps.length === 0) && (
+                                        {!collapsedSteps.has(step.id) && (!step.template_working_sub_steps || step.template_working_sub_steps.length === 0) && (
                                             <div className="px-4 pb-4">
                                                 <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg mx-2">
                                                     <p>No sub steps yet. Click "Add Sub Step" to get started.</p>
@@ -1189,7 +1025,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
             {showEditTemplateModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h3 className="text-lg font-semibold mb-4">Edit Project Name</h3>
+                        <h3 className="text-lg font-semibold mb-4">Edit Project Template Name</h3>
                         <form onSubmit={handleUpdateTemplate} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">
@@ -1222,7 +1058,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     disabled={editTemplateProcessing}
                                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50"
                                 >
-                                    {editTemplateProcessing ? 'Updating...' : 'Update Project'}
+                                    {editTemplateProcessing ? 'Updating...' : 'Update Template'}
                                 </button>
                             </div>
                         </form>
@@ -1336,130 +1172,6 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
                                     >
                                         Update Sub Step
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Add Team Member Modal */}
-            {showAddTeamMemberModal && (
-                <div className="fixed inset-0 z-50 overflow-y-auto">
-                    <div className="flex items-center justify-center min-h-screen px-4">
-                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowAddTeamMemberModal(false)}></div>
-                        <div className="relative bg-white rounded-lg max-w-md w-full">
-                            <form onSubmit={handleAddTeamMember} className="p-6">
-                                <h3 className="text-lg font-medium text-gray-900 mb-4">Add Team Member</h3>
-                                
-                                <div className="space-y-4">
-                                    <div>
-                                        <label htmlFor="user_id" className="block text-sm font-medium text-gray-700 mb-2">
-                                            Select User
-                                        </label>
-                                        <select
-                                            id="user_id"
-                                            value={teamMemberData.user_id}
-                                            onChange={(e) => setTeamMemberData('user_id', parseInt(e.target.value))}
-                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                            required
-                                        >
-                                            <option value={0}>Select a user...</option>
-                                            {availableUsers.map((user) => (
-                                                <option key={user.id} value={user.id}>
-                                                    {user.name} ({user.email})
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
-                                            Role in Project
-                                        </label>
-                                        <select
-                                            id="role"
-                                            value={teamMemberData.role}
-                                            onChange={(e) => setTeamMemberData('role', e.target.value as any)}
-                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                            required
-                                        >
-                                            <option value="member">Member</option>
-                                            <option value="team leader">Team Leader</option>
-                                            <option value="supervisor">Supervisor</option>
-                                            <option value="manager">Manager</option>
-                                            <option value="partner">Partner</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div className="flex justify-end space-x-3 mt-6">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowAddTeamMemberModal(false)}
-                                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
-                                    >
-                                        Add Member
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Edit Team Member Modal */}
-            {showEditTeamMemberModal && editingTeamMember && (
-                <div className="fixed inset-0 z-50 overflow-y-auto">
-                    <div className="flex items-center justify-center min-h-screen px-4">
-                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowEditTeamMemberModal(false)}></div>
-                        <div className="relative bg-white rounded-lg max-w-md w-full">
-                            <form onSubmit={handleUpdateTeamMember} className="p-6">
-                                <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Team Member Role</h3>
-                                
-                                <div className="mb-4">
-                                    <p className="text-sm text-gray-600 mb-4">
-                                        <strong>Member:</strong> {editingTeamMember.user_name}
-                                    </p>
-                                    
-                                    <label htmlFor="edit_role" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Role in Project
-                                    </label>
-                                    <select
-                                        id="edit_role"
-                                        value={editTeamMemberData.role}
-                                        onChange={(e) => setEditTeamMemberData('role', e.target.value as any)}
-                                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                        required
-                                    >
-                                        <option value="member">Member</option>
-                                        <option value="team leader">Team Leader</option>
-                                        <option value="supervisor">Supervisor</option>
-                                        <option value="manager">Manager</option>
-                                        <option value="partner">Partner</option>
-                                    </select>
-                                </div>
-
-                                <div className="flex justify-end space-x-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowEditTeamMemberModal(false)}
-                                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
-                                    >
-                                        Update Role
                                     </button>
                                 </div>
                             </form>
