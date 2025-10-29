@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { useState, useEffect } from 'react';
+import SearchableSelect from '@/Components/SearchableSelect';
 import {
     DndContext,
     closestCenter,
@@ -46,11 +47,26 @@ interface WorkingSubStep {
     client_comment?: string;
     client_interact: boolean;
     multiple_files: boolean;
+    sub_step_workers?: SubStepWorker[];
+}
+
+interface SubStepWorker {
+    id: number;
+    working_sub_step_id: number;
+    project_team_id: number;
+    worker_name: string;
+    worker_email: string;
+    worker_role: string;
 }
 
 interface ProjectBundle {
     id: number;
     name: string;
+    client_id: number | null;
+    client_name: string | null;
+    client_alamat: string | null;
+    client_kementrian: string | null;
+    client_kode_satker: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -78,11 +94,20 @@ interface AvailableUser {
     position: string | null;
 }
 
+interface Client {
+    id: number;
+    name: string;
+    alamat: string;
+    kementrian: string;
+    kode_satker: string;
+}
+
 interface Props extends PageProps {
     bundle: ProjectBundle;
     workingSteps: WorkingStep[];
     teamMembers: TeamMember[];
     availableUsers: AvailableUser[];
+    clients: Client[];
 }
 
 // Draggable Step Component
@@ -195,20 +220,36 @@ function DraggableSubStep({ subStep, onEdit, onDelete }: {
                         {subStep.name}
                     </h4>
                     
-                    {(subStep.client_interact || subStep.multiple_files) ? (
+                    {(!!subStep.client_interact || !!subStep.multiple_files || (subStep.sub_step_workers && subStep.sub_step_workers.length > 0)) && (
                         <div className="flex flex-wrap gap-2 mt-2">
-                            {subStep.client_interact && (
+                            {!!subStep.client_interact && (
                                 <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
                                     Client Interact
                                 </span>
                             )}
-                            {subStep.multiple_files && (
+                            {!!subStep.multiple_files && (
                                 <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
                                     Multiple Files
                                 </span>
                             )}
+                            {subStep.sub_step_workers && subStep.sub_step_workers.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                    {subStep.sub_step_workers.map((worker, index) => (
+                                        <span 
+                                            key={index}
+                                            className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800"
+                                            title={`${worker.worker_email} - ${worker.worker_role}`}
+                                        >
+                                            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                            </svg>
+                                            {worker.worker_name}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                    ) : null}
+                    )}
                 </div>
 
                 <div className="flex items-center space-x-2 ml-4 flex-shrink-0">
@@ -242,7 +283,7 @@ function DraggableSubStep({ subStep, onEdit, onDelete }: {
     );
 }
 
-export default function Show({ auth, bundle, workingSteps, teamMembers, availableUsers }: Props) {
+export default function Show({ auth, bundle, workingSteps, teamMembers, availableUsers, clients }: Props) {
     const [steps, setSteps] = useState(workingSteps || []);
     const [activeStep, setActiveStep] = useState<WorkingStep | null>(null);
     const [activeSubStep, setActiveSubStep] = useState<WorkingSubStep | null>(null);
@@ -355,12 +396,14 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     // Edit Template Form
     const { data: editTemplateData, setData: setEditTemplateData, put: putTemplate, processing: editTemplateProcessing, errors: editTemplateErrors, reset: resetEditTemplate } = useForm({
         name: '',
+        client_id: 0,
     });
 
     const { data: editSubStepData, setData: setEditSubStepData, put: putSubStep, reset: resetEditSubStep } = useForm({
         name: '',
         client_interact: false,
         multiple_files: false,
+        worker_ids: [] as number[],
     });
 
     // Team Member Forms
@@ -420,10 +463,16 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
 
     const handleEditSubStep = (subStep: WorkingSubStep) => {
         setEditingSubStep(subStep);
+        
+        // Filter worker_ids to only include team members that still exist
+        const validWorkerIds = (subStep.sub_step_workers?.map(w => w.project_team_id) || [])
+            .filter(workerId => teamMembers.some(member => member.id === workerId));
+        
         setEditSubStepData({
             name: subStep.name,
             client_interact: subStep.client_interact,
             multiple_files: subStep.multiple_files,
+            worker_ids: validWorkerIds,
         });
         setShowEditSubStepModal(true);
     };
@@ -454,6 +503,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     const handleEditTemplate = () => {
         setEditTemplateData({
             name: bundle.name,
+            client_id: bundle.client_id || 0,
         });
         setShowEditTemplateModal(true);
     };
@@ -835,19 +885,55 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                     {/* Project Name Header */}
                     <div className="mb-6">
                         <div className="bg-white shadow-sm sm:rounded-lg p-6">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <h3 className="text-lg font-medium text-gray-900 mb-2">Project Name</h3>
-                                    <p className="text-xl font-semibold text-gray-800">{bundle.name}</p>
+                            <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                    <div className="mb-4">
+                                        <h3 className="text-lg font-medium text-gray-900 mb-2">Project Name</h3>
+                                        <p className="text-xl font-semibold text-gray-800">{bundle.name}</p>
+                                    </div>
+                                    
+                                    <div className="border-t pt-4">
+                                        <h3 className="text-lg font-medium text-gray-900 mb-3">Client Information</h3>
+                                        {bundle.client_name ? (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-500">Client Name</p>
+                                                    <p className="text-base text-gray-900">{bundle.client_name}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-500">Kementrian</p>
+                                                    <p className="text-base text-gray-900">{bundle.client_kementrian}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-500">Alamat</p>
+                                                    <p className="text-base text-gray-900">{bundle.client_alamat}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-500">Kode Satker</p>
+                                                    <p className="text-base text-gray-900">{bundle.client_kode_satker}</p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center justify-center py-8 text-gray-500">
+                                                <div className="text-center">
+                                                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                    </svg>
+                                                    <p className="mt-2 text-sm">No client assigned yet</p>
+                                                    <p className="text-xs text-gray-400">Click "Edit Project" to assign a client</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 <button
                                     onClick={handleEditTemplate}
-                                    className="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                                    className="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors ml-4"
                                 >
                                     <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
-                                    Edit Project Name
+                                    Edit Project
                                 </button>
                             </div>
                         </div>
@@ -1189,11 +1275,11 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
             {showEditTemplateModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h3 className="text-lg font-semibold mb-4">Edit Project Name</h3>
+                        <h3 className="text-lg font-semibold mb-4">Edit Project</h3>
                         <form onSubmit={handleUpdateTemplate} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">
-                                    Template Name
+                                    Project Name
                                 </label>
                                 <input
                                     type="text"
@@ -1204,6 +1290,24 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                 />
                                 {editTemplateErrors.name && (
                                     <p className="mt-1 text-sm text-red-600">{editTemplateErrors.name}</p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Client
+                                </label>
+                                <SearchableSelect
+                                    options={clients.map((client) => ({
+                                        value: client.id,
+                                        label: client.name,
+                                        subtitle: `${client.kementrian} - ${client.alamat}`,
+                                    }))}
+                                    value={editTemplateData.client_id}
+                                    onChange={(value) => setEditTemplateData('client_id', value as number)}
+                                    placeholder="Select Client"
+                                />
+                                {editTemplateErrors.client_id && (
+                                    <p className="mt-1 text-sm text-red-600">{editTemplateErrors.client_id}</p>
                                 )}
                             </div>
                             <div className="flex justify-end space-x-3 pt-4">
@@ -1320,6 +1424,23 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                             />
                                             <span className="ml-2 text-sm text-gray-700">Multiple Files</span>
                                         </label>
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="workers" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Assign Team Members
+                                        </label>
+                                        <SearchableSelect
+                                            multiple={true}
+                                            options={teamMembers.map(member => ({
+                                                value: member.id,
+                                                label: member.user_name,
+                                                subtitle: `${member.user_email} - ${member.role}`,
+                                            }))}
+                                            value={editSubStepData.worker_ids}
+                                            onChange={(value) => setEditSubStepData('worker_ids', value as number[])}
+                                            placeholder="Select team members..."
+                                        />
                                     </div>
                                 </div>
 
