@@ -8,10 +8,10 @@ interface TemplateWorkingStep {
     slug: string;
     order: number;
     project_template_id: number;
-    template_working_sub_steps?: TemplateWorkingSubStep[];
+    template_tasks?: TemplateTask[];
 }
 
-interface TemplateWorkingSubStep {
+interface TemplateTask {
     id: number;
     name: string;
     slug: string;
@@ -137,7 +137,7 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                                         {step.name}
                                                     </h4>
                                                     <p className="text-sm text-gray-500">
-                                                        {step.template_working_sub_steps?.length || 0} sub-steps
+                                                        {step.template_tasks?.length || 0} tasks
                                                     </p>
                                                 </div>
                                             </div>
@@ -145,34 +145,34 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                     </div>
 
                                     {/* Sub Steps List - Read Only */}
-                                    {step.template_working_sub_steps && step.template_working_sub_steps.length > 0 && (
+                                    {step.template_tasks && step.template_tasks.length > 0 && (
                                         <div className="p-6">
-                                            <h5 className="text-sm font-medium text-gray-700 mb-4">Sub Steps:</h5>
+                                            <h5 className="text-sm font-medium text-gray-700 mb-4">Tasks:</h5>
                                             <div className="space-y-3">
-                                                {step.template_working_sub_steps
+                                                {step.template_tasks
                                                     .sort((a, b) => a.order - b.order)
-                                                    .map((subStep, subStepIndex) => (
+                                                    .map((task, taskIndex) => (
                                                     <div
-                                                        key={subStep.id}
+                                                        key={task.id}
                                                         className="flex items-start justify-between p-4 bg-gray-50 rounded-lg border"
                                                     >
                                                         <div className="flex items-start space-x-3">
                                                             <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 text-gray-600 text-xs font-medium">
-                                                                {subStepIndex + 1}
+                                                                {taskIndex + 1}
                                                             </span>
                                                             <div>
                                                                 <h6 className="text-sm font-medium text-gray-900">
-                                                                    {subStep.name}
+                                                                    {task.name}
                                                                 </h6>
                                                                 
-                                                                {(subStep.client_interact || subStep.multiple_files) && (
+                                                                {(task.client_interact || task.multiple_files) && (
                                                                     <div className="flex flex-wrap gap-2 mt-2">
-                                                                        {subStep.client_interact && (
+                                                                        {task.client_interact && (
                                                                             <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
                                                                                 Client Interact
                                                                             </span>
                                                                         )}
-                                                                        {subStep.multiple_files && (
+                                                                        {task.multiple_files && (
                                                                             <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
                                                                                 Multiple Files
                                                                             </span>
@@ -187,10 +187,10 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                         </div>
                                     )}
 
-                                    {/* Empty Sub Steps State */}
-                                    {(!step.template_working_sub_steps || step.template_working_sub_steps.length === 0) && (
+                                    {/* Empty Tasks State */}
+                                    {(!step.template_tasks || step.template_tasks.length === 0) && (
                                         <div className="p-6 text-center text-gray-500">
-                                            <p className="text-sm">No sub-steps defined for this step</p>
+                                            <p className="text-sm">No tasks defined for this step</p>
                                         </div>
                                     )}
                                 </div>

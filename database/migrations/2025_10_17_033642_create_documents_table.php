@@ -15,11 +15,11 @@ return new class extends Migration
             $table->id();
             
             // Foreign key reference (nullable untuk denormalisasi)
-            $table->unsignedBigInteger('working_sub_step_id')->nullable();
-            $table->foreign('working_sub_step_id')->references('id')->on('working_sub_steps')->onDelete('set null');
+            $table->unsignedBigInteger('task_id')->nullable();
+            $table->foreign('task_id')->references('id')->on('tasks')->onDelete('set null');
             
             // Denormalized working sub step data
-            $table->string('working_sub_step_name');
+            $table->string('task_name');
             $table->string('working_step_name');
             $table->string('project_name');
             $table->string('project_client_name');

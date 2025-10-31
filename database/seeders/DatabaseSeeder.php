@@ -26,12 +26,12 @@ class DatabaseSeeder extends Seeder
             // Create projects (needs clients)
             ProjectSeeder::class,
             
-            // Create working steps and sub steps (needs projects for denormalized data)
+            // Create working steps and tasks (needs projects for denormalized data)
             WorkingStepSeeder::class,
-            WorkingSubStepSeeder::class,
+            TaskSeeder::class,
             
-            // Create sub step workers (needs working sub steps and project teams)
-            SubStepWorkerSeeder::class,
+            // Create task workers (needs tasks and project teams)
+            TaskWorkerSeeder::class,
             
             // Other seeders
             RegisteredApSeeder::class,

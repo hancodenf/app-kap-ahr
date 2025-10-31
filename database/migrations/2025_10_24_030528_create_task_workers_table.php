@@ -11,17 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('sub_step_workers', function (Blueprint $table) {
+        Schema::create('task_workers', function (Blueprint $table) {
             $table->id();
             
             // Foreign key references (nullable untuk denormalisasi)
-            $table->unsignedBigInteger('working_sub_step_id')->nullable();
-            $table->foreign('working_sub_step_id')->references('id')->on('working_sub_steps')->onDelete('set null');
+            $table->unsignedBigInteger('task_id')->nullable();
+            $table->foreign('task_id')->references('id')->on('tasks')->onDelete('set null');
             $table->unsignedBigInteger('project_team_id')->nullable();
             $table->foreign('project_team_id')->references('id')->on('project_teams')->onDelete('set null');
             
             // Denormalized working sub step data
-            $table->string('working_sub_step_name');
+            $table->string('task_name');
             $table->string('working_step_name');
             $table->string('project_name');
             $table->string('project_client_name');
@@ -40,6 +40,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('sub_step_workers');
+        Schema::dropIfExists('task_workers');
     }
 };

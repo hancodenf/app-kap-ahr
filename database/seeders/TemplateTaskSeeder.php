@@ -5,10 +5,10 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\TemplateWorkingStep;
-use App\Models\TemplateWorkingSubStep;
+use App\Models\TemplateTask;
 use Illuminate\Support\Str;
 
-class TemplateWorkingSubStepSeeder extends Seeder
+class TemplateTaskSeeder extends Seeder
 {
     /**
      * Run the database seeder.
@@ -18,17 +18,17 @@ class TemplateWorkingSubStepSeeder extends Seeder
         // Perikatan
         $perikatan = TemplateWorkingStep::where('slug', 'perikatan')->first();
         if ($perikatan) {
-            $perikatanSubSteps = [
+            $perikatanTasks = [
                 'Penetapan KAP',
                 'Surat Perikatan',
                 'Penerimaan Klien',
                 'Evaluasi Kemampuan KAP'
             ];
 
-            foreach ($perikatanSubSteps as $subStep) {
-                TemplateWorkingSubStep::create([
-                    'name' => $subStep,
-                    'slug' => Str::slug($subStep),
+            foreach ($perikatanTasks as $task) {
+                TemplateTask::create([
+                    'name' => $task,
+                    'slug' => Str::slug($task),
                     'template_working_step_id' => $perikatan->id
                 ]);
             }
@@ -37,7 +37,7 @@ class TemplateWorkingSubStepSeeder extends Seeder
         // Perencanaan Audit
         $perencanaan = TemplateWorkingStep::where('slug', 'perencanaan-audit')->first();
         if ($perencanaan) {
-            $perencanaanSubSteps = [
+            $perencanaanTasks = [
                 'Pemahaman Entitas',
                 'Penilaian Risiko',
                 'Program Audit',
@@ -45,10 +45,10 @@ class TemplateWorkingSubStepSeeder extends Seeder
                 'Strategi Audit'
             ];
 
-            foreach ($perencanaanSubSteps as $subStep) {
-                TemplateWorkingSubStep::create([
-                    'name' => $subStep,
-                    'slug' => Str::slug($subStep),
+            foreach ($perencanaanTasks as $task) {
+                TemplateTask::create([
+                    'name' => $task,
+                    'slug' => Str::slug($task),
                     'template_working_step_id' => $perencanaan->id
                 ]);
             }
@@ -57,7 +57,7 @@ class TemplateWorkingSubStepSeeder extends Seeder
         // Pelaksanaan Audit
         $pelaksanaan = TemplateWorkingStep::where('slug', 'pelaksanaan-audit')->first();
         if ($pelaksanaan) {
-            $pelaksanaanSubSteps = [
+            $pelaksanaanTasks = [
                 'Test of Control',
                 'Substantive Test',
                 'Analytical Review',
@@ -65,10 +65,10 @@ class TemplateWorkingSubStepSeeder extends Seeder
                 'Cut-off Test'
             ];
 
-            foreach ($pelaksanaanSubSteps as $subStep) {
-                TemplateWorkingSubStep::create([
-                    'name' => $subStep,
-                    'slug' => Str::slug($subStep),
+            foreach ($pelaksanaanTasks as $task) {
+                TemplateTask::create([
+                    'name' => $task,
+                    'slug' => Str::slug($task),
                     'template_working_step_id' => $pelaksanaan->id
                 ]);
             }
@@ -77,17 +77,17 @@ class TemplateWorkingSubStepSeeder extends Seeder
         // Pelaporan
         $pelaporan = TemplateWorkingStep::where('slug', 'pelaporan')->first();
         if ($pelaporan) {
-            $pelaporanSubSteps = [
+            $pelaporanTasks = [
                 'Draft Laporan',
                 'Review Laporan',
                 'Laporan Final',
                 'Management Letter'
             ];
 
-            foreach ($pelaporanSubSteps as $subStep) {
-                TemplateWorkingSubStep::create([
-                    'name' => $subStep,
-                    'slug' => Str::slug($subStep),
+            foreach ($pelaporanTasks as $task) {
+                TemplateTask::create([
+                    'name' => $task,
+                    'slug' => Str::slug($task),
                     'template_working_step_id' => $pelaporan->id
                 ]);
             }
@@ -96,16 +96,16 @@ class TemplateWorkingSubStepSeeder extends Seeder
         // Tindak Lanjut
         $tindakLanjut = TemplateWorkingStep::where('slug', 'tindak-lanjut')->first();
         if ($tindakLanjut) {
-            $tindakLanjutSubSteps = [
+            $tindakLanjutTasks = [
                 'Follow Up Temuan',
                 'Evaluasi Implementasi',
                 'Review Perbaikan'
             ];
 
-            foreach ($tindakLanjutSubSteps as $subStep) {
-                TemplateWorkingSubStep::create([
-                    'name' => $subStep,
-                    'slug' => Str::slug($subStep),
+            foreach ($tindakLanjutTasks as $task) {
+                TemplateTask::create([
+                    'name' => $task,
+                    'slug' => Str::slug($task),
                     'template_working_step_id' => $tindakLanjut->id
                 ]);
             }

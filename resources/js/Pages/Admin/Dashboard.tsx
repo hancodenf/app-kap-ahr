@@ -32,7 +32,7 @@ interface AdminDashboardProps extends PageProps {
         };
         system: {
             working_steps: number;
-            working_sub_steps: number;
+            tasks: number;
             documents: number;
         };
     };
@@ -40,7 +40,7 @@ interface AdminDashboardProps extends PageProps {
         audits: Array<{
             id: number;
             working_step: { name: string };
-            working_sub_step: { name: string };
+            task: { name: string };
             status: string;
             created_at: string;
         }>;
@@ -155,7 +155,7 @@ export default function AdminDashboard({ user, statistics, recentActivities }: A
                                     <h4 className="font-medium text-orange-900 mb-1">Documents</h4>
                                     <p className="text-2xl font-bold text-orange-800">{statistics.system.documents}</p>
                                     <p className="text-sm text-orange-600 mt-1">
-                                        {statistics.system.working_steps} working_steps, {statistics.system.working_sub_steps} sub-working_steps
+                                        {statistics.system.working_steps} working_steps, {statistics.system.tasks} tasks
                                     </p>
                                 </div>
                                 <div className="bg-orange-100 p-3 rounded-full">
@@ -239,7 +239,7 @@ export default function AdminDashboard({ user, statistics, recentActivities }: A
                                         <div key={audit.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                                             <div>
                                                 <p className="text-sm font-medium text-gray-900">
-                                                    {audit.working_step.name} - {audit.working_sub_step.name}
+                                                    {audit.working_step.name} - {audit.task.name}
                                                 </p>
                                                 <p className="text-xs text-gray-500">{audit.status}</p>
                                             </div>

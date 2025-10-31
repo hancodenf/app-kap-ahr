@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class WorkingSubStep extends Model
+class Task extends Model
 {
     use HasFactory;
 
@@ -34,7 +34,7 @@ class WorkingSubStep extends Model
     ];
 
     /**
-     * Get the working step that owns the working sub step.
+     * Get the working step that owns the task.
      */
     public function workingStep(): BelongsTo
     {
@@ -42,7 +42,7 @@ class WorkingSubStep extends Model
     }
 
     /**
-     * Get the project that owns the working sub step.
+     * Get the project that owns the task.
      */
     public function project(): BelongsTo
     {
@@ -50,15 +50,15 @@ class WorkingSubStep extends Model
     }
 
     /**
-     * Get the sub step workers for the working sub step.
+     * Get the task workers for the task.
      */
-    public function subStepWorkers(): HasMany
+    public function taskWorkers(): HasMany
     {
-        return $this->hasMany(SubStepWorker::class);
+        return $this->hasMany(TaskWorker::class);
     }
 
     /**
-     * Get the documents for the working sub step.
+     * Get the documents for the task.
      */
     public function documents(): HasMany
     {

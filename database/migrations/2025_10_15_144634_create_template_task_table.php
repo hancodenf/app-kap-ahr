@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('template_working_sub_steps', function (Blueprint $table) {
+        Schema::create('template_tasks', function (Blueprint $table) {
             $table->id();
             $table->integer('order')->default(0);
             $table->string('name');
@@ -34,6 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('template_working_sub_steps');
+        Schema::dropIfExists('template_tasks');
     }
 };

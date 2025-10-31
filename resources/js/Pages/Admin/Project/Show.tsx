@@ -8,10 +8,10 @@ interface WorkingStep {
     slug: string;
     order: number;
     project_id: number;
-    working_sub_steps?: WorkingSubStep[];
+    tasks?: Task[];
 }
 
-interface WorkingSubStep {
+interface Task {
     id: number;
     name: string;
     slug: string;
@@ -23,21 +23,21 @@ interface WorkingSubStep {
     client_comment?: string;
     client_interact: boolean;
     multiple_files: boolean;
-    sub_step_workers?: SubStepWorker[];
+    task_workers?: TaskWorker[];
 }
 
-interface SubStepWorker {
+interface TaskWorker {
     id: number;
-    working_sub_step_id: number;
+    task_id: number;
     project_team_id: number;
-    working_sub_step_name: string;
+    task_name: string;
     working_step_name: string;
     project_name: string;
     project_client_name: string;
     worker_name: string;
     worker_email: string;
     worker_role: string;
-    working_sub_step?: WorkingSubStep;
+    task?: Task;
 }
 
 interface TeamMember {
@@ -48,7 +48,7 @@ interface TeamMember {
     user_email: string;
     user_position: string | null;
     role: 'partner' | 'manager' | 'supervisor' | 'team leader' | 'member';
-    sub_step_workers?: SubStepWorker[];
+    task_workers?: TaskWorker[];
 }
 
 interface ProjectBundle {
@@ -209,15 +209,15 @@ export default function Show({ auth, bundle, workingSteps, teamMembers }: Props)
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        {member.sub_step_workers && member.sub_step_workers.length > 0 ? (
+                                                        {member.task_workers && member.task_workers.length > 0 ? (
                                                             <div className="flex flex-wrap gap-1">
-                                                                {member.sub_step_workers.map((worker) => (
+                                                                {member.task_workers.map((worker) => (
                                                                     <span 
                                                                         key={worker.id}
                                                                         className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md bg-purple-50 text-purple-700 border border-purple-200"
-                                                                        title={worker.working_sub_step_name}
+                                                                        title={worker.task_name}
                                                                     >
-                                                                        {worker.working_sub_step_name}
+                                                                        {worker.task_name}
                                                                     </span>
                                                                 ))}
                                                             </div>
@@ -285,7 +285,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers }: Props)
                                                         {step.name}
                                                     </h4>
                                                     <p className="text-sm text-gray-500">
-                                                        {step.working_sub_steps?.length || 0} sub-steps
+                                                        {step.tasks?.length || 0} tasks
                                                     </p>
                                                 </div>
                                             </div>
@@ -293,11 +293,11 @@ export default function Show({ auth, bundle, workingSteps, teamMembers }: Props)
                                     </div>
 
                                     {/* Sub Steps List - Read Only */}
-                                    {step.working_sub_steps && step.working_sub_steps.length > 0 && (
+                                    {step.tasks && step.tasks.length > 0 && (
                                         <div className="p-6">
                                             <h5 className="text-sm font-medium text-gray-700 mb-4">Sub Steps:</h5>
                                             <div className="space-y-3">
-                                                {step.working_sub_steps
+                                                {step.tasks
                                                     .sort((a, b) => a.order - b.order)
                                                     .map((subStep, subStepIndex) => (
                                                     <div
@@ -313,7 +313,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers }: Props)
                                                                     {subStep.name}
                                                                 </h6>
                                                                 
-                                                                {(subStep.client_interact || subStep.multiple_files || (subStep.sub_step_workers && subStep.sub_step_workers.length > 0)) && (
+                                                                {(subStep.client_interact || subStep.multiple_files || (subStep.task_workers && subStep.task_workers.length > 0)) && (
                                                                     <div className="flex flex-wrap gap-2 mt-2">
                                                                         {subStep.client_interact && (
                                                                             <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
@@ -325,9 +325,9 @@ export default function Show({ auth, bundle, workingSteps, teamMembers }: Props)
                                                                                 Multiple Files
                                                                             </span>
                                                                         )}
-                                                                        {subStep.sub_step_workers && subStep.sub_step_workers.length > 0 && (
+                                                                        {subStep.task_workers && subStep.task_workers.length > 0 && (
                                                                             <div className="flex flex-wrap gap-1">
-                                                                                {subStep.sub_step_workers.map((worker, idx) => (
+                                                                                {subStep.task_workers.map((worker, idx) => (
                                                                                     <span 
                                                                                         key={idx}
                                                                                         className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800"
@@ -352,9 +352,9 @@ export default function Show({ auth, bundle, workingSteps, teamMembers }: Props)
                                     )}
 
                                     {/* Empty Sub Steps State */}
-                                    {(!step.working_sub_steps || step.working_sub_steps.length === 0) && (
+                                    {(!step.tasks || step.tasks.length === 0) && (
                                         <div className="p-6 text-center text-gray-500">
-                                            <p className="text-sm">No sub-steps defined for this step</p>
+                                            <p className="text-sm">No tasks defined for this step</p>
                                         </div>
                                     )}
                                 </div>

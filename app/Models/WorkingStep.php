@@ -34,10 +34,11 @@ class WorkingStep extends Model
     }
 
     /**
-     * Get the working sub steps for the working step.
+     * Get the tasks for the working step.
      */
-    public function workingSubSteps(): HasMany
+    public function tasks(): HasMany
     {
-        return $this->hasMany(WorkingSubStep::class);
+        return $this->hasMany(Task::class);
     }
+
 }

@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import ConfirmDialog from '@/Components/ConfirmDialog';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { useState, useEffect } from 'react';
@@ -32,10 +33,10 @@ interface WorkingStep {
     slug: string;
     order: number;
     project_id: number;
-    working_sub_steps?: WorkingSubStep[];
+    tasks?: Task[];
 }
 
-interface WorkingSubStep {
+interface Task {
     id: number;
     name: string;
     slug: string;
@@ -47,12 +48,12 @@ interface WorkingSubStep {
     client_comment?: string;
     client_interact: boolean;
     multiple_files: boolean;
-    sub_step_workers?: SubStepWorker[];
+    task_workers?: TaskWorker[];
 }
 
-interface SubStepWorker {
+interface TaskWorker {
     id: number;
-    working_sub_step_id: number;
+    task_id: number;
     project_team_id: number;
     worker_name: string;
     worker_email: string;
@@ -62,6 +63,7 @@ interface SubStepWorker {
 interface ProjectBundle {
     id: number;
     name: string;
+    status: 'open' | 'closed';
     client_id: number | null;
     client_name: string | null;
     client_alamat: string | null;
@@ -179,10 +181,10 @@ function DraggableStep({ step, children, isCollapsed, onToggleCollapse }: {
     );
 }
 
-// Draggable SubStep Component
-function DraggableSubStep({ subStep, onEdit, onDelete }: { 
-    subStep: WorkingSubStep; 
-    onEdit: (subStep: WorkingSubStep) => void;
+// Draggable Task Component
+function DraggableTask({ task, onEdit, onDelete }: { 
+    task: Task; 
+    onEdit: (task: Task) => void;
     onDelete: (id: number) => void;
 }) {
     const {
@@ -192,7 +194,7 @@ function DraggableSubStep({ subStep, onEdit, onDelete }: {
         transform,
         transition,
         isDragging,
-    } = useSortable({ id: `substep-${subStep.id}` }); // Add prefix to differentiate
+    } = useSortable({ id: `substep-${task.id}` }); // Add prefix to differentiate
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -217,24 +219,24 @@ function DraggableSubStep({ subStep, onEdit, onDelete }: {
                 
                 <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-gray-900 text-base truncate">
-                        {subStep.name}
+                        {task.name}
                     </h4>
                     
-                    {(!!subStep.client_interact || !!subStep.multiple_files || (subStep.sub_step_workers && subStep.sub_step_workers.length > 0)) && (
+                    {(!!task.client_interact || !!task.multiple_files || (task.task_workers && task.task_workers.length > 0)) && (
                         <div className="flex flex-wrap gap-2 mt-2">
-                            {!!subStep.client_interact && (
+                            {!!task.client_interact && (
                                 <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
                                     Client Interact
                                 </span>
                             )}
-                            {!!subStep.multiple_files && (
+                            {!!task.multiple_files && (
                                 <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
                                     Multiple Files
                                 </span>
                             )}
-                            {subStep.sub_step_workers && subStep.sub_step_workers.length > 0 && (
+                            {task.task_workers && task.task_workers.length > 0 && (
                                 <div className="flex flex-wrap gap-1">
-                                    {subStep.sub_step_workers.map((worker, index) => (
+                                    {task.task_workers.map((worker, index) => (
                                         <span 
                                             key={index}
                                             className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800"
@@ -256,7 +258,7 @@ function DraggableSubStep({ subStep, onEdit, onDelete }: {
                     <button 
                         onClick={(e) => {
                             e.stopPropagation();
-                            onEdit(subStep);
+                            onEdit(task);
                         }}
                         className="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
                     >
@@ -268,7 +270,7 @@ function DraggableSubStep({ subStep, onEdit, onDelete }: {
                     <button 
                         onClick={(e) => {
                             e.stopPropagation();
-                            onDelete(subStep.id);
+                            onDelete(task.id);
                         }}
                         className="inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
                     >
@@ -286,21 +288,27 @@ function DraggableSubStep({ subStep, onEdit, onDelete }: {
 export default function Show({ auth, bundle, workingSteps, teamMembers, availableUsers, clients }: Props) {
     const [steps, setSteps] = useState(workingSteps || []);
     const [activeStep, setActiveStep] = useState<WorkingStep | null>(null);
-    const [activeSubStep, setActiveSubStep] = useState<WorkingSubStep | null>(null);
+    const [activeTask, setActiveTask] = useState<Task | null>(null);
     const [showAddStepModal, setShowAddStepModal] = useState(false);
-    const [showAddSubStepModal, setShowAddSubStepModal] = useState(false);
+    const [showAddTaskModal, setShowAddTaskModal] = useState(false);
     const [showEditStepModal, setShowEditStepModal] = useState(false);
-    const [showEditSubStepModal, setShowEditSubStepModal] = useState(false);
+    const [showEditTaskModal, setShowEditTaskModal] = useState(false);
     const [showEditTemplateModal, setShowEditTemplateModal] = useState(false);
     const [showAddTeamMemberModal, setShowAddTeamMemberModal] = useState(false);
     const [showEditTeamMemberModal, setShowEditTeamMemberModal] = useState(false);
     const [selectedStepId, setSelectedStepId] = useState<number | null>(null);
     const [editingStep, setEditingStep] = useState<{ id: number; name: string } | null>(null);
-    const [editingSubStep, setEditingSubStep] = useState<WorkingSubStep | null>(null);
+    const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [editingTeamMember, setEditingTeamMember] = useState<TeamMember | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [collapsedSteps, setCollapsedSteps] = useState<Set<number>>(new Set());
     const [dragHoverStepId, setDragHoverStepId] = useState<number | null>(null);
+    
+    // Confirm dialog states
+    const [showDeleteStepConfirm, setShowDeleteStepConfirm] = useState(false);
+    const [showDeleteTaskConfirm, setShowDeleteTaskConfirm] = useState(false);
+    const [showRemoveTeamMemberConfirm, setShowRemoveTeamMemberConfirm] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<{ id: number; name: string } | null>(null);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -384,7 +392,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         bundle_id: bundle.id, // Send as bundle_id as expected by controller
     });
 
-    const { data: subStepData, setData: setSubStepData, post: postSubStep, reset: resetSubStep } = useForm({
+    const { data: taskData, setData: setTaskData, post: postTask, reset: resetTask } = useForm({
         name: '',
         working_step_id: 0,
     });
@@ -397,9 +405,10 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     const { data: editTemplateData, setData: setEditTemplateData, put: putTemplate, processing: editTemplateProcessing, errors: editTemplateErrors, reset: resetEditTemplate } = useForm({
         name: '',
         client_id: 0,
+        status: 'closed' as 'open' | 'closed',
     });
 
-    const { data: editSubStepData, setData: setEditSubStepData, put: putSubStep, reset: resetEditSubStep } = useForm({
+    const { data: editTaskData, setData: setEditTaskData, put: putTask, reset: resetEditTask } = useForm({
         name: '',
         client_interact: false,
         multiple_files: false,
@@ -429,15 +438,15 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         });
     };
 
-    const handleAddSubStep = (e: React.FormEvent) => {
+    const handleAddTask = (e: React.FormEvent) => {
         e.preventDefault();
-        postSubStep(route('admin.projects.working-sub-steps.store'), {
+        postTask(route('admin.projects.working-tasks.store'), {
             onSuccess: (response) => {
-                setShowAddSubStepModal(false);
-                resetSubStep();
+                setShowAddTaskModal(false);
+                resetTask();
                 setSelectedStepId(null);
                 // Reset form data manually
-                setSubStepData({
+                setTaskData({
                     name: '',
                     working_step_id: 0,
                 });
@@ -449,32 +458,42 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         });
     };
 
-    const handleDeleteStep = (stepId: number) => {
-        if (confirm('Are you sure you want to delete this working step and all its sub-steps?')) {
-            router.delete(route('admin.projects.working-steps.destroy', stepId));
+    const handleDeleteStep = (step: WorkingStep) => {
+        setItemToDelete({ id: step.id, name: step.name });
+        setShowDeleteStepConfirm(true);
+    };
+
+    const confirmDeleteStep = () => {
+        if (itemToDelete) {
+            router.delete(route('admin.projects.working-steps.destroy', itemToDelete.id));
         }
     };
 
-    const handleDeleteSubStep = (subStepId: number) => {
-        if (confirm('Are you sure you want to delete this sub-step?')) {
-            router.delete(route('admin.projects.working-sub-steps.destroy', subStepId));
+    const handleDeleteTask = (task: Task) => {
+        setItemToDelete({ id: task.id, name: task.name });
+        setShowDeleteTaskConfirm(true);
+    };
+
+    const confirmDeleteTask = () => {
+        if (itemToDelete) {
+            router.delete(route('admin.projects.working-tasks.destroy', itemToDelete.id));
         }
     };
 
-    const handleEditSubStep = (subStep: WorkingSubStep) => {
-        setEditingSubStep(subStep);
+    const handleEditTask = (task: Task) => {
+        setEditingTask(task);
         
         // Filter worker_ids to only include team members that still exist
-        const validWorkerIds = (subStep.sub_step_workers?.map(w => w.project_team_id) || [])
+        const validWorkerIds = (task.task_workers?.map(w => w.project_team_id) || [])
             .filter(workerId => teamMembers.some(member => member.id === workerId));
         
-        setEditSubStepData({
-            name: subStep.name,
-            client_interact: subStep.client_interact,
-            multiple_files: subStep.multiple_files,
+        setEditTaskData({
+            name: task.name,
+            client_interact: task.client_interact,
+            multiple_files: task.multiple_files,
             worker_ids: validWorkerIds,
         });
-        setShowEditSubStepModal(true);
+        setShowEditTaskModal(true);
     };
 
     const handleEditStep = (step: WorkingStep) => {
@@ -504,6 +523,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         setEditTemplateData({
             name: bundle.name,
             client_id: bundle.client_id || 0,
+            status: bundle.status || 'closed',
         });
         setShowEditTemplateModal(true);
     };
@@ -521,15 +541,15 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         });
     };
 
-    const handleUpdateSubStep = (e: React.FormEvent) => {
+    const handleUpdateTask = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!editingSubStep) return;
+        if (!editingTask) return;
         
-        putSubStep(route('admin.projects.working-sub-steps.update', editingSubStep.id), {
+        putTask(route('admin.projects.working-tasks.update', editingTask.id), {
             onSuccess: () => {
-                setShowEditSubStepModal(false);
-                setEditingSubStep(null);
-                resetEditSubStep();
+                setShowEditTaskModal(false);
+                setEditingTask(null);
+                resetEditTask();
                 // Refresh page to get updated data
                 router.reload();
             },
@@ -575,9 +595,14 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         });
     };
 
-    const handleDeleteTeamMember = (memberId: number) => {
-        if (confirm('Are you sure you want to remove this team member?')) {
-            router.delete(route('admin.projects.team-members.destroy', memberId));
+    const handleDeleteTeamMember = (member: TeamMember) => {
+        setItemToDelete({ id: member.id, name: member.user_name });
+        setShowRemoveTeamMemberConfirm(true);
+    };
+
+    const confirmDeleteTeamMember = () => {
+        if (itemToDelete) {
+            router.delete(route('admin.projects.team-members.destroy', itemToDelete.id));
         }
     };
 
@@ -615,11 +640,11 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         
         // Check if dragging a sub step first (prefix with 'substep-')
         if (String(active.id).startsWith('substep-')) {
-            const subStepId = Number(String(active.id).replace('substep-', ''));
+            const taskId = Number(String(active.id).replace('substep-', ''));
             for (const step of steps) {
-                const subStep = step.working_sub_steps?.find(ss => ss.id === subStepId);
-                if (subStep) {
-                    setActiveSubStep(subStep);
+                const task = step.tasks?.find(ss => ss.id === taskId);
+                if (task) {
+                    setActiveTask(task);
                     return;
                 }
             }
@@ -640,7 +665,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         const { active, over } = event;
         
         setActiveStep(null);
-        setActiveSubStep(null);
+        setActiveTask(null);
         setIsDragging(false);
         setDragHoverStepId(null);
 
@@ -693,24 +718,24 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
 
         // Handle sub step reordering/moving
         if (String(active.id).startsWith('substep-')) {
-            const activeSubStepId = Number(String(active.id).replace('substep-', ''));
+            const activeTaskId = Number(String(active.id).replace('substep-', ''));
             
             // Find the active substep and its current step
             let sourceStepId = 0;
-            let activeSubStepObj = null;
+            let activeTaskObj = null;
             for (const step of steps) {
-                const subStep = step.working_sub_steps?.find(ss => ss.id === activeSubStepId);
-                if (subStep) {
-                    activeSubStepObj = subStep;
+                const task = step.tasks?.find(ss => ss.id === activeTaskId);
+                if (task) {
+                    activeTaskObj = task;
                     sourceStepId = step.id;
                     break;
                 }
             }
 
-            if (!activeSubStepObj) return;
+            if (!activeTaskObj) return;
 
             let targetStepId = sourceStepId;
-            let targetSubStepId: number | null = null;
+            let targetTaskId: number | null = null;
 
             // Determine target step and substep
             if (String(over.id).startsWith('step-')) {
@@ -718,9 +743,9 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                 targetStepId = Number(String(over.id).replace('step-', ''));
             } else if (String(over.id).startsWith('substep-')) {
                 // Dropped on another substep - find its parent step
-                targetSubStepId = Number(String(over.id).replace('substep-', ''));
+                targetTaskId = Number(String(over.id).replace('substep-', ''));
                 for (const step of steps) {
-                    if (step.working_sub_steps?.some(ss => ss.id === targetSubStepId)) {
+                    if (step.tasks?.some(ss => ss.id === targetTaskId)) {
                         targetStepId = step.id;
                         break;
                     }
@@ -730,22 +755,22 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
             const newSteps = [...steps];
 
             // Case 1: Reordering within the same step
-            if (sourceStepId === targetStepId && targetSubStepId) {
+            if (sourceStepId === targetStepId && targetTaskId) {
                 const sourceStep = newSteps.find(s => s.id === sourceStepId);
-                if (sourceStep?.working_sub_steps) {
-                    const oldIndex = sourceStep.working_sub_steps.findIndex(ss => ss.id === activeSubStepId);
-                    const newIndex = sourceStep.working_sub_steps.findIndex(ss => ss.id === targetSubStepId);
+                if (sourceStep?.tasks) {
+                    const oldIndex = sourceStep.tasks.findIndex(ss => ss.id === activeTaskId);
+                    const newIndex = sourceStep.tasks.findIndex(ss => ss.id === targetTaskId);
                     
                     if (oldIndex !== newIndex && oldIndex > -1 && newIndex > -1) {
                         // Use arrayMove for proper reordering
-                        sourceStep.working_sub_steps = arrayMove(
-                            sourceStep.working_sub_steps, 
+                        sourceStep.tasks = arrayMove(
+                            sourceStep.tasks, 
                             oldIndex, 
                             newIndex
                         );
                         
                         // Update order numbers
-                        sourceStep.working_sub_steps = sourceStep.working_sub_steps.map((ss, index) => ({
+                        sourceStep.tasks = sourceStep.tasks.map((ss, index) => ({
                             ...ss,
                             order: index + 1
                         }));
@@ -755,41 +780,41 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
             // Case 2: Moving to a different step
             else if (sourceStepId !== targetStepId) {
                 const sourceStep = newSteps.find(s => s.id === sourceStepId);
-                if (sourceStep?.working_sub_steps) {
-                    const subStepIndex = sourceStep.working_sub_steps.findIndex(ss => ss.id === activeSubStepId);
-                    if (subStepIndex > -1) {
-                        const [movedSubStep] = sourceStep.working_sub_steps.splice(subStepIndex, 1);
+                if (sourceStep?.tasks) {
+                    const taskIndex = sourceStep.tasks.findIndex(ss => ss.id === activeTaskId);
+                    if (taskIndex > -1) {
+                        const [movedTask] = sourceStep.tasks.splice(taskIndex, 1);
                         
                         // Add to target step
                         const targetStepObj = newSteps.find(s => s.id === targetStepId);
                         if (targetStepObj) {
-                            if (!targetStepObj.working_sub_steps) {
-                                targetStepObj.working_sub_steps = [];
+                            if (!targetStepObj.tasks) {
+                                targetStepObj.tasks = [];
                             }
                             
                             // Update substep's step reference
-                            movedSubStep.working_step_id = targetStepId;
+                            movedTask.working_step_id = targetStepId;
                             
                             // Insert at correct position if dropped on another substep
-                            if (targetSubStepId) {
-                                const targetIndex = targetStepObj.working_sub_steps.findIndex(ss => ss.id === targetSubStepId);
+                            if (targetTaskId) {
+                                const targetIndex = targetStepObj.tasks.findIndex(ss => ss.id === targetTaskId);
                                 if (targetIndex > -1) {
-                                    targetStepObj.working_sub_steps.splice(targetIndex, 0, movedSubStep);
+                                    targetStepObj.tasks.splice(targetIndex, 0, movedTask);
                                 } else {
-                                    targetStepObj.working_sub_steps.push(movedSubStep);
+                                    targetStepObj.tasks.push(movedTask);
                                 }
                             } else {
-                                targetStepObj.working_sub_steps.push(movedSubStep);
+                                targetStepObj.tasks.push(movedTask);
                             }
 
                             // Reorder substeps in target step
-                            targetStepObj.working_sub_steps = targetStepObj.working_sub_steps.map((ss, index) => ({
+                            targetStepObj.tasks = targetStepObj.tasks.map((ss, index) => ({
                                 ...ss,
                                 order: index + 1
                             }));
 
                             // Reorder remaining substeps in source step
-                            sourceStep.working_sub_steps = sourceStep.working_sub_steps.map((ss, index) => ({
+                            sourceStep.tasks = sourceStep.tasks.map((ss, index) => ({
                                 ...ss,
                                 order: index + 1
                             }));
@@ -801,11 +826,11 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
             setSteps(newSteps);
 
             // Send all affected substeps to backend
-            const allSubSteps: any[] = [];
+            const allTasks: any[] = [];
             newSteps.forEach(step => {
-                if (step.working_sub_steps) {
-                    step.working_sub_steps.forEach(ss => {
-                        allSubSteps.push({
+                if (step.tasks) {
+                    step.tasks.forEach(ss => {
+                        allTasks.push({
                             id: ss.id,
                             order: ss.order,
                             working_step_id: ss.working_step_id
@@ -814,7 +839,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                 }
             });
 
-            fetch(route('admin.projects.working-sub-steps.reorder'), {
+            fetch(route('admin.projects.working-tasks.reorder'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -822,7 +847,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
                     'X-Requested-With': 'XMLHttpRequest',
                 },
-                body: JSON.stringify({ sub_steps: allSubSteps }),
+                body: JSON.stringify({ tasks: allTasks }),
                 credentials: 'same-origin',
             }).then(response => {
                 if (!response.ok) {
@@ -888,7 +913,27 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                             <div className="flex justify-between items-start">
                                 <div className="flex-1">
                                     <div className="mb-4">
-                                        <h3 className="text-lg font-medium text-gray-900 mb-2">Project Name</h3>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h3 className="text-lg font-medium text-gray-900">Project Name</h3>
+                                            {/* Status Badge */}
+                                            <div className="flex items-center">
+                                                {bundle.status === 'open' ? (
+                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-200">
+                                                        <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                        </svg>
+                                                        Project Active
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700 border border-gray-300">
+                                                        <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                                        </svg>
+                                                        Project Closed
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
                                         <p className="text-xl font-semibold text-gray-800">{bundle.name}</p>
                                     </div>
                                     
@@ -996,7 +1041,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                             Edit Role
                                                         </button>
                                                         <button
-                                                            onClick={() => handleDeleteTeamMember(member.id)}
+                                                            onClick={() => handleDeleteTeamMember(member)}
                                                             className="text-red-600 hover:text-red-900"
                                                         >
                                                             Remove
@@ -1025,7 +1070,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                             <div className="flex justify-between items-center">
                                 <div>
                                     <h3 className="text-lg font-medium text-gray-900">Working Steps Management</h3>
-                                    <p className="text-sm text-gray-600">Manage working steps and sub-steps for this project template</p>
+                                    <p className="text-sm text-gray-600">Manage working steps and tasks for this project template</p>
                                 </div>
                                 <button 
                                     onClick={() => setShowAddStepModal(true)}
@@ -1058,8 +1103,8 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                 <button 
                                                     onClick={() => {
                                                         setSelectedStepId(step.id);
-                                                        setSubStepData('working_step_id', step.id);
-                                                        setShowAddSubStepModal(true);
+                                                        setTaskData('working_step_id', step.id);
+                                                        setShowAddTaskModal(true);
                                                     }}
                                                     className="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                                                 >
@@ -1078,7 +1123,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                     Edit Step
                                                 </button>
                                                 <button 
-                                                    onClick={() => handleDeleteStep(step.id)}
+                                                    onClick={() => handleDeleteStep(step)}
                                                     className="inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                                                 >
                                                     <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1097,15 +1142,15 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                 </div>
                                                 <div className="space-y-1">
                                                     <SortableContext 
-                                                        items={(step.working_sub_steps || []).map(ss => `substep-${ss.id}`)} 
+                                                        items={(step.tasks || []).map(ss => `substep-${ss.id}`)} 
                                                         strategy={verticalListSortingStrategy}
                                                     >
-                                                        {(step.working_sub_steps || []).map((subStep) => (
-                                                            <DraggableSubStep
-                                                                key={subStep.id}
-                                                                subStep={subStep}
-                                                                onEdit={handleEditSubStep}
-                                                                onDelete={handleDeleteSubStep}
+                                                        {(step.tasks || []).map((task) => (
+                                                            <DraggableTask
+                                                                key={task.id}
+                                                                task={task}
+                                                                onEdit={handleEditTask}
+                                                                onDelete={(id) => handleDeleteTask(task)}
                                                             />
                                                         ))}
                                                     </SortableContext>
@@ -1117,13 +1162,13 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         {collapsedSteps.has(step.id) && (
                                             <div className="px-6 py-3 bg-gray-50 border-t cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => toggleStepCollapse(step.id)}>
                                                 <p className="text-sm text-gray-500 text-center">
-                                                    {step.working_sub_steps ? step.working_sub_steps.length : 0} sub-step{(step.working_sub_steps ? step.working_sub_steps.length : 0) !== 1 ? 's' : ''} hidden • Click to expand
+                                                    {step.tasks ? step.tasks.length : 0} task{(step.tasks ? step.tasks.length : 0) !== 1 ? 's' : ''} hidden • Click to expand
                                                 </p>
                                             </div>
                                         )}
 
                                         {/* Empty Sub Steps State - only show when expanded */}
-                                        {!collapsedSteps.has(step.id) && (!step.working_sub_steps || step.working_sub_steps.length === 0) && (
+                                        {!collapsedSteps.has(step.id) && (!step.tasks || step.tasks.length === 0) && (
                                             <div className="px-4 pb-4">
                                                 <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg mx-2">
                                                     <p>No sub steps yet. Click "Add Sub Step" to get started.</p>
@@ -1158,10 +1203,10 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         🔹 {activeStep.name}
                                     </h3>
                                 </div>
-                            ) : activeSubStep ? (
+                            ) : activeTask ? (
                                 <div className="bg-white shadow-lg rounded-lg p-4 opacity-90">
                                     <h4 className="font-medium text-gray-900">
-                                        {activeSubStep.name}
+                                        {activeTask.name}
                                     </h4>
                                 </div>
                             ) : null}
@@ -1197,7 +1242,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         required
                                     />
                                     <p className="text-xs text-gray-500 mt-1">
-                                        Note: You can add sub-steps after creating the working step
+                                        Note: You can add tasks after creating the working step
                                     </p>
                                 </div>
 
@@ -1227,12 +1272,12 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
             )}
 
             {/* Add Sub Step Modal */}
-            {showAddSubStepModal && (
+            {showAddTaskModal && (
                 <div className="fixed inset-0 z-50 overflow-y-auto">
                     <div className="flex items-center justify-center min-h-screen px-4">
-                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowAddSubStepModal(false)}></div>
+                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowAddTaskModal(false)}></div>
                         <div className="relative bg-white rounded-lg max-w-md w-full">
-                            <form onSubmit={handleAddSubStep} className="p-6">
+                            <form onSubmit={handleAddTask} className="p-6">
                                 <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Sub Step</h3>
                                 
                                 <div className="mb-4">
@@ -1242,8 +1287,8 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     <input
                                         type="text"
                                         id="sub_step_name"
-                                        value={subStepData.name}
-                                        onChange={(e) => setSubStepData('name', e.target.value)}
+                                        value={taskData.name}
+                                        onChange={(e) => setTaskData('name', e.target.value)}
                                         className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                         placeholder="e.g., Penetapan KAP"
                                         required
@@ -1253,7 +1298,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                 <div className="flex justify-end space-x-3">
                                     <button
                                         type="button"
-                                        onClick={() => setShowAddSubStepModal(false)}
+                                        onClick={() => setShowAddTaskModal(false)}
                                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
                                     >
                                         Cancel
@@ -1292,6 +1337,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     <p className="mt-1 text-sm text-red-600">{editTemplateErrors.name}</p>
                                 )}
                             </div>
+                            
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">
                                     Client
@@ -1310,6 +1356,50 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     <p className="mt-1 text-sm text-red-600">{editTemplateErrors.client_id}</p>
                                 )}
                             </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-3">
+                                    Project Status
+                                </label>
+                                <div className="flex items-center space-x-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditTemplateData('status', editTemplateData.status === 'open' ? 'closed' : 'open')}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                                            editTemplateData.status === 'open' ? 'bg-green-600' : 'bg-gray-200'
+                                        }`}
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                editTemplateData.status === 'open' ? 'translate-x-6' : 'translate-x-1'
+                                            }`}
+                                        />
+                                    </button>
+                                    <span className={`text-sm font-medium ${editTemplateData.status === 'open' ? 'text-green-700' : 'text-gray-700'}`}>
+                                        {editTemplateData.status === 'open' ? (
+                                            <span className="flex items-center">
+                                                <svg className="w-5 h-5 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                </svg>
+                                                Open - Project is active
+                                            </span>
+                                        ) : (
+                                            <span className="flex items-center">
+                                                <svg className="w-5 h-5 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                                </svg>
+                                                Closed - Project is inactive
+                                            </span>
+                                        )}
+                                    </span>
+                                </div>
+                                <p className="mt-2 text-xs text-gray-500">
+                                    {editTemplateData.status === 'open' 
+                                        ? 'Open projects are accessible to assigned team members' 
+                                        : 'Closed projects are archived and read-only'}
+                                </p>
+                            </div>
+
                             <div className="flex justify-end space-x-3 pt-4">
                                 <button
                                     type="button"
@@ -1381,12 +1471,12 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
             )}
 
             {/* Edit Sub Step Modal */}
-            {showEditSubStepModal && editingSubStep && (
+            {showEditTaskModal && editingTask && (
                 <div className="fixed inset-0 z-50 overflow-y-auto">
                     <div className="flex items-center justify-center min-h-screen px-4">
-                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowEditSubStepModal(false)}></div>
+                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowEditTaskModal(false)}></div>
                         <div className="relative bg-white rounded-lg max-w-md w-full">
-                            <form onSubmit={handleUpdateSubStep} className="p-6">
+                            <form onSubmit={handleUpdateTask} className="p-6">
                                 <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Sub Step</h3>
                                 
                                 <div className="space-y-4">
@@ -1397,8 +1487,8 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         <input
                                             type="text"
                                             id="edit_sub_step_name"
-                                            value={editSubStepData.name}
-                                            onChange={(e) => setEditSubStepData('name', e.target.value)}
+                                            value={editTaskData.name}
+                                            onChange={(e) => setEditTaskData('name', e.target.value)}
                                             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                             required
                                         />
@@ -1408,8 +1498,8 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         <label className="flex items-center">
                                             <input
                                                 type="checkbox"
-                                                checked={editSubStepData.client_interact}
-                                                onChange={(e) => setEditSubStepData('client_interact', e.target.checked)}
+                                                checked={editTaskData.client_interact}
+                                                onChange={(e) => setEditTaskData('client_interact', e.target.checked)}
                                                 className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                                             />
                                             <span className="ml-2 text-sm text-gray-700">Client Interact</span>
@@ -1418,8 +1508,8 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         <label className="flex items-center">
                                             <input
                                                 type="checkbox"
-                                                checked={editSubStepData.multiple_files}
-                                                onChange={(e) => setEditSubStepData('multiple_files', e.target.checked)}
+                                                checked={editTaskData.multiple_files}
+                                                onChange={(e) => setEditTaskData('multiple_files', e.target.checked)}
                                                 className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                                             />
                                             <span className="ml-2 text-sm text-gray-700">Multiple Files</span>
@@ -1437,8 +1527,8 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                 label: member.user_name,
                                                 subtitle: `${member.user_email} - ${member.role}`,
                                             }))}
-                                            value={editSubStepData.worker_ids}
-                                            onChange={(value) => setEditSubStepData('worker_ids', value as number[])}
+                                            value={editTaskData.worker_ids}
+                                            onChange={(value) => setEditTaskData('worker_ids', value as number[])}
                                             placeholder="Select team members..."
                                         />
                                     </div>
@@ -1447,7 +1537,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                 <div className="flex justify-end space-x-3 mt-6">
                                     <button
                                         type="button"
-                                        onClick={() => setShowEditSubStepModal(false)}
+                                        onClick={() => setShowEditTaskModal(false)}
                                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
                                     >
                                         Cancel
@@ -1588,6 +1678,42 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                     </div>
                 </div>
             )}
+
+            {/* Delete Step Confirmation */}
+            <ConfirmDialog
+                show={showDeleteStepConfirm}
+                onClose={() => setShowDeleteStepConfirm(false)}
+                onConfirm={confirmDeleteStep}
+                title="Delete Working Step"
+                message={`Are you sure you want to delete "${itemToDelete?.name}" and all its tasks? This action cannot be undone.`}
+                confirmText="Delete"
+                cancelText="Cancel"
+                type="danger"
+            />
+
+            {/* Delete Sub-Step Confirmation */}
+            <ConfirmDialog
+                show={showDeleteTaskConfirm}
+                onClose={() => setShowDeleteTaskConfirm(false)}
+                onConfirm={confirmDeleteTask}
+                title="Delete Sub-Step"
+                message={`Are you sure you want to delete "${itemToDelete?.name}"? This action cannot be undone.`}
+                confirmText="Delete"
+                cancelText="Cancel"
+                type="danger"
+            />
+
+            {/* Remove Team Member Confirmation */}
+            <ConfirmDialog
+                show={showRemoveTeamMemberConfirm}
+                onClose={() => setShowRemoveTeamMemberConfirm(false)}
+                onConfirm={confirmDeleteTeamMember}
+                title="Remove Team Member"
+                message={`Are you sure you want to remove "${itemToDelete?.name}" from this project team?`}
+                confirmText="Remove"
+                cancelText="Cancel"
+                type="warning"
+            />
         </AuthenticatedLayout>
     );
 }

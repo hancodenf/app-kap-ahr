@@ -79,17 +79,11 @@ class TemplateWorkingStep extends Model
     }
 
     /**
-     * Get the template working sub steps for the template working step.
+     * Get the template tasks for the template working step.
      */
-    public function templateWorkingSubSteps(): HasMany
+    public function templateTasks(): HasMany
     {
-        return $this->hasMany(TemplateWorkingSubStep::class, 'template_working_step_id');
-    }
-
-    // Backward compatibility alias for sub-steps
-    public function subSteps(): HasMany
-    {
-        return $this->templateWorkingSubSteps();
+        return $this->hasMany(TemplateTask::class, 'template_working_step_id');
     }
 
     /**

@@ -1,4 +1,5 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
+import Toast from '@/Components/Toast';
 import { Link, usePage } from '@inertiajs/react';
 import { PropsWithChildren, ReactNode, useState } from 'react';
 
@@ -86,6 +87,9 @@ export default function Authenticated({
 
     return (
         <div className="min-h-screen bg-gray-100 flex">
+            {/* Toast Notifications */}
+            <Toast />
+
             {/* Mobile sidebar overlay */}
             {sidebarOpen && (
                 <div className="fixed inset-0 z-40 lg:hidden">
@@ -94,11 +98,9 @@ export default function Authenticated({
             )}
 
             {/* Sidebar */}
-            <div className={`fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-in-out lg:static lg:inset-0 ${
-                sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-            } lg:translate-x-0 ${
-                sidebarCollapsed ? 'w-16' : 'w-64'
-            } bg-white shadow-lg`}>
+            <div className={`fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-in-out lg:static lg:inset-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                } lg:translate-x-0 ${sidebarCollapsed ? 'w-16' : 'w-64'
+                } bg-white shadow-lg overflow-visible`}>
                 {/* Sidebar Header */}
                 <div className={`flex items-center px-4 py-4 border-b border-gray-200 ${sidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
                     {!sidebarCollapsed && (
@@ -113,7 +115,7 @@ export default function Authenticated({
                     {sidebarCollapsed && (
                         <ApplicationLogo className="h-8 w-8" />
                     )}
-                    
+
                     {/* Toggle button for desktop */}
                     <button
                         onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -125,34 +127,60 @@ export default function Authenticated({
                     </button>
                 </div>
 
-                {/* Navigation */}
-                <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
-                    {menuItems.map((item) => (
-                        <Link
-                            key={item.name}
-                            href={item.href}
-                            className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                item.active
-                                    ? 'bg-primary-100 text-primary-700 border-r-2 border-primary-600'
-                                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                            } ${sidebarCollapsed ? 'justify-center' : ''}`}
-                            title={sidebarCollapsed ? item.name : undefined}
+                {/* Navigation - with padding bottom to prevent overlap with user section */}
+                <nav className="flex-1 px-4 py-4 pb-40 space-y-2 overflow-y-auto">
+                    {menuItems.map((item, index) => (
+                        <div 
+                            key={item.name} 
+                            className="relative group"
+                            onMouseEnter={(e) => {
+                                if (sidebarCollapsed) {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    const tooltip = e.currentTarget.querySelector('.tooltip-content') as HTMLElement;
+                                    if (tooltip) {
+                                        tooltip.style.position = 'fixed';
+                                        tooltip.style.left = `${rect.right + 12}px`;
+                                        tooltip.style.top = `${rect.top + rect.height / 2}px`;
+                                        tooltip.style.transform = 'translateY(-50%)';
+                                    }
+                                }
+                            }}
                         >
-                            <span className={`${sidebarCollapsed ? '' : 'mr-3'}`}>
-                                {item.icon}
-                            </span>
-                            {!sidebarCollapsed && <span>{item.name}</span>}
-                        </Link>
+                            <Link
+                                href={item.href}
+                                className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${item.active
+                                        ? 'bg-primary-100 text-primary-700 border-r-2 border-primary-600'
+                                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                    } ${sidebarCollapsed ? 'justify-center' : ''}`}
+                            >
+                                <span className={`${sidebarCollapsed ? '' : 'mr-3'}`}>
+                                    {item.icon}
+                                </span>
+                                {!sidebarCollapsed && <span>{item.name}</span>}
+                            </Link>
+
+                            {/* Tooltip when sidebar is collapsed */}
+                            {sidebarCollapsed && (
+                                <div className="tooltip-content fixed px-3 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-[9999] shadow-xl pointer-events-none">
+                                    {item.name}
+                                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-gray-800"></div>
+                                </div>
+                            )}
+                        </div>
                     ))}
                 </nav>
+            </div>
 
-                {/* User section - Fixed at bottom */}
-                <div className="border-t border-gray-200 p-4 mt-auto">
+            {/* User section - Fixed at bottom left corner */}
+            <div className={`fixed bottom-0 left-0 z-50 transition-all duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                } lg:translate-x-0 ${sidebarCollapsed ? 'w-16' : 'w-64'
+                } bg-white border-t border-r border-gray-200 shadow-lg`}>
+                <div className="p-4">
                     <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''}`}>
                         <div className="flex items-center">
                             <div className="flex-shrink-0">
-                                <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
-                                    <span className="text-sm font-medium text-primary-600">
+                                <div className={`${sidebarCollapsed ? 'w-10 h-10' : 'w-8 h-8'} rounded-full bg-primary-100 flex items-center justify-center transition-all duration-300`}>
+                                    <span className={`${sidebarCollapsed ? 'text-base' : 'text-sm'} font-medium text-primary-600`}>
                                         {user.name.charAt(0).toUpperCase()}
                                     </span>
                                 </div>
@@ -165,8 +193,8 @@ export default function Authenticated({
                             )}
                         </div>
                     </div>
-                    
-                    {!sidebarCollapsed && (
+
+                    {!sidebarCollapsed ? (
                         <div className="mt-3 space-y-1">
                             <Link
                                 href={route('profile.edit')}
@@ -188,6 +216,39 @@ export default function Authenticated({
                                 </svg>
                                 Logout
                             </Link>
+                        </div>
+                    ) : (
+                        <div className="mt-3 space-y-1">
+                            <div className="relative group">
+                                <Link
+                                    href={route('profile.edit')}
+                                    className="flex items-center justify-center px-1 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                </Link>
+                                <div className="absolute left-full ml-3 bottom-0 px-3 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-[9999] shadow-xl">
+                                    Profile
+                                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-gray-800"></div>
+                                </div>
+                            </div>
+                            <div className="relative group">
+                                <Link
+                                    href={route('logout')}
+                                    method="post"
+                                    as="button"
+                                    className="flex items-center justify-center w-full px-1 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                    </svg>
+                                </Link>
+                                <div className="absolute left-full ml-3 bottom-0 px-3 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-[9999] shadow-xl">
+                                    Logout
+                                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-gray-800"></div>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

@@ -44,10 +44,11 @@ class ProjectTeam extends Model
     }
 
     /**
-     * Get the sub step workers for the project team.
+     * Get the task workers for the project team.
      */
-    public function subStepWorkers(): HasMany
+    public function taskWorkers(): HasMany
     {
-        return $this->hasMany(SubStepWorker::class);
+        return $this->hasMany(TaskWorker::class);
     }
+
 }

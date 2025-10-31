@@ -7,10 +7,10 @@ use App\Models\Client;
 use App\Models\Document;
 use App\Models\Project;
 use App\Models\ProjectTeam;
-use App\Models\SubStepWorker;
+use App\Models\TaskWorker;
 use App\Models\User;
 use App\Models\WorkingStep;
-use App\Models\WorkingSubStep;
+use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -101,7 +101,7 @@ class ProjectController extends Controller
         }
 
         return redirect()->route('admin.projects.bundles.index')
-            ->with('success', 'Project berhasil dibuat!');
+            ->with('success', 'Project created successfully!');
     }
 
     /**
@@ -114,7 +114,7 @@ class ProjectController extends Controller
 
         // Get template steps from template_working_steps table
         $templateSteps = \App\Models\TemplateWorkingStep::where('project_template_id', $templateId)
-            ->with('templateWorkingSubSteps')
+            ->with('templateTasks')
             ->orderBy('order')
             ->get();
 
@@ -129,16 +129,16 @@ class ProjectController extends Controller
                 'project_client_name' => $project->client_name,
             ]);
 
-            // Copy sub steps from template_working_sub_steps to working_sub_steps
-            foreach ($templateStep->templateWorkingSubSteps as $templateSubStep) {
-                WorkingSubStep::create([
+            // Copy tasks from template_tasks to tasks
+            foreach ($templateStep->templateTasks as $templateTask) {
+                Task::create([
                     'project_id' => $projectId,
                     'working_step_id' => $newStep->id,
-                    'name' => $templateSubStep->name,
-                    'slug' => $templateSubStep->slug . '-' . $projectId, // Make slug unique per project
-                    'order' => $templateSubStep->order,
-                    'client_interact' => $templateSubStep->client_interact,
-                    'multiple_files' => $templateSubStep->multiple_files,
+                    'name' => $templateTask->name,
+                    'slug' => $templateTask->slug . '-' . $projectId, // Make slug unique per project
+                    'order' => $templateTask->order,
+                    'client_interact' => $templateTask->client_interact,
+                    'multiple_files' => $templateTask->multiple_files,
                     'project_name' => $project->name,
                     'project_client_name' => $project->client_name,
                     'working_step_name' => $newStep->name,
@@ -151,15 +151,15 @@ class ProjectController extends Controller
     {
         // Get working steps for this project
         $workingSteps = WorkingStep::where('project_id', $bundle->id)
-            ->with(['workingSubSteps' => function($query) {
-                $query->with('subStepWorkers')->orderBy('order');
+            ->with(['tasks' => function($query) {
+                $query->with('taskWorkers')->orderBy('order');
             }])
             ->orderBy('order')
             ->get();
 
-        // Get team members with their assigned sub steps
+        // Get team members with their assigned tasks
         $teamMembers = ProjectTeam::where('project_id', $bundle->id)
-            ->with('subStepWorkers')
+            ->with('taskWorkers')
             ->orderBy('role')
             ->orderBy('user_name')
             ->get();
@@ -175,8 +175,8 @@ class ProjectController extends Controller
     {
         // Get working steps for this project
         $workingSteps = WorkingStep::where('project_id', $bundle->id)
-            ->with(['workingSubSteps' => function($query) {
-                $query->with('subStepWorkers')->orderBy('order');
+            ->with(['tasks' => function($query) {
+                $query->with('taskWorkers')->orderBy('order');
             }])
             ->orderBy('order')
             ->get();
@@ -209,6 +209,7 @@ class ProjectController extends Controller
         $request->validate([
             'name' => 'required|string|max:255|unique:projects,name,' . $bundle->id,
             'client_id' => 'required|exists:clients,id',
+            'status' => 'required|in:open,closed',
         ]);
 
         // Get client with user relation for denormalized data
@@ -217,6 +218,7 @@ class ProjectController extends Controller
         // Update project with denormalized client data
         $bundle->update([
             'name' => $request->name,
+            'status' => $request->status,
             'client_id' => $client->id,
             'client_name' => $client->name,
             'client_alamat' => $client->alamat,
@@ -234,27 +236,27 @@ class ProjectController extends Controller
             'project_client_name' => $client->name,
         ]);
 
-        // Update denormalized client data in working_sub_steps
-        WorkingSubStep::where('project_id', $bundle->id)->update([
+        // Update denormalized client data in tasks
+        Task::where('project_id', $bundle->id)->update([
             'project_client_name' => $client->name,
         ]);
 
-        // Update denormalized client data in sub_step_workers
-        SubStepWorker::whereHas('workingSubStep', function($query) use ($bundle) {
+        // Update denormalized client data in task_workers
+        TaskWorker::whereHas('task', function($query) use ($bundle) {
             $query->where('project_id', $bundle->id);
         })->update([
             'project_client_name' => $client->name,
         ]);
 
-        // Update denormalized client data in documents (via working_sub_steps)
-        Document::whereHas('workingSubStep', function($query) use ($bundle) {
+        // Update denormalized client data in documents (via tasks)
+        Document::whereHas('task', function($query) use ($bundle) {
             $query->where('project_id', $bundle->id);
         })->update([
             'project_client_name' => $client->name,
         ]);
 
         return redirect()->route('admin.projects.bundles.edit', $bundle->id)
-            ->with('success', 'Project berhasil diupdate!');
+            ->with('success', 'Project updated successfully!');
     }
 
     public function destroyBundle(Project $bundle)
@@ -262,13 +264,13 @@ class ProjectController extends Controller
         // Check if project has working steps
         if ($bundle->workingSteps()->exists()) {
             return redirect()->route('admin.projects.bundles.index')
-                ->with('error', 'Tidak dapat menghapus project yang masih memiliki working steps!');
+                ->with('error', 'Cannot delete project that still has working steps!');
         }
 
         $bundle->delete();
 
         return redirect()->route('admin.projects.bundles.index')
-            ->with('success', 'Project berhasil dihapus!');
+            ->with('success', 'Project deleted successfully!');
     }
 
     // ==================== WORKING STEP MANAGEMENT ====================
@@ -285,7 +287,7 @@ class ProjectController extends Controller
 
             // Validate project exists
             if (!$projectId || !Project::find($projectId)) {
-                return redirect()->back()->with('error', 'Project ID tidak valid. Parameter: ' . json_encode($request->all()));
+                return redirect()->back()->with('error', 'Invalid project ID. Parameters: ' . json_encode($request->all()));
             }
 
             // Get project for denormalized data
@@ -295,18 +297,28 @@ class ProjectController extends Controller
             $nextOrder = WorkingStep::where('project_id', $projectId)
                 ->max('order') + 1;
 
-            // Create working step (slug will be auto-generated by Model)
+            // Generate unique slug
+            $baseSlug = Str::slug($request->name);
+            $slug = $baseSlug . '-' . $projectId;
+            $count = 1;
+            while (WorkingStep::where('slug', $slug)->exists()) {
+                $slug = $baseSlug . '-' . $projectId . '-' . $count;
+                $count++;
+            }
+
+            // Create working step with generated slug
             $workingStep = WorkingStep::create([
                 'name' => $request->name,
+                'slug' => $slug,
                 'project_id' => $projectId,
                 'order' => $nextOrder,
                 'project_name' => $project->name,
                 'project_client_name' => $project->client_name,
             ]);
 
-            return redirect()->back()->with('success', 'Working Step berhasil dibuat!');
+            return redirect()->back()->with('success', 'Working step created successfully!');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Gagal membuat working step: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to create working step: ' . $e->getMessage());
         }
     }
 
@@ -316,28 +328,42 @@ class ProjectController extends Controller
             'name' => 'required|string|max:255',
         ]);
 
-        // Update name (slug will be auto-updated by Model if name changed)
-        $workingStep->update([
+        // Generate new slug if name changed
+        $updateData = [
             'name' => $request->name,
-        ]);
+        ];
 
-        return redirect()->back()->with('success', 'Working Step berhasil diupdate!');
+        if ($workingStep->name !== $request->name) {
+            $baseSlug = Str::slug($request->name);
+            $slug = $baseSlug . '-' . $workingStep->project_id;
+            $count = 1;
+            while (WorkingStep::where('slug', $slug)->where('id', '!=', $workingStep->id)->exists()) {
+                $slug = $baseSlug . '-' . $workingStep->project_id . '-' . $count;
+                $count++;
+            }
+            $updateData['slug'] = $slug;
+        }
+
+        // Update working step
+        $workingStep->update($updateData);
+
+        return redirect()->back()->with('success', 'Working step updated successfully!');
     }
 
     public function destroyWorkingStep(WorkingStep $workingStep)
     {
-        // Delete all related sub steps
-        $workingStep->workingSubSteps()->delete();
+        // Delete all related tasks
+        $workingStep->tasks()->delete();
         
         // Delete the working step
         $workingStep->delete();
 
-        return redirect()->back()->with('success', 'Working Step dan sub steps berhasil dihapus!');
+        return redirect()->back()->with('success', 'Working step and tasks deleted successfully!');
     }
 
-    // ==================== WORKING SUB STEP MANAGEMENT ====================
+    // ==================== TASK MANAGEMENT ====================
 
-    public function storeWorkingSubStep(Request $request)
+    public function storeTask(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -351,12 +377,22 @@ class ProjectController extends Controller
         $project = Project::find($workingStep->project_id);
 
         // Get next order number for this working step
-        $nextOrder = WorkingSubStep::where('working_step_id', $request->working_step_id)
+        $nextOrder = Task::where('working_step_id', $request->working_step_id)
             ->max('order') + 1;
 
-        // Create sub step (slug will be auto-generated by Model)
-        $subStep = WorkingSubStep::create([
+        // Generate unique slug
+        $baseSlug = Str::slug($request->name);
+        $slug = $baseSlug;
+        $count = 1;
+        while (Task::where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . $count;
+            $count++;
+        }
+
+        // Create task with generated slug
+        $task = Task::create([
             'name' => $request->name,
+            'slug' => $slug,
             'working_step_id' => $request->working_step_id,
             'project_id' => $workingStep->project_id,
             'order' => $nextOrder,
@@ -367,15 +403,11 @@ class ProjectController extends Controller
             'working_step_name' => $workingStep->name,
         ]);
 
-        return redirect()->back()->with('success', 'Working Sub Step berhasil dibuat!');
+        return redirect()->back()->with('success', 'Task created successfully!');
     }
 
-    public function updateWorkingSubStep(Request $request, WorkingSubStep $workingSubStep)
+    public function updateTask(Request $request, Task $task)
     {
-        \Log::info('Update SubStep Request', [
-            'data' => $request->all(),
-            'substep_id' => $workingSubStep->id
-        ]);
 
         $request->validate([
             'name' => 'required|string|max:255',
@@ -385,19 +417,33 @@ class ProjectController extends Controller
             'worker_ids.*' => 'exists:project_teams,id',
         ]);
 
-        $workingSubStep->update([
+        // Generate new slug if name changed
+        $updateData = [
             'name' => $request->name,
             'client_interact' => $request->boolean('client_interact'),
             'multiple_files' => $request->boolean('multiple_files'),
-        ]);
+        ];
+
+        if ($task->name !== $request->name) {
+            $baseSlug = Str::slug($request->name);
+            $slug = $baseSlug;
+            $count = 1;
+            while (Task::where('slug', $slug)->where('id', '!=', $task->id)->exists()) {
+                $slug = $baseSlug . '-' . $count;
+                $count++;
+            }
+            $updateData['slug'] = $slug;
+        }
+
+        $task->update($updateData);
 
         // Refresh model to get updated data
-        $workingSubStep->refresh();
+        $task->refresh();
 
         // Sync workers - Delete old ones and create new ones
         if ($request->has('worker_ids')) {
-            // Delete existing workers for this sub step
-            $workingSubStep->subStepWorkers()->delete();
+            // Delete existing workers for this task
+            $task->taskWorkers()->delete();
 
             // Create new workers with denormalized data
             if (!empty($request->worker_ids)) {
@@ -405,13 +451,13 @@ class ProjectController extends Controller
                     $projectTeam = ProjectTeam::find($projectTeamId);
                     
                     if ($projectTeam) {
-                        SubStepWorker::create([
-                            'working_sub_step_id' => $workingSubStep->id,
+                        TaskWorker::create([
+                            'task_id' => $task->id,
                             'project_team_id' => $projectTeam->id,
-                            'working_sub_step_name' => $workingSubStep->name,
-                            'working_step_name' => $workingSubStep->working_step_name,
-                            'project_name' => $workingSubStep->project_name,
-                            'project_client_name' => $workingSubStep->project_client_name,
+                            'task_name' => $task->name,
+                            'working_step_name' => $task->working_step_name,
+                            'project_name' => $task->project_name,
+                            'project_client_name' => $task->project_client_name,
                             'worker_name' => $projectTeam->user_name,
                             'worker_email' => $projectTeam->user_email,
                             'worker_role' => $projectTeam->role,
@@ -421,14 +467,14 @@ class ProjectController extends Controller
             }
         }
 
-        return redirect()->back()->with('success', 'Working Sub Step berhasil diupdate!');
+        return redirect()->back()->with('success', 'Task updated successfully!');
     }
 
-    public function destroyWorkingSubStep(WorkingSubStep $workingSubStep)
+    public function destroyTask(Task $task)
     {
-        $workingSubStep->delete();
+        $task->delete();
 
-        return redirect()->back()->with('success', 'Working Sub Step berhasil dihapus!');
+        return redirect()->back()->with('success', 'Task deleted successfully!');
     }
 
     // ==================== REORDERING METHODS ====================
@@ -449,27 +495,27 @@ class ProjectController extends Controller
         return response()->json(['message' => 'Working steps reordered successfully']);
     }
 
-    public function reorderWorkingSubSteps(Request $request)
+    public function reorderTasks(Request $request)
     {
         try {
             $request->validate([
-                'sub_steps' => 'required|array',
-                'sub_steps.*.id' => 'required|exists:working_sub_steps,id',
-                'sub_steps.*.order' => 'required|integer|min:1',
-                'sub_steps.*.working_step_id' => 'required|exists:working_steps,id',
+                'tasks' => 'required|array',
+                'tasks.*.id' => 'required|exists:tasks,id',
+                'tasks.*.order' => 'required|integer|min:1',
+                'tasks.*.working_step_id' => 'required|exists:working_steps,id',
             ]);
 
-            foreach ($request->sub_steps as $subStepData) {
-                WorkingSubStep::where('id', $subStepData['id'])
+            foreach ($request->tasks as $taskData) {
+                Task::where('id', $taskData['id'])
                     ->update([
-                        'order' => $subStepData['order'],
-                        'working_step_id' => $subStepData['working_step_id']
+                        'order' => $taskData['order'],
+                        'working_step_id' => $taskData['working_step_id']
                     ]);
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Working sub steps reordered successfully'
+                'message' => 'Tasks reordered successfully'
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -480,7 +526,7 @@ class ProjectController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error reordering substeps: ' . $e->getMessage()
+                'message' => 'Error reordering tasks: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -497,7 +543,7 @@ class ProjectController extends Controller
             'name' => $request->name,
         ]);
 
-        return redirect()->back()->with('success', 'Project berhasil diupdate!');
+        return redirect()->back()->with('success', 'Project updated successfully!');
     }
 
     // ==================== TEAM MANAGEMENT ====================
@@ -519,7 +565,7 @@ class ProjectController extends Controller
             ->exists();
 
         if ($exists) {
-            return redirect()->back()->with('error', 'User sudah ada dalam tim project ini!');
+            return redirect()->back()->with('error', 'User already exists in this project team!');
         }
 
         ProjectTeam::create([
@@ -533,7 +579,7 @@ class ProjectController extends Controller
             'role' => $request->role,
         ]);
 
-        return redirect()->back()->with('success', 'Anggota tim berhasil ditambahkan!');
+        return redirect()->back()->with('success', 'Team member added successfully!');
     }
 
     public function updateTeamMember(Request $request, $teamId)
@@ -547,7 +593,7 @@ class ProjectController extends Controller
             'role' => $request->role,
         ]);
 
-        return redirect()->back()->with('success', 'Role anggota tim berhasil diupdate!');
+        return redirect()->back()->with('success', 'Team member role updated successfully!');
     }
 
     public function destroyTeamMember($teamId)
@@ -555,6 +601,6 @@ class ProjectController extends Controller
         $teamMember = ProjectTeam::findOrFail($teamId);
         $teamMember->delete();
 
-        return redirect()->back()->with('success', 'Anggota tim berhasil dihapus!');
+        return redirect()->back()->with('success', 'Team member removed successfully!');
     }
 }

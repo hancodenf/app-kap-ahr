@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('working_sub_steps', function (Blueprint $table) {
+        Schema::create('tasks', function (Blueprint $table) {
             $table->id();
             $table->integer('order')->default(0);
             $table->string('name');
@@ -62,6 +62,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('working_sub_steps');
+        Schema::dropIfExists('tasks');
     }
 };

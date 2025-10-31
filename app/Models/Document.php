@@ -16,8 +16,8 @@ class Document extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'working_sub_step_id',
-        'working_sub_step_name',
+        'task_id',
+        'task_name',
         'working_step_name',
         'project_name',
         'project_client_name',
@@ -40,10 +40,10 @@ class Document extends Model
     }
 
     /**
-     * Get the working sub step that owns the document.
+     * Get the task that owns the document.
      */
-    public function workingSubStep(): BelongsTo
+    public function task(): BelongsTo
     {
-        return $this->belongsTo(WorkingSubStep::class);
+        return $this->belongsTo(Task::class);
     }
 }

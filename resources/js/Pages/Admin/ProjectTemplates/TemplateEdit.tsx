@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import ConfirmDialog from '@/Components/ConfirmDialog';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { useState, useEffect } from 'react';
@@ -31,10 +32,10 @@ interface TemplateWorkingStep {
     slug: string;
     order: number;
     project_template_id: number;
-    template_working_sub_steps?: TemplateWorkingSubStep[];
+    template_tasks?: TemplateTask[];
 }
 
-interface TemplateWorkingSubStep {
+interface TemplateTask {
     id: number;
     name: string;
     slug: string;
@@ -105,7 +106,7 @@ function DraggableStep({ step, children, isCollapsed, onToggleCollapse }: {
                                 <button
                                     onClick={onToggleCollapse}
                                     className="ml-3 p-1 hover:bg-gray-200 rounded transition-colors"
-                                    title={isCollapsed ? 'Expand substeps' : 'Collapse substeps'}
+                                    title={isCollapsed ? 'Expand tasks' : 'Collapse tasks'}
                                 >
                                     <svg 
                                         className={`w-4 h-4 text-gray-500 transition-transform ${isCollapsed ? 'rotate-0' : 'rotate-90'}`}
@@ -130,10 +131,10 @@ function DraggableStep({ step, children, isCollapsed, onToggleCollapse }: {
     );
 }
 
-// Draggable SubStep Component
-function DraggableSubStep({ subStep, onEdit, onDelete }: { 
-    subStep: TemplateWorkingSubStep; 
-    onEdit: (subStep: TemplateWorkingSubStep) => void;
+// Draggable Task Component
+function DraggableTask({ task, onEdit, onDelete }: { 
+    task: TemplateTask; 
+    onEdit: (task: TemplateTask) => void;
     onDelete: (id: number) => void;
 }) {
     const {
@@ -143,7 +144,7 @@ function DraggableSubStep({ subStep, onEdit, onDelete }: {
         transform,
         transition,
         isDragging,
-    } = useSortable({ id: `substep-${subStep.id}` }); // Add prefix to differentiate
+    } = useSortable({ id: `task-${task.id}` }); // Add prefix to differentiate
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -168,17 +169,17 @@ function DraggableSubStep({ subStep, onEdit, onDelete }: {
                 
                 <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-gray-900 text-base truncate">
-                        {subStep.name}
+                        {task.name}
                     </h4>
                     
-                    {(subStep.client_interact || subStep.multiple_files) && (
+                    {(task.client_interact || task.multiple_files) && (
                         <div className="flex flex-wrap gap-2 mt-2">
-                            {subStep.client_interact && (
+                            {task.client_interact && (
                                 <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
                                     Client Interact
                                 </span>
                             )}
-                            {subStep.multiple_files && (
+                            {task.multiple_files && (
                                 <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
                                     Multiple Files
                                 </span>
@@ -191,7 +192,7 @@ function DraggableSubStep({ subStep, onEdit, onDelete }: {
                     <button 
                         onClick={(e) => {
                             e.stopPropagation();
-                            onEdit(subStep);
+                            onEdit(task);
                         }}
                         className="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
                     >
@@ -203,7 +204,7 @@ function DraggableSubStep({ subStep, onEdit, onDelete }: {
                     <button 
                         onClick={(e) => {
                             e.stopPropagation();
-                            onDelete(subStep.id);
+                            onDelete(task.id);
                         }}
                         className="inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
                     >
@@ -221,18 +222,23 @@ function DraggableSubStep({ subStep, onEdit, onDelete }: {
 export default function Show({ auth, bundle, workingSteps }: Props) {
     const [steps, setSteps] = useState(workingSteps || []);
     const [activeStep, setActiveStep] = useState<TemplateWorkingStep | null>(null);
-    const [activeSubStep, setActiveSubStep] = useState<TemplateWorkingSubStep | null>(null);
+    const [activeTask, setActiveTask] = useState<TemplateTask | null>(null);
     const [showAddStepModal, setShowAddStepModal] = useState(false);
-    const [showAddSubStepModal, setShowAddSubStepModal] = useState(false);
+    const [showAddTaskModal, setShowAddTaskModal] = useState(false);
     const [showEditStepModal, setShowEditStepModal] = useState(false);
-    const [showEditSubStepModal, setShowEditSubStepModal] = useState(false);
+    const [showEditTaskModal, setShowEditTaskModal] = useState(false);
     const [showEditTemplateModal, setShowEditTemplateModal] = useState(false);
     const [selectedStepId, setSelectedStepId] = useState<number | null>(null);
     const [editingStep, setEditingStep] = useState<{ id: number; name: string } | null>(null);
-    const [editingSubStep, setEditingSubStep] = useState<TemplateWorkingSubStep | null>(null);
+    const [editingTask, setEditingTask] = useState<TemplateTask | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [collapsedSteps, setCollapsedSteps] = useState<Set<number>>(new Set());
     const [dragHoverStepId, setDragHoverStepId] = useState<number | null>(null);
+    
+    // Confirm dialog states
+    const [showDeleteStepConfirm, setShowDeleteStepConfirm] = useState(false);
+    const [showDeleteTaskConfirm, setShowDeleteTaskConfirm] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<{ id: number; name: string } | null>(null);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -316,7 +322,7 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
         bundle_id: bundle.id, // Send as bundle_id as expected by controller
     });
 
-    const { data: subStepData, setData: setSubStepData, post: postSubStep, reset: resetSubStep } = useForm({
+    const { data: taskData, setData: setTaskData, post: postTask, reset: resetTask } = useForm({
         name: '',
         template_working_step_id: 0,
     });
@@ -330,7 +336,7 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
         name: '',
     });
 
-    const { data: editSubStepData, setData: setEditSubStepData, put: putSubStep, reset: resetEditSubStep } = useForm({
+    const { data: editTaskData, setData: setEditTaskData, put: putTask, reset: resetEditTask } = useForm({
         name: '',
         client_interact: false,
         multiple_files: false,
@@ -348,46 +354,56 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
         });
     };
 
-    const handleAddSubStep = (e: React.FormEvent) => {
+    const handleAddTask = (e: React.FormEvent) => {
         e.preventDefault();
-        postSubStep(route('admin.project-templates.template-working-sub-steps.store'), {
+        postTask(route('admin.project-templates.template-tasks.store'), {
             onSuccess: (response) => {
-                setShowAddSubStepModal(false);
-                resetSubStep();
+                setShowAddTaskModal(false);
+                resetTask();
                 setSelectedStepId(null);
                 // Reset form data manually
-                setSubStepData({
+                setTaskData({
                     name: '',
                     template_working_step_id: 0,
                 });
                 router.reload(); // Refresh to get updated data
             },
             onError: (errors) => {
-                console.error('Error adding substep:', errors);
+                console.error('Error adding task:', errors);
             }
         });
     };
 
-    const handleDeleteStep = (stepId: number) => {
-        if (confirm('Are you sure you want to delete this working step and all its sub-steps?')) {
-            router.delete(route('admin.project-templates.template-working-steps.destroy', stepId));
+    const handleDeleteStep = (step: TemplateWorkingStep) => {
+        setItemToDelete({ id: step.id, name: step.name });
+        setShowDeleteStepConfirm(true);
+    };
+
+    const confirmDeleteStep = () => {
+        if (itemToDelete) {
+            router.delete(route('admin.project-templates.template-working-steps.destroy', itemToDelete.id));
         }
     };
 
-    const handleDeleteSubStep = (subStepId: number) => {
-        if (confirm('Are you sure you want to delete this sub-step?')) {
-            router.delete(route('admin.project-templates.template-working-sub-steps.destroy', subStepId));
+    const handleDeleteTask = (task: TemplateTask) => {
+        setItemToDelete({ id: task.id, name: task.name });
+        setShowDeleteTaskConfirm(true);
+    };
+
+    const confirmDeleteTask = () => {
+        if (itemToDelete) {
+            router.delete(route('admin.project-templates.template-tasks.destroy', itemToDelete.id));
         }
     };
 
-    const handleEditSubStep = (subStep: TemplateWorkingSubStep) => {
-        setEditingSubStep(subStep);
-        setEditSubStepData({
-            name: subStep.name,
-            client_interact: subStep.client_interact,
-            multiple_files: subStep.multiple_files,
+    const handleEditTask = (task: TemplateTask) => {
+        setEditingTask(task);
+        setEditTaskData({
+            name: task.name,
+            client_interact: task.client_interact,
+            multiple_files: task.multiple_files,
         });
-        setShowEditSubStepModal(true);
+        setShowEditTaskModal(true);
     };
 
     const handleEditStep = (step: TemplateWorkingStep) => {
@@ -433,15 +449,15 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
         });
     };
 
-    const handleUpdateSubStep = (e: React.FormEvent) => {
+    const handleUpdateTask = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!editingSubStep) return;
+        if (!editingTask) return;
         
-        putSubStep(route('admin.project-templates.template-working-sub-steps.update', editingSubStep.id), {
+        putTask(route('admin.project-templates.template-tasks.update', editingTask.id), {
             onSuccess: () => {
-                setShowEditSubStepModal(false);
-                setEditingSubStep(null);
-                resetEditSubStep();
+                setShowEditTaskModal(false);
+                setEditingTask(null);
+                resetEditTask();
                 // Refresh page to get updated data
                 router.reload();
             },
@@ -461,7 +477,7 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
         });
     };
 
-    // Auto-expand when dragging substep hovers over collapsed step
+    // Auto-expand when dragging task hovers over collapsed step
     useEffect(() => {
         if (dragHoverStepId && collapsedSteps.has(dragHoverStepId)) {
             const timer = setTimeout(() => {
@@ -480,13 +496,13 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
         const { active } = event;
         setIsDragging(true);
         
-        // Check if dragging a sub step first (prefix with 'substep-')
-        if (String(active.id).startsWith('substep-')) {
-            const subStepId = Number(String(active.id).replace('substep-', ''));
+        // Check if dragging a task first (prefix with 'task-')
+        if (String(active.id).startsWith('task-')) {
+            const taskId = Number(String(active.id).replace('task-', ''));
             for (const step of steps) {
-                const subStep = step.template_working_sub_steps?.find(ss => ss.id === subStepId);
-                if (subStep) {
-                    setActiveSubStep(subStep);
+                const task = step.template_tasks?.find(ss => ss.id === taskId);
+                if (task) {
+                    setActiveTask(task);
                     return;
                 }
             }
@@ -507,7 +523,7 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
         const { active, over } = event;
         
         setActiveStep(null);
-        setActiveSubStep(null);
+        setActiveTask(null);
         setIsDragging(false);
         setDragHoverStepId(null);
 
@@ -559,35 +575,35 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
         }
 
         // Handle sub step reordering/moving
-        if (String(active.id).startsWith('substep-')) {
-            const activeSubStepId = Number(String(active.id).replace('substep-', ''));
+        if (String(active.id).startsWith('task-')) {
+            const activeTaskId = Number(String(active.id).replace('task-', ''));
             
-            // Find the active substep and its current step
+            // Find the active task and its current step
             let sourceStepId = 0;
-            let activeSubStepObj = null;
+            let activeTaskObj = null;
             for (const step of steps) {
-                const subStep = step.template_working_sub_steps?.find(ss => ss.id === activeSubStepId);
-                if (subStep) {
-                    activeSubStepObj = subStep;
+                const task = step.template_tasks?.find(ss => ss.id === activeTaskId);
+                if (task) {
+                    activeTaskObj = task;
                     sourceStepId = step.id;
                     break;
                 }
             }
 
-            if (!activeSubStepObj) return;
+            if (!activeTaskObj) return;
 
             let targetStepId = sourceStepId;
-            let targetSubStepId: number | null = null;
+            let targetTaskId: number | null = null;
 
-            // Determine target step and substep
+            // Determine target step and task
             if (String(over.id).startsWith('step-')) {
                 // Dropped on a step
                 targetStepId = Number(String(over.id).replace('step-', ''));
-            } else if (String(over.id).startsWith('substep-')) {
-                // Dropped on another substep - find its parent step
-                targetSubStepId = Number(String(over.id).replace('substep-', ''));
+            } else if (String(over.id).startsWith('task-')) {
+                // Dropped on another task - find its parent step
+                targetTaskId = Number(String(over.id).replace('task-', ''));
                 for (const step of steps) {
-                    if (step.template_working_sub_steps?.some(ss => ss.id === targetSubStepId)) {
+                    if (step.template_tasks?.some(ss => ss.id === targetTaskId)) {
                         targetStepId = step.id;
                         break;
                     }
@@ -597,22 +613,22 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
             const newSteps = [...steps];
 
             // Case 1: Reordering within the same step
-            if (sourceStepId === targetStepId && targetSubStepId) {
+            if (sourceStepId === targetStepId && targetTaskId) {
                 const sourceStep = newSteps.find(s => s.id === sourceStepId);
-                if (sourceStep?.template_working_sub_steps) {
-                    const oldIndex = sourceStep.template_working_sub_steps.findIndex(ss => ss.id === activeSubStepId);
-                    const newIndex = sourceStep.template_working_sub_steps.findIndex(ss => ss.id === targetSubStepId);
+                if (sourceStep?.template_tasks) {
+                    const oldIndex = sourceStep.template_tasks.findIndex(ss => ss.id === activeTaskId);
+                    const newIndex = sourceStep.template_tasks.findIndex(ss => ss.id === targetTaskId);
                     
                     if (oldIndex !== newIndex && oldIndex > -1 && newIndex > -1) {
                         // Use arrayMove for proper reordering
-                        sourceStep.template_working_sub_steps = arrayMove(
-                            sourceStep.template_working_sub_steps, 
+                        sourceStep.template_tasks = arrayMove(
+                            sourceStep.template_tasks, 
                             oldIndex, 
                             newIndex
                         );
                         
                         // Update order numbers
-                        sourceStep.template_working_sub_steps = sourceStep.template_working_sub_steps.map((ss, index) => ({
+                        sourceStep.template_tasks = sourceStep.template_tasks.map((ss, index) => ({
                             ...ss,
                             order: index + 1
                         }));
@@ -622,41 +638,41 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
             // Case 2: Moving to a different step
             else if (sourceStepId !== targetStepId) {
                 const sourceStep = newSteps.find(s => s.id === sourceStepId);
-                if (sourceStep?.template_working_sub_steps) {
-                    const subStepIndex = sourceStep.template_working_sub_steps.findIndex(ss => ss.id === activeSubStepId);
-                    if (subStepIndex > -1) {
-                        const [movedSubStep] = sourceStep.template_working_sub_steps.splice(subStepIndex, 1);
+                if (sourceStep?.template_tasks) {
+                    const taskIndex = sourceStep.template_tasks.findIndex(ss => ss.id === activeTaskId);
+                    if (taskIndex > -1) {
+                        const [movedTask] = sourceStep.template_tasks.splice(taskIndex, 1);
                         
                         // Add to target step
                         const targetStepObj = newSteps.find(s => s.id === targetStepId);
                         if (targetStepObj) {
-                            if (!targetStepObj.template_working_sub_steps) {
-                                targetStepObj.template_working_sub_steps = [];
+                            if (!targetStepObj.template_tasks) {
+                                targetStepObj.template_tasks = [];
                             }
                             
-                            // Update substep's step reference
-                            movedSubStep.template_working_step_id = targetStepId;
+                            // Update task's step reference
+                            movedTask.template_working_step_id = targetStepId;
                             
-                            // Insert at correct position if dropped on another substep
-                            if (targetSubStepId) {
-                                const targetIndex = targetStepObj.template_working_sub_steps.findIndex(ss => ss.id === targetSubStepId);
+                            // Insert at correct position if dropped on another task
+                            if (targetTaskId) {
+                                const targetIndex = targetStepObj.template_tasks.findIndex(ss => ss.id === targetTaskId);
                                 if (targetIndex > -1) {
-                                    targetStepObj.template_working_sub_steps.splice(targetIndex, 0, movedSubStep);
+                                    targetStepObj.template_tasks.splice(targetIndex, 0, movedTask);
                                 } else {
-                                    targetStepObj.template_working_sub_steps.push(movedSubStep);
+                                    targetStepObj.template_tasks.push(movedTask);
                                 }
                             } else {
-                                targetStepObj.template_working_sub_steps.push(movedSubStep);
+                                targetStepObj.template_tasks.push(movedTask);
                             }
 
-                            // Reorder substeps in target step
-                            targetStepObj.template_working_sub_steps = targetStepObj.template_working_sub_steps.map((ss, index) => ({
+                            // Reorder tasks in target step
+                            targetStepObj.template_tasks = targetStepObj.template_tasks.map((ss, index) => ({
                                 ...ss,
                                 order: index + 1
                             }));
 
-                            // Reorder remaining substeps in source step
-                            sourceStep.template_working_sub_steps = sourceStep.template_working_sub_steps.map((ss, index) => ({
+                            // Reorder remaining tasks in source step
+                            sourceStep.template_tasks = sourceStep.template_tasks.map((ss, index) => ({
                                 ...ss,
                                 order: index + 1
                             }));
@@ -667,12 +683,12 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
 
             setSteps(newSteps);
 
-            // Send all affected substeps to backend
-            const allSubSteps: any[] = [];
+            // Send all affected tasks to backend
+            const allTasks: any[] = [];
             newSteps.forEach(step => {
-                if (step.template_working_sub_steps) {
-                    step.template_working_sub_steps.forEach(ss => {
-                        allSubSteps.push({
+                if (step.template_tasks) {
+                    step.template_tasks.forEach(ss => {
+                        allTasks.push({
                             id: ss.id,
                             order: ss.order,
                             template_working_step_id: ss.template_working_step_id
@@ -681,7 +697,7 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                 }
             });
 
-            fetch(route('admin.project-templates.template-working-sub-steps.reorder'), {
+            fetch(route('admin.project-templates.template-tasks.reorder'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -689,12 +705,12 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
                     'X-Requested-With': 'XMLHttpRequest',
                 },
-                body: JSON.stringify({ sub_steps: allSubSteps }),
+                body: JSON.stringify({ tasks: allTasks }),
                 credentials: 'same-origin',
             }).then(response => {
                 if (!response.ok) {
                     return response.json().then(data => {
-                        throw new Error(data.message || 'Failed to reorder substeps');
+                        throw new Error(data.message || 'Failed to reorder tasks');
                     });
                 }
                 return response.json();
@@ -703,8 +719,8 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                   // Success - no reload needed, state already updated
               })
               .catch(error => {
-                  console.error('Error reordering substeps:', error);
-                  alert('Failed to save substep order. Please try again.');
+                  console.error('Error reordering tasks:', error);
+                  alert('Failed to save task order. Please try again.');
                   // Reload to get correct state from server
                   router.reload();
               });
@@ -714,8 +730,8 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
     const handleDragOver = (event: DragOverEvent) => {
         const { active, over } = event;
         
-        // Only handle substep dragging over steps
-        if (String(active.id).startsWith('substep-') && over && String(over.id).startsWith('step-')) {
+        // Only handle task dragging over steps
+        if (String(active.id).startsWith('task-') && over && String(over.id).startsWith('step-')) {
             const stepId = Number(String(over.id).replace('step-', ''));
             setDragHoverStepId(stepId);
         } else {
@@ -776,7 +792,7 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                             <div className="flex justify-between items-center">
                                 <div>
                                     <h3 className="text-lg font-medium text-gray-900">Working Steps Management</h3>
-                                    <p className="text-sm text-gray-600">Manage working steps and sub-steps for this project template</p>
+                                    <p className="text-sm text-gray-600">Manage working steps and tasks for this project template</p>
                                 </div>
                                 <button 
                                     onClick={() => setShowAddStepModal(true)}
@@ -809,15 +825,15 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                                 <button 
                                                     onClick={() => {
                                                         setSelectedStepId(step.id);
-                                                        setSubStepData('template_working_step_id', step.id);
-                                                        setShowAddSubStepModal(true);
+                                                        setTaskData('template_working_step_id', step.id);
+                                                        setShowAddTaskModal(true);
                                                     }}
                                                     className="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                                                 >
                                                     <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                                     </svg>
-                                                    Add Sub Step
+                                                    Add Task
                                                 </button>
                                                 <button 
                                                     onClick={() => handleEditStep(step)}
@@ -829,7 +845,7 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                                     Edit Step
                                                 </button>
                                                 <button 
-                                                    onClick={() => handleDeleteStep(step.id)}
+                                                    onClick={() => handleDeleteStep(step)}
                                                     className="inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                                                 >
                                                     <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -840,23 +856,23 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                             </div>
                                         </DraggableStep>
 
-                                        {/* Sub Steps List - SEPENUHNYA TERPISAH dari flex - Conditional Rendering */}
+                                        {/* Tasks List - SEPENUHNYA TERPISAH dari flex - Conditional Rendering */}
                                         {!collapsedSteps.has(step.id) && (
                                             <div className="px-4 pb-4">
                                                 <div className="px-2 pb-2 pt-5">
-                                                    <h5 className="text-sm font-medium text-gray-600 mb-3">Sub Steps:</h5>
+                                                    <h5 className="text-sm font-medium text-gray-600 mb-3">Tasks:</h5>
                                                 </div>
                                                 <div className="space-y-1">
                                                     <SortableContext 
-                                                        items={(step.template_working_sub_steps || []).map(ss => `substep-${ss.id}`)} 
+                                                        items={(step.template_tasks || []).map(ss => `task-${ss.id}`)} 
                                                         strategy={verticalListSortingStrategy}
                                                     >
-                                                        {(step.template_working_sub_steps || []).map((subStep) => (
-                                                            <DraggableSubStep
-                                                                key={subStep.id}
-                                                                subStep={subStep}
-                                                                onEdit={handleEditSubStep}
-                                                                onDelete={handleDeleteSubStep}
+                                                        {(step.template_tasks || []).map((task) => (
+                                                            <DraggableTask
+                                                                key={task.id}
+                                                                task={task}
+                                                                onEdit={handleEditTask}
+                                                                onDelete={(id) => handleDeleteTask(task)}
                                                             />
                                                         ))}
                                                     </SortableContext>
@@ -868,16 +884,16 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                         {collapsedSteps.has(step.id) && (
                                             <div className="px-6 py-3 bg-gray-50 border-t cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => toggleStepCollapse(step.id)}>
                                                 <p className="text-sm text-gray-500 text-center">
-                                                    {step.template_working_sub_steps ? step.template_working_sub_steps.length : 0} sub-step{(step.template_working_sub_steps ? step.template_working_sub_steps.length : 0) !== 1 ? 's' : ''} hidden • Click to expand
+                                                    {step.template_tasks ? step.template_tasks.length : 0} task{(step.template_tasks ? step.template_tasks.length : 0) !== 1 ? 's' : ''} hidden • Click to expand
                                                 </p>
                                             </div>
                                         )}
 
-                                        {/* Empty Sub Steps State - only show when expanded */}
-                                        {!collapsedSteps.has(step.id) && (!step.template_working_sub_steps || step.template_working_sub_steps.length === 0) && (
+                                        {/* Empty Tasks State - only show when expanded */}
+                                        {!collapsedSteps.has(step.id) && (!step.template_tasks || step.template_tasks.length === 0) && (
                                             <div className="px-4 pb-4">
                                                 <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg mx-2">
-                                                    <p>No sub steps yet. Click "Add Sub Step" to get started.</p>
+                                                    <p>No tasks yet. Click "Add Task" to get started.</p>
                                                 </div>
                                             </div>
                                         )}
@@ -909,10 +925,10 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                         🔹 {activeStep.name}
                                     </h3>
                                 </div>
-                            ) : activeSubStep ? (
+                            ) : activeTask ? (
                                 <div className="bg-white shadow-lg rounded-lg p-4 opacity-90">
                                     <h4 className="font-medium text-gray-900">
-                                        {activeSubStep.name}
+                                        {activeTask.name}
                                     </h4>
                                 </div>
                             ) : null}
@@ -948,7 +964,7 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                         required
                                     />
                                     <p className="text-xs text-gray-500 mt-1">
-                                        Note: You can add sub-steps after creating the working step
+                                        Note: You can add tasks after creating the working step
                                     </p>
                                 </div>
 
@@ -977,24 +993,24 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                 </div>
             )}
 
-            {/* Add Sub Step Modal */}
-            {showAddSubStepModal && (
+            {/* Add Task Modal */}
+            {showAddTaskModal && (
                 <div className="fixed inset-0 z-50 overflow-y-auto">
                     <div className="flex items-center justify-center min-h-screen px-4">
-                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowAddSubStepModal(false)}></div>
+                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowAddTaskModal(false)}></div>
                         <div className="relative bg-white rounded-lg max-w-md w-full">
-                            <form onSubmit={handleAddSubStep} className="p-6">
-                                <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Sub Step</h3>
+                            <form onSubmit={handleAddTask} className="p-6">
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Task</h3>
                                 
                                 <div className="mb-4">
-                                    <label htmlFor="sub_step_name" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Sub Step Name
+                                    <label htmlFor="task_name" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Task Name
                                     </label>
                                     <input
                                         type="text"
-                                        id="sub_step_name"
-                                        value={subStepData.name}
-                                        onChange={(e) => setSubStepData('name', e.target.value)}
+                                        id="task_name"
+                                        value={taskData.name}
+                                        onChange={(e) => setTaskData('name', e.target.value)}
                                         className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                         placeholder="e.g., Penetapan KAP"
                                         required
@@ -1004,7 +1020,7 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                 <div className="flex justify-end space-x-3">
                                     <button
                                         type="button"
-                                        onClick={() => setShowAddSubStepModal(false)}
+                                        onClick={() => setShowAddTaskModal(false)}
                                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
                                     >
                                         Cancel
@@ -1013,7 +1029,7 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                         type="submit"
                                         className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
                                     >
-                                        Add Sub Step
+                                        Add Task
                                     </button>
                                 </div>
                             </form>
@@ -1113,25 +1129,25 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                 </div>
             )}
 
-            {/* Edit Sub Step Modal */}
-            {showEditSubStepModal && editingSubStep && (
+            {/* Edit Task Modal */}
+            {showEditTaskModal && editingTask && (
                 <div className="fixed inset-0 z-50 overflow-y-auto">
                     <div className="flex items-center justify-center min-h-screen px-4">
-                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowEditSubStepModal(false)}></div>
+                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowEditTaskModal(false)}></div>
                         <div className="relative bg-white rounded-lg max-w-md w-full">
-                            <form onSubmit={handleUpdateSubStep} className="p-6">
-                                <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Sub Step</h3>
+                            <form onSubmit={handleUpdateTask} className="p-6">
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Task</h3>
                                 
                                 <div className="space-y-4">
                                     <div>
-                                        <label htmlFor="edit_sub_step_name" className="block text-sm font-medium text-gray-700 mb-2">
-                                            Sub Step Name
+                                        <label htmlFor="edit_task_name" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Task Name
                                         </label>
                                         <input
                                             type="text"
-                                            id="edit_sub_step_name"
-                                            value={editSubStepData.name}
-                                            onChange={(e) => setEditSubStepData('name', e.target.value)}
+                                            id="edit_task_name"
+                                            value={editTaskData.name}
+                                            onChange={(e) => setEditTaskData('name', e.target.value)}
                                             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                             required
                                         />
@@ -1141,8 +1157,8 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                         <label className="flex items-center">
                                             <input
                                                 type="checkbox"
-                                                checked={editSubStepData.client_interact}
-                                                onChange={(e) => setEditSubStepData('client_interact', e.target.checked)}
+                                                checked={editTaskData.client_interact}
+                                                onChange={(e) => setEditTaskData('client_interact', e.target.checked)}
                                                 className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                                             />
                                             <span className="ml-2 text-sm text-gray-700">Client Interact</span>
@@ -1151,8 +1167,8 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                         <label className="flex items-center">
                                             <input
                                                 type="checkbox"
-                                                checked={editSubStepData.multiple_files}
-                                                onChange={(e) => setEditSubStepData('multiple_files', e.target.checked)}
+                                                checked={editTaskData.multiple_files}
+                                                onChange={(e) => setEditTaskData('multiple_files', e.target.checked)}
                                                 className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                                             />
                                             <span className="ml-2 text-sm text-gray-700">Multiple Files</span>
@@ -1163,7 +1179,7 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                 <div className="flex justify-end space-x-3 mt-6">
                                     <button
                                         type="button"
-                                        onClick={() => setShowEditSubStepModal(false)}
+                                        onClick={() => setShowEditTaskModal(false)}
                                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
                                     >
                                         Cancel
@@ -1172,7 +1188,7 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                         type="submit"
                                         className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
                                     >
-                                        Update Sub Step
+                                        Update Task
                                     </button>
                                 </div>
                             </form>
@@ -1180,6 +1196,30 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                     </div>
                 </div>
             )}
+
+            {/* Delete Step Confirmation */}
+            <ConfirmDialog
+                show={showDeleteStepConfirm}
+                onClose={() => setShowDeleteStepConfirm(false)}
+                onConfirm={confirmDeleteStep}
+                title="Delete Template Working Step"
+                message={`Are you sure you want to delete "${itemToDelete?.name}" and all its tasks? This action cannot be undone.`}
+                confirmText="Delete"
+                cancelText="Cancel"
+                type="danger"
+            />
+
+            {/* Delete Task Confirmation */}
+            <ConfirmDialog
+                show={showDeleteTaskConfirm}
+                onClose={() => setShowDeleteTaskConfirm(false)}
+                onConfirm={confirmDeleteTask}
+                title="Delete Template Task"
+                message={`Are you sure you want to delete "${itemToDelete?.name}"? This action cannot be undone.`}
+                confirmText="Delete"
+                cancelText="Cancel"
+                type="danger"
+            />
         </AuthenticatedLayout>
     );
 }

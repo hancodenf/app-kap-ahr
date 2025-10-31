@@ -3,19 +3,19 @@
 namespace Database\Seeders;
 
 use App\Models\WorkingStep;
-use App\Models\WorkingSubStep;
+use App\Models\Task;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
-class WorkingSubStepSeeder extends Seeder
+class TaskSeeder extends Seeder
 {
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        $workingSubSteps = [
+        $tasks = [
             'Perikatan' => [
                 'Penetapan KAP',
                 'Kontrak / Perikatan Audit',
@@ -56,15 +56,15 @@ class WorkingSubStepSeeder extends Seeder
             ],
         ];
 
-        foreach ($workingSubSteps as $stepName => $subSteps) {
+        foreach ($tasks as $stepName => $taskList) {
             $workingSteps = WorkingStep::where('name', $stepName)->get();
             
             foreach ($workingSteps as $workingStep) {
-                foreach ($subSteps as $index => $subStep) {
-                    WorkingSubStep::create([
+                foreach ($taskList as $index => $taskName) {
+                    Task::create([
                         'order' => $index + 1,
-                        'name' => $subStep,
-                        'slug' => Str::slug($subStep . '-' . $workingStep->id), // Make unique per working step
+                        'name' => $taskName,
+                        'slug' => Str::slug($taskName . '-' . $workingStep->id), // Make unique per working step
                         'project_id' => $workingStep->project_id,
                         'working_step_id' => $workingStep->id,
                         // Denormalized project data

@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('projects', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            
+            $table->enum('status', ['open', 'closed'])->default('closed');
+
             // Foreign key reference (nullable untuk denormalisasi)
             $table->unsignedBigInteger('client_id')->nullable();
             $table->foreign('client_id')->references('id')->on('clients')->onDelete('set null');

@@ -10,7 +10,7 @@ use App\Models\User;
 use App\Models\Project;
 use App\Models\ProjectTemplate;
 use App\Models\WorkingStep;
-use App\Models\WorkingSubStep;
+use App\Models\Task;
 use App\Models\Document;
 use Carbon\Carbon;
 
@@ -38,7 +38,7 @@ class AdminController extends Controller
 
         // Get system statistics
         $totalWorkingSteps = WorkingStep::count();
-        $totalWorkingSubSteps = WorkingSubStep::count();
+        $totalTasks = Task::count();
         $totalDocuments = Document::count();
 
         // Recent activities
@@ -52,8 +52,8 @@ class AdminController extends Controller
             return [
                 'id' => $project->id,
                 'working_step' => ['name' => $project->name ?? 'Unnamed Project'],
-                'working_sub_step' => ['name' => $project->client_name ?? 'No Client'],
-                'status' => 'pending', // Default status since column doesn't exist
+                'task' => ['name' => $project->client_name ?? 'No Client'],
+                'status' => $project->status ?? 'closed',
                 'created_at' => $project->created_at
             ];
         });
@@ -102,7 +102,7 @@ class AdminController extends Controller
                 ],
                 'system' => [
                     'working_steps' => $totalWorkingSteps,
-                    'working_sub_steps' => $totalWorkingSubSteps,
+                    'tasks' => $totalTasks,
                     'documents' => $totalDocuments,
                 ],
             ],

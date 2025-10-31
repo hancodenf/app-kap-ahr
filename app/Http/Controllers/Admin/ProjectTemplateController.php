@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ProjectTemplate;
 use App\Models\TemplateWorkingStep;
-use App\Models\TemplateWorkingSubStep;
+use App\Models\TemplateTask;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -38,14 +38,14 @@ class ProjectTemplateController extends Controller
         ProjectTemplate::create($request->only('name'));
 
         return redirect()->route('admin.project-templates.template-bundles.index')
-            ->with('success', 'Template Bundle berhasil dibuat!');
+            ->with('success', 'Template bundle created successfully!');
     }
 
     public function showBundle(ProjectTemplate $templateBundle)
     {
         // Get working steps for this project template
         $workingSteps = TemplateWorkingStep::where('project_template_id', $templateBundle->id)
-            ->with(['templateWorkingSubSteps' => function($query) {
+            ->with(['templateTasks' => function($query) {
                 $query->orderBy('order');
             }])
             ->orderBy('order')
@@ -64,7 +64,7 @@ class ProjectTemplateController extends Controller
     {
         // Get working steps for this project template
         $workingSteps = TemplateWorkingStep::where('project_template_id', $templateBundle->id)
-            ->with(['templateWorkingSubSteps' => function($query) {
+            ->with(['templateTasks' => function($query) {
                 $query->orderBy('order');
             }])
             ->orderBy('order')
@@ -88,7 +88,7 @@ class ProjectTemplateController extends Controller
         $templateBundle->update($request->only('name'));
 
         return redirect()->route('admin.project-templates.template-bundles.edit', $templateBundle->id)
-            ->with('success', 'Template Bundle berhasil diupdate!');
+            ->with('success', 'Template bundle updated successfully!');
     }
 
     public function destroyBundle(ProjectTemplate $templateBundle)
@@ -96,13 +96,13 @@ class ProjectTemplateController extends Controller
         // Check if template has working steps
         if ($templateBundle->templateWorkingSteps()->exists()) {
             return redirect()->route('admin.project-templates.template-bundles.index')
-                ->with('error', 'Tidak dapat menghapus template yang masih memiliki working steps!');
+                ->with('error', 'Cannot delete template that still has working steps!');
         }
 
         $templateBundle->delete();
 
         return redirect()->route('admin.project-templates.template-bundles.index')
-            ->with('success', 'Template Bundle berhasil dihapus!');
+            ->with('success', 'Template bundle deleted successfully!');
     }
 
     // ==================== WORKING STEP MANAGEMENT ====================
@@ -119,7 +119,7 @@ class ProjectTemplateController extends Controller
 
             // Validate project template exists
             if (!$projectTemplateId || !ProjectTemplate::find($projectTemplateId)) {
-                return redirect()->back()->with('error', 'Project template ID tidak valid. Parameter: ' . json_encode($request->all()));
+                return redirect()->back()->with('error', 'Invalid project template ID. Parameters: ' . json_encode($request->all()));
             }
 
             // Get next order number for this project template
@@ -133,9 +133,9 @@ class ProjectTemplateController extends Controller
                 'order' => $nextOrder,
             ]);
 
-            return redirect()->back()->with('success', 'Working Step berhasil dibuat!');
+            return redirect()->back()->with('success', 'Working step created successfully!');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Gagal membuat working step: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to create working step: ' . $e->getMessage());
         }
     }
 
@@ -150,7 +150,7 @@ class ProjectTemplateController extends Controller
             'name' => $request->name,
         ]);
 
-        return redirect()->back()->with('success', 'Template Working Step berhasil diupdate!');
+        return redirect()->back()->with('success', 'Template working step updated successfully!');
     }
 
     public function destroyWorkingStep(TemplateWorkingStep $templateWorkingStep)
@@ -158,18 +158,18 @@ class ProjectTemplateController extends Controller
         // Note: No related project template cleanup needed since 
         // ProjectTemplate structure has changed and only contains 'name' field
         
-        // Delete all related sub steps
-        $templateWorkingStep->templateWorkingSubSteps()->delete();
+        // Delete all related tasks
+        $templateWorkingStep->templateTasks()->delete();
         
         // Delete the working step
         $templateWorkingStep->delete();
 
-        return redirect()->back()->with('success', 'Template Working Step dan sub steps berhasil dihapus!');
+        return redirect()->back()->with('success', 'Template working step and tasks deleted successfully!');
     }
 
-    // ==================== WORKING SUB STEP MANAGEMENT ====================
+    // ==================== TASK MANAGEMENT ====================
 
-    public function storeWorkingSubStep(Request $request)
+    public function storeTask(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -180,21 +180,31 @@ class ProjectTemplateController extends Controller
         $workingStep = TemplateWorkingStep::findOrFail($request->template_working_step_id);
 
         // Get next order number for this working step
-        $nextOrder = TemplateWorkingSubStep::where('template_working_step_id', $request->template_working_step_id)
+        $nextOrder = TemplateTask::where('template_working_step_id', $request->template_working_step_id)
             ->max('order') + 1;
 
-        // Create sub step (slug will be auto-generated by Model)
-        $subStep = TemplateWorkingSubStep::create([
+        // Generate unique slug
+        $baseSlug = Str::slug($request->name);
+        $slug = $baseSlug;
+        $count = 1;
+        while (TemplateTask::where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . $count;
+            $count++;
+        }
+
+        // Create task with generated slug
+        $task = TemplateTask::create([
             'name' => $request->name,
+            'slug' => $slug,
             'template_working_step_id' => $request->template_working_step_id,
             'project_template_id' => $workingStep->project_template_id,
             'order' => $nextOrder,
         ]);
 
-        return redirect()->back()->with('success', 'Template Working Sub Step berhasil dibuat!');
+        return redirect()->back()->with('success', 'Template task created successfully!');
     }
 
-    public function updateWorkingSubStep(Request $request, TemplateWorkingSubStep $templateWorkingSubStep)
+    public function updateTask(Request $request, TemplateTask $templateTask)
     {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -202,23 +212,37 @@ class ProjectTemplateController extends Controller
             'multiple_files' => 'boolean',
         ]);
 
-        $templateWorkingSubStep->update([
+        // Generate new slug if name changed
+        $updateData = [
             'name' => $request->name,
             'client_interact' => $request->boolean('client_interact'),
             'multiple_files' => $request->boolean('multiple_files'),
-        ]);
+        ];
 
-        return redirect()->back()->with('success', 'Template Working Sub Step berhasil diupdate!');
+        if ($templateTask->name !== $request->name) {
+            $baseSlug = Str::slug($request->name);
+            $slug = $baseSlug;
+            $count = 1;
+            while (TemplateTask::where('slug', $slug)->where('id', '!=', $templateTask->id)->exists()) {
+                $slug = $baseSlug . '-' . $count;
+                $count++;
+            }
+            $updateData['slug'] = $slug;
+        }
+
+        $templateTask->update($updateData);
+
+        return redirect()->back()->with('success', 'Template task updated successfully!');
     }
 
-    public function destroyWorkingSubStep(TemplateWorkingSubStep $templateWorkingSubStep)
+    public function destroyTask(TemplateTask $templateTask)
     {
         // Note: No related project template cleanup needed since 
         // ProjectTemplate structure has changed and only contains 'name' field
 
-        $templateWorkingSubStep->delete();
+        $templateTask->delete();
 
-        return redirect()->back()->with('success', 'Template Working Sub Step berhasil dihapus!');
+        return redirect()->back()->with('success', 'Template task deleted successfully!');
     }
 
     // ==================== REORDERING METHODS ====================
@@ -239,27 +263,27 @@ class ProjectTemplateController extends Controller
         return response()->json(['message' => 'Working steps reordered successfully']);
     }
 
-    public function reorderWorkingSubSteps(Request $request)
+    public function reorderTasks(Request $request)
     {
         try {
             $request->validate([
-                'sub_steps' => 'required|array',
-                'sub_steps.*.id' => 'required|exists:template_working_sub_steps,id',
-                'sub_steps.*.order' => 'required|integer|min:1',
-                'sub_steps.*.template_working_step_id' => 'required|exists:template_working_steps,id',
+                'tasks' => 'required|array',
+                'tasks.*.id' => 'required|exists:template_tasks,id',
+                'tasks.*.order' => 'required|integer|min:1',
+                'tasks.*.template_working_step_id' => 'required|exists:template_working_steps,id',
             ]);
 
-            foreach ($request->sub_steps as $subStepData) {
-                TemplateWorkingSubStep::where('id', $subStepData['id'])
+            foreach ($request->tasks as $taskData) {
+                TemplateTask::where('id', $taskData['id'])
                     ->update([
-                        'order' => $subStepData['order'],
-                        'template_working_step_id' => $subStepData['template_working_step_id']
+                        'order' => $taskData['order'],
+                        'template_working_step_id' => $taskData['template_working_step_id']
                     ]);
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Working sub steps reordered successfully'
+                'message' => 'Tasks reordered successfully'
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -270,7 +294,7 @@ class ProjectTemplateController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error reordering substeps: ' . $e->getMessage()
+                'message' => 'Error reordering tasks: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -278,5 +302,5 @@ class ProjectTemplateController extends Controller
     // ==================== PROJECT TEMPLATE MANAGEMENT ====================
     
     // Note: Project templates now only contain 'name' field (template categories)
-    // For actual template content, use TemplateWorkingStep and TemplateWorkingSubStep
+    // For actual template content, use TemplateWorkingStep and TemplateTask
 }

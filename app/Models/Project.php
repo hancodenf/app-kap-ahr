@@ -19,6 +19,7 @@ class Project extends Model
      */
     protected $fillable = [
         'name',
+        'status',
         'client_id',
         'client_name',
         'client_alamat',
@@ -51,11 +52,20 @@ class Project extends Model
     }
 
     /**
+     * Get the tasks for the project.
+     */
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
+
+    /**
      * Get the working sub steps for the project.
+     * @deprecated Use tasks() instead
      */
     public function workingSubSteps(): HasMany
     {
-        return $this->hasMany(WorkingSubStep::class);
+        return $this->tasks();
     }
 
     /**

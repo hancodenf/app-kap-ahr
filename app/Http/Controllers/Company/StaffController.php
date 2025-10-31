@@ -12,7 +12,7 @@ class StaffController extends Controller
     public function dashboard()
     {
         return Inertia::render('Staff/Dashboard', [
-            'user' => Auth::user()->load('role'),
+            'user' => Auth::user(),
         ]);
     }
 }

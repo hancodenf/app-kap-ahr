@@ -1,6 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import ConfirmDialog from '@/Components/ConfirmDialog';
+import { Head, Link, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
+import { useState } from 'react';
 
 interface ProjectBundle {
     id: number;
@@ -14,6 +16,19 @@ interface Props extends PageProps {
 }
 
 export default function Index({ auth, bundles }: Props) {
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [bundleToDelete, setBundleToDelete] = useState<ProjectBundle | null>(null);
+
+    const handleDeleteClick = (bundle: ProjectBundle) => {
+        setBundleToDelete(bundle);
+        setShowDeleteConfirm(true);
+    };
+
+    const handleConfirmDelete = () => {
+        if (bundleToDelete) {
+            router.delete(route('admin.projects.bundles.destroy', bundleToDelete.id));
+        }
+    };
     return (
         <AuthenticatedLayout
             header={
@@ -79,22 +94,15 @@ export default function Index({ auth, bundles }: Props) {
                                                     </svg>
                                                     Edit
                                                 </Link>
-                                                <Link
-                                                    href={route('admin.projects.bundles.destroy', bundle.id)}
-                                                    method="delete"
-                                                    as="button"
+                                                <button
+                                                    onClick={() => handleDeleteClick(bundle)}
                                                     className="inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-                                                    onClick={(e) => {
-                                                        if (!confirm('Are you sure you want to delete this project?')) {
-                                                            e.preventDefault();
-                                                        }
-                                                    }}
                                                 >
                                                     <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                     </svg>
                                                     Delete
-                                                </Link>
+                                                </button>
                                             </div>
                                         </div>
                                     ))}
@@ -127,6 +135,18 @@ export default function Index({ auth, bundles }: Props) {
                     </div>
                 </div>
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                show={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={handleConfirmDelete}
+                title="Delete Project"
+                message={`Are you sure you want to delete "${bundleToDelete?.name}"? This action cannot be undone.`}
+                confirmText="Delete"
+                cancelText="Cancel"
+                type="danger"
+            />
         </AuthenticatedLayout>
     );
 }

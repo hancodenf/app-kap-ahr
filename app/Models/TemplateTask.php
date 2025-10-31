@@ -5,10 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
-class TemplateWorkingSubStep extends Model
+class TemplateTask extends Model
 {
     use HasFactory;
 
@@ -17,7 +16,7 @@ class TemplateWorkingSubStep extends Model
      *
      * @var string
      */
-    protected $table = 'template_working_sub_steps';
+    protected $table = 'template_tasks';
 
     /**
      * The attributes that are mass assignable.
@@ -99,7 +98,7 @@ class TemplateWorkingSubStep extends Model
     }
 
     /**
-     * Get the template working step that owns the template working sub step.
+     * Get the template working step that owns the template task.
      */
     public function templateWorkingStep(): BelongsTo
     {
@@ -107,7 +106,7 @@ class TemplateWorkingSubStep extends Model
     }
 
     /**
-     * Get the project template that owns the template working sub step.
+     * Get the project template that owns the template task.
      */
     public function projectTemplate(): BelongsTo
     {

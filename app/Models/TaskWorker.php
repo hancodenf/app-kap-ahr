@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class SubStepWorker extends Model
+class TaskWorker extends Model
 {
     use HasFactory;
 
@@ -16,9 +16,9 @@ class SubStepWorker extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'working_sub_step_id',
+        'task_id',
         'project_team_id',
-        'working_sub_step_name',
+        'task_name',
         'working_step_name',
         'project_name',
         'project_client_name',
@@ -28,15 +28,15 @@ class SubStepWorker extends Model
     ];
 
     /**
-     * Get the working sub step that owns the sub step worker.
+     * Get the task that owns the task worker.
      */
-    public function workingSubStep(): BelongsTo
+    public function task(): BelongsTo
     {
-        return $this->belongsTo(WorkingSubStep::class);
+        return $this->belongsTo(Task::class);
     }
 
     /**
-     * Get the project team that owns the sub step worker.
+     * Get the project team that owns the task worker.
      */
     public function projectTeam(): BelongsTo
     {

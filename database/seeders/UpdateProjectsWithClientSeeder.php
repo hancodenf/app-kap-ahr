@@ -6,7 +6,7 @@ use App\Models\Client;
 use App\Models\Project;
 use App\Models\ProjectTeam;
 use App\Models\WorkingStep;
-use App\Models\WorkingSubStep;
+use App\Models\Task;
 use Illuminate\Database\Seeder;
 
 class UpdateProjectsWithClientSeeder extends Seeder
@@ -55,8 +55,8 @@ class UpdateProjectsWithClientSeeder extends Seeder
                 'project_client_name' => $defaultClient->name,
             ]);
 
-            // Update denormalized client data in working_sub_steps
-            WorkingSubStep::where('project_id', $project->id)->update([
+            // Update denormalized client data in tasks
+            Task::where('project_id', $project->id)->update([
                 'project_client_name' => $defaultClient->name,
             ]);
 

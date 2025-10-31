@@ -8,7 +8,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Company\StaffController;
 use App\Http\Controllers\Admin\ProjectTemplateController;
 use App\Http\Controllers\Admin\UserController;
-use App\Models\WorkingSubStep;
+use App\Models\Task;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -16,7 +16,7 @@ use Inertia\Inertia;
 
 // Model binding for route parameters
 Route::bind('projectKlien', function ($value) {
-    return WorkingSubStep::findOrFail($value);
+    return Task::findOrFail($value);
 });
 
 Route::get('/', function () {
@@ -86,14 +86,14 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
         Route::put('working-steps/{workingStep}', [ProjectController::class, 'updateWorkingStep'])->name('working-steps.update');
         Route::delete('working-steps/{workingStep}', [ProjectController::class, 'destroyWorkingStep'])->name('working-steps.destroy');
 
-        // Project Working Sub Steps (for non-template projects)
-        Route::post('working-sub-steps', [ProjectController::class, 'storeWorkingSubStep'])->name('working-sub-steps.store');
-        Route::put('working-sub-steps/{workingSubStep}', [ProjectController::class, 'updateWorkingSubStep'])->name('working-sub-steps.update');
-        Route::delete('working-sub-steps/{workingSubStep}', [ProjectController::class, 'destroyWorkingSubStep'])->name('working-sub-steps.destroy');
+        // Project Tasks (for non-template projects)
+        Route::post('tasks', [ProjectController::class, 'storeTask'])->name('tasks.store');
+        Route::put('tasks/{task}', [ProjectController::class, 'updateTask'])->name('tasks.update');
+        Route::delete('tasks/{task}', [ProjectController::class, 'destroyTask'])->name('tasks.destroy');
 
         // Reordering routes for projects
         Route::post('working-steps/reorder', [ProjectController::class, 'reorderWorkingSteps'])->name('working-steps.reorder');
-        Route::post('working-sub-steps/reorder', [ProjectController::class, 'reorderWorkingSubSteps'])->name('working-sub-steps.reorder');
+        Route::post('tasks/reorder', [ProjectController::class, 'reorderTasks'])->name('tasks.reorder');
         
         // Project name update
         Route::put('{project}/update-name', [ProjectController::class, 'updateProject'])->name('update-name');
@@ -114,17 +114,17 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     
     // Project Working Steps Reorder (Old routes - might be deprecated)
     Route::post('/project/working-steps/reorder', [ProjectController::class, 'reorderWorkingSteps'])->name('project.working-steps.reorder');
-    Route::post('/project/working-sub-steps/reorder', [ProjectController::class, 'reorderWorkingSubSteps'])->name('project.working-sub-steps.reorder');
+    Route::post('/project/tasks/reorder', [ProjectController::class, 'reorderTasks'])->name('project.tasks.reorder');
     
     // Project Working Steps CRUD (Old routes - might be deprecated)
     Route::post('/project/working-steps', [ProjectController::class, 'storeWorkingStep'])->name('project.working-steps.store');
     Route::put('/project/working-steps/{workingStep}', [ProjectController::class, 'updateWorkingStep'])->name('project.working-steps.update');
     Route::delete('/project/working-steps/{workingStep}', [ProjectController::class, 'destroyWorkingStep'])->name('project.working-steps.destroy');
     
-    // Project Working Sub Steps CRUD (Old routes - might be deprecated)
-    Route::post('/project/working-sub-steps', [ProjectController::class, 'storeWorkingSubStep'])->name('project.working-sub-steps.store');
-    Route::put('/project/working-sub-steps/{workingSubStep}', [ProjectController::class, 'updateWorkingSubStep'])->name('project.working-sub-steps.update');
-    Route::delete('/project/working-sub-steps/{workingSubStep}', [ProjectController::class, 'destroyWorkingSubStep'])->name('project.working-sub-steps.destroy');
+    // Project Tasks CRUD (Old routes - might be deprecated)
+    Route::post('/project/tasks', [ProjectController::class, 'storeTask'])->name('project.tasks.store');
+    Route::put('/project/tasks/{task}', [ProjectController::class, 'updateTask'])->name('project.tasks.update');
+    Route::delete('/project/tasks/{task}', [ProjectController::class, 'destroyTask'])->name('project.tasks.destroy');
     
     // Project Update (Old routes - might be deprecated)
     Route::put('/project/{project}', [ProjectController::class, 'updateProject'])->name('project.update-name');
@@ -143,14 +143,14 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
         Route::put('template-working-steps/{templateWorkingStep}', [ProjectTemplateController::class, 'updateWorkingStep'])->name('template-working-steps.update');
         Route::delete('template-working-steps/{templateWorkingStep}', [ProjectTemplateController::class, 'destroyWorkingStep'])->name('template-working-steps.destroy');
 
-        // Template Working Sub Steps (using ProjectTemplateController)
-        Route::post('template-working-sub-steps', [ProjectTemplateController::class, 'storeWorkingSubStep'])->name('template-working-sub-steps.store');
-        Route::put('template-working-sub-steps/{templateWorkingSubStep}', [ProjectTemplateController::class, 'updateWorkingSubStep'])->name('template-working-sub-steps.update');
-        Route::delete('template-working-sub-steps/{templateWorkingSubStep}', [ProjectTemplateController::class, 'destroyWorkingSubStep'])->name('template-working-sub-steps.destroy');
+        // Template Tasks (using ProjectTemplateController)
+        Route::post('template-tasks', [ProjectTemplateController::class, 'storeTask'])->name('template-tasks.store');
+        Route::put('template-tasks/{templateTask}', [ProjectTemplateController::class, 'updateTask'])->name('template-tasks.update');
+        Route::delete('template-tasks/{templateTask}', [ProjectTemplateController::class, 'destroyTask'])->name('template-tasks.destroy');
 
         // Reordering routes
         Route::post('template-working-steps/reorder', [ProjectTemplateController::class, 'reorderWorkingSteps'])->name('template-working-steps.reorder');
-        Route::post('template-working-sub-steps/reorder', [ProjectTemplateController::class, 'reorderWorkingSubSteps'])->name('template-working-sub-steps.reorder');
+        Route::post('template-tasks/reorder', [ProjectTemplateController::class, 'reorderTasks'])->name('template-tasks.reorder');
 
         // Project Templates CRUD (using ProjectTemplateController) - langsung tanpa prefix tambahan
         Route::get('templates/create', [ProjectTemplateController::class, 'createTemplate'])->name('templates.create');
