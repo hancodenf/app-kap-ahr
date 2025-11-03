@@ -30,11 +30,13 @@ return new class extends Migration
             // Denormalized working step data
             $table->string('working_step_name');
             
-            $table->timestamp('time')->nullable();
-            $table->text('comment')->nullable();
-            $table->text('client_comment')->nullable();
             $table->boolean('client_interact')->default(false); // default read only
             $table->boolean('multiple_files')->default(false); // default single file
+            
+            // Task requirement & progress tracking
+            $table->boolean('is_required')->default(false); // Required to unlock next step
+            $table->enum('completion_status', ['pending', 'in_progress', 'completed'])->default('pending');
+            
             $table->enum('status', [
                 'Draft',
                 'Submitted',

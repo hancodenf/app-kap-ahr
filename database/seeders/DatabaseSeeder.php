@@ -23,6 +23,10 @@ class DatabaseSeeder extends Seeder
             // Create project templates
             ProjectTemplateSeeder::class,
             
+            // Create template working steps and tasks (needs project templates)
+            TemplateWorkingStepSeeder::class,
+            TemplateTaskSeeder::class,
+            
             // Create projects (needs clients)
             ProjectSeeder::class,
             

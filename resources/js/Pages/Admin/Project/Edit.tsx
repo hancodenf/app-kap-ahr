@@ -4,6 +4,7 @@ import { Head, Link, useForm, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { useState, useEffect } from 'react';
 import SearchableSelect from '@/Components/SearchableSelect';
+import axios from 'axios';
 import {
     DndContext,
     closestCenter,
@@ -48,6 +49,8 @@ interface Task {
     client_comment?: string;
     client_interact: boolean;
     multiple_files: boolean;
+    is_required: boolean;
+    completion_status?: 'pending' | 'in_progress' | 'completed';
     task_workers?: TaskWorker[];
 }
 
@@ -222,8 +225,16 @@ function DraggableTask({ task, onEdit, onDelete }: {
                         {task.name}
                     </h4>
                     
-                    {(!!task.client_interact || !!task.multiple_files || (task.task_workers && task.task_workers.length > 0)) && (
+                    {(!!task.is_required || !!task.client_interact || !!task.multiple_files || (task.task_workers && task.task_workers.length > 0)) && (
                         <div className="flex flex-wrap gap-2 mt-2">
+                            {!!task.is_required && (
+                                <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 border border-red-200">
+                                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                    Required
+                                </span>
+                            )}
                             {!!task.client_interact && (
                                 <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
                                     Client Interact
@@ -395,6 +406,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     const { data: taskData, setData: setTaskData, post: postTask, reset: resetTask } = useForm({
         name: '',
         working_step_id: 0,
+        is_required: false,
     });
 
     const { data: editStepData, setData: setEditStepData, put: putStep, processing: editStepProcessing, errors: editStepErrors, reset: resetEditStep } = useForm({
@@ -412,6 +424,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         name: '',
         client_interact: false,
         multiple_files: false,
+        is_required: false,
         worker_ids: [] as number[],
     });
 
@@ -440,7 +453,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
 
     const handleAddTask = (e: React.FormEvent) => {
         e.preventDefault();
-        postTask(route('admin.projects.working-tasks.store'), {
+        postTask(route('admin.projects.tasks.store'), {
             onSuccess: (response) => {
                 setShowAddTaskModal(false);
                 resetTask();
@@ -453,7 +466,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                 router.reload(); // Refresh to get updated data
             },
             onError: (errors) => {
-                console.error('Error adding substep:', errors);
+                console.error('Error adding task:', errors);
             }
         });
     };
@@ -476,7 +489,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
 
     const confirmDeleteTask = () => {
         if (itemToDelete) {
-            router.delete(route('admin.projects.working-tasks.destroy', itemToDelete.id));
+            router.delete(route('admin.projects.tasks.destroy', itemToDelete.id));
         }
     };
 
@@ -491,6 +504,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
             name: task.name,
             client_interact: task.client_interact,
             multiple_files: task.multiple_files,
+            is_required: task.is_required || false,
             worker_ids: validWorkerIds,
         });
         setShowEditTaskModal(true);
@@ -545,7 +559,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         e.preventDefault();
         if (!editingTask) return;
         
-        putTask(route('admin.projects.working-tasks.update', editingTask.id), {
+        putTask(route('admin.projects.tasks.update', editingTask.id), {
             onSuccess: () => {
                 setShowEditTaskModal(false);
                 setEditingTask(null);
@@ -638,7 +652,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         const { active } = event;
         setIsDragging(true);
         
-        // Check if dragging a sub step first (prefix with 'substep-')
+        // Check if dragging a task first (prefix with 'substep-')
         if (String(active.id).startsWith('substep-')) {
             const taskId = Number(String(active.id).replace('substep-', ''));
             for (const step of steps) {
@@ -695,28 +709,21 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                     order: step.order
                 }));
 
-                fetch(route('admin.projects.working-steps.reorder'), {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    body: JSON.stringify({ steps: stepData }),
-                    credentials: 'same-origin',
-                }).then(response => response.json())
-                  .then(data => {
-                      // Success - no reload needed, state already updated
-                  })
-                  .catch(error => {
-                      console.error('Error reordering steps:', error);
-                  });
+                axios.post(route('admin.projects.working-steps.reorder'), { steps: stepData })
+                    .then(response => {
+                        // Success - no reload needed, state already updated
+                    })
+                    .catch(error => {
+                        console.error('Error reordering steps:', error);
+                        alert('Failed to save step order. Please try again.');
+                        // Reload to get correct state from server
+                        router.reload();
+                    });
             }
             return;
         }
 
-        // Handle sub step reordering/moving
+        // Handle task reordering/moving
         if (String(active.id).startsWith('substep-')) {
             const activeTaskId = Number(String(active.id).replace('substep-', ''));
             
@@ -839,33 +846,16 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                 }
             });
 
-            fetch(route('admin.projects.working-tasks.reorder'), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify({ tasks: allTasks }),
-                credentials: 'same-origin',
-            }).then(response => {
-                if (!response.ok) {
-                    return response.json().then(data => {
-                        throw new Error(data.message || 'Failed to reorder substeps');
-                    });
-                }
-                return response.json();
-            })
-              .then(data => {
-                  // Success - no reload needed, state already updated
-              })
-              .catch(error => {
-                  console.error('Error reordering substeps:', error);
-                  alert('Failed to save substep order. Please try again.');
-                  // Reload to get correct state from server
-                  router.reload();
-              });
+            axios.post(route('admin.projects.tasks.reorder'), { tasks: allTasks })
+                .then(response => {
+                    // Success - no reload needed, state already updated
+                })
+                .catch(error => {
+                    console.error('Error reordering tasks:', error);
+                    alert('Failed to save task order. Please try again.');
+                    // Reload to get correct state from server
+                    router.reload();
+                });
         }
     };
 
@@ -1111,7 +1101,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                     <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                                     </svg>
-                                                    Add Sub Step
+                                                    Add Task
                                                 </button>
                                                 <button 
                                                     onClick={() => handleEditStep(step)}
@@ -1134,11 +1124,11 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                             </div>
                                         </DraggableStep>
 
-                                        {/* Sub Steps List - SEPENUHNYA TERPISAH dari flex - Conditional Rendering */}
+                                        {/* Tasks List - SEPENUHNYA TERPISAH dari flex - Conditional Rendering */}
                                         {!collapsedSteps.has(step.id) && (
                                             <div className="px-4 pb-4">
                                                 <div className="px-2 pb-2 pt-5">
-                                                    <h5 className="text-sm font-medium text-gray-600 mb-3">Sub Steps:</h5>
+                                                    <h5 className="text-sm font-medium text-gray-600 mb-3">Tasks:</h5>
                                                 </div>
                                                 <div className="space-y-1">
                                                     <SortableContext 
@@ -1167,11 +1157,11 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                             </div>
                                         )}
 
-                                        {/* Empty Sub Steps State - only show when expanded */}
+                                        {/* Empty Tasks State - only show when expanded */}
                                         {!collapsedSteps.has(step.id) && (!step.tasks || step.tasks.length === 0) && (
                                             <div className="px-4 pb-4">
                                                 <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg mx-2">
-                                                    <p>No sub steps yet. Click "Add Sub Step" to get started.</p>
+                                                    <p>No tasks yet. Click "Add Task" to get started.</p>
                                                 </div>
                                             </div>
                                         )}
@@ -1271,28 +1261,45 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                 </div>
             )}
 
-            {/* Add Sub Step Modal */}
+            {/* Add Task Modal */}
             {showAddTaskModal && (
                 <div className="fixed inset-0 z-50 overflow-y-auto">
                     <div className="flex items-center justify-center min-h-screen px-4">
                         <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowAddTaskModal(false)}></div>
                         <div className="relative bg-white rounded-lg max-w-md w-full">
                             <form onSubmit={handleAddTask} className="p-6">
-                                <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Sub Step</h3>
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Task</h3>
                                 
                                 <div className="mb-4">
-                                    <label htmlFor="sub_step_name" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Sub Step Name
+                                    <label htmlFor="task_name" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Task Name
                                     </label>
                                     <input
                                         type="text"
-                                        id="sub_step_name"
+                                        id="task_name"
                                         value={taskData.name}
                                         onChange={(e) => setTaskData('name', e.target.value)}
                                         className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                         placeholder="e.g., Penetapan KAP"
                                         required
                                     />
+                                </div>
+
+                                <div className="mb-4">
+                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={taskData.is_required}
+                                            onChange={(e) => setTaskData('is_required', e.target.checked)}
+                                            className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                                        />
+                                        <span className="text-sm font-medium text-gray-700">
+                                            Required to unlock next step
+                                        </span>
+                                    </label>
+                                    <p className="text-xs text-gray-500 mt-1 ml-6">
+                                        This task must be completed before the next step can be accessed
+                                    </p>
                                 </div>
 
                                 <div className="flex justify-end space-x-3">
@@ -1307,7 +1314,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         type="submit"
                                         className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
                                     >
-                                        Add Sub Step
+                                        Add Task
                                     </button>
                                 </div>
                             </form>
@@ -1470,23 +1477,23 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                 </div>
             )}
 
-            {/* Edit Sub Step Modal */}
+            {/* Edit Task Modal */}
             {showEditTaskModal && editingTask && (
                 <div className="fixed inset-0 z-50 overflow-y-auto">
                     <div className="flex items-center justify-center min-h-screen px-4">
                         <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowEditTaskModal(false)}></div>
                         <div className="relative bg-white rounded-lg max-w-md w-full">
                             <form onSubmit={handleUpdateTask} className="p-6">
-                                <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Sub Step</h3>
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Task</h3>
                                 
                                 <div className="space-y-4">
                                     <div>
-                                        <label htmlFor="edit_sub_step_name" className="block text-sm font-medium text-gray-700 mb-2">
-                                            Sub Step Name
+                                        <label htmlFor="edit_task_name" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Task Name
                                         </label>
                                         <input
                                             type="text"
-                                            id="edit_sub_step_name"
+                                            id="edit_task_name"
                                             value={editTaskData.name}
                                             onChange={(e) => setEditTaskData('name', e.target.value)}
                                             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -1494,25 +1501,44 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         />
                                     </div>
 
-                                    <div className="flex items-center space-x-4">
-                                        <label className="flex items-center">
-                                            <input
-                                                type="checkbox"
-                                                checked={editTaskData.client_interact}
-                                                onChange={(e) => setEditTaskData('client_interact', e.target.checked)}
-                                                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                                            />
-                                            <span className="ml-2 text-sm text-gray-700">Client Interact</span>
-                                        </label>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center space-x-4">
+                                            <label className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={editTaskData.client_interact}
+                                                    onChange={(e) => setEditTaskData('client_interact', e.target.checked)}
+                                                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                                />
+                                                <span className="ml-2 text-sm text-gray-700">Client Interact</span>
+                                            </label>
 
-                                        <label className="flex items-center">
+                                            <label className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={editTaskData.multiple_files}
+                                                    onChange={(e) => setEditTaskData('multiple_files', e.target.checked)}
+                                                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                                />
+                                                <span className="ml-2 text-sm text-gray-700">Multiple Files</span>
+                                            </label>
+                                        </div>
+
+                                        <label className="flex items-start space-x-2">
                                             <input
                                                 type="checkbox"
-                                                checked={editTaskData.multiple_files}
-                                                onChange={(e) => setEditTaskData('multiple_files', e.target.checked)}
-                                                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                                checked={editTaskData.is_required}
+                                                onChange={(e) => setEditTaskData('is_required', e.target.checked)}
+                                                className="mt-1 w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
                                             />
-                                            <span className="ml-2 text-sm text-gray-700">Multiple Files</span>
+                                            <div>
+                                                <span className="text-sm font-medium text-gray-700">
+                                                    Required to unlock next step
+                                                </span>
+                                                <p className="text-xs text-gray-500">
+                                                    Must be completed before next step can be accessed
+                                                </p>
+                                            </div>
                                         </label>
                                     </div>
 
@@ -1546,7 +1572,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         type="submit"
                                         className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
                                     >
-                                        Update Sub Step
+                                        Update Task
                                     </button>
                                 </div>
                             </form>

@@ -55,9 +55,10 @@ interface Project {
 interface Props extends PageProps {
     project: Project;
     workingSteps: WorkingStep[];
+    myRole: string;
 }
 
-export default function ShowProject({ auth, project, workingSteps }: Props) {
+export default function ShowProject({ auth, project, workingSteps, myRole }: Props) {
     const [expandedSteps, setExpandedSteps] = useState<number[]>([]);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [showTaskModal, setShowTaskModal] = useState(false);
@@ -181,7 +182,7 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
         e.preventDefault();
         if (!selectedTask) return;
 
-        post(route('admin.tasks.update-status', selectedTask.id), {
+        post(route('company.tasks.update-status', selectedTask.id), {
             preserveScroll: true,
             forceFormData: true,
             onSuccess: () => {
@@ -253,7 +254,7 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                 <div className="flex items-center justify-between">
                     <div>
                         <Link
-                            href={route('admin.projects.bundles.index')}
+                            href={route('company.projects.index')}
                             className="text-sm text-gray-500 hover:text-gray-700 mb-1 inline-block"
                         >
                             ← Back to Projects
@@ -262,7 +263,7 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                             {project.name}
                         </h2>
                         <p className="text-sm text-gray-600 mt-1">
-                            Client: {project.client_name} • Role: Admin (Full Access)
+                            Client: {project.client_name} • Role: {myRole}
                         </p>
                     </div>
                     <span

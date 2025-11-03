@@ -25,11 +25,15 @@ class TemplateTaskSeeder extends Seeder
                 'Evaluasi Kemampuan KAP'
             ];
 
-            foreach ($perikatanTasks as $task) {
+            foreach ($perikatanTasks as $index => $task) {
                 TemplateTask::create([
                     'name' => $task,
                     'slug' => Str::slug($task),
-                    'template_working_step_id' => $perikatan->id
+                    'template_working_step_id' => $perikatan->id,
+                    'project_template_id' => $perikatan->project_template_id,
+                    'order' => $index + 1,
+                    'client_interact' => false,
+                    'multiple_files' => false,
                 ]);
             }
         }
@@ -45,11 +49,15 @@ class TemplateTaskSeeder extends Seeder
                 'Strategi Audit'
             ];
 
-            foreach ($perencanaanTasks as $task) {
+            foreach ($perencanaanTasks as $index => $task) {
                 TemplateTask::create([
                     'name' => $task,
                     'slug' => Str::slug($task),
-                    'template_working_step_id' => $perencanaan->id
+                    'template_working_step_id' => $perencanaan->id,
+                    'project_template_id' => $perencanaan->project_template_id,
+                    'order' => $index + 1,
+                    'client_interact' => false,
+                    'multiple_files' => false,
                 ]);
             }
         }
@@ -65,11 +73,15 @@ class TemplateTaskSeeder extends Seeder
                 'Cut-off Test'
             ];
 
-            foreach ($pelaksanaanTasks as $task) {
+            foreach ($pelaksanaanTasks as $index => $task) {
                 TemplateTask::create([
                     'name' => $task,
                     'slug' => Str::slug($task),
-                    'template_working_step_id' => $pelaksanaan->id
+                    'template_working_step_id' => $pelaksanaan->id,
+                    'project_template_id' => $pelaksanaan->project_template_id,
+                    'order' => $index + 1,
+                    'client_interact' => false,
+                    'multiple_files' => false,
                 ]);
             }
         }
@@ -84,11 +96,15 @@ class TemplateTaskSeeder extends Seeder
                 'Management Letter'
             ];
 
-            foreach ($pelaporanTasks as $task) {
+            foreach ($pelaporanTasks as $index => $task) {
                 TemplateTask::create([
                     'name' => $task,
                     'slug' => Str::slug($task),
-                    'template_working_step_id' => $pelaporan->id
+                    'template_working_step_id' => $pelaporan->id,
+                    'project_template_id' => $pelaporan->project_template_id,
+                    'order' => $index + 1,
+                    'client_interact' => false,
+                    'multiple_files' => false,
                 ]);
             }
         }
@@ -102,11 +118,15 @@ class TemplateTaskSeeder extends Seeder
                 'Review Perbaikan'
             ];
 
-            foreach ($tindakLanjutTasks as $task) {
+            foreach ($tindakLanjutTasks as $index => $task) {
                 TemplateTask::create([
                     'name' => $task,
                     'slug' => Str::slug($task),
-                    'template_working_step_id' => $tindakLanjut->id
+                    'template_working_step_id' => $tindakLanjut->id,
+                    'project_template_id' => $tindakLanjut->project_template_id,
+                    'order' => $index + 1,
+                    'client_interact' => false,
+                    'multiple_files' => false,
                 ]);
             }
         }

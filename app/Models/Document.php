@@ -18,6 +18,9 @@ class Document extends Model
     protected $fillable = [
         'task_id',
         'task_name',
+        'time',
+        'comment',
+        'client_comment',
         'working_step_name',
         'project_name',
         'project_client_name',

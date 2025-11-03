@@ -41,10 +41,10 @@ class ProjectTemplate extends Model
     }
 
     /**
-     * Get the template working sub steps for the project template.
+     * Get the template tasks for the project template.
      */
-    public function templateWorkingSubSteps(): HasMany
+    public function templateTasks(): HasMany
     {
-        return $this->hasMany(TemplateWorkingSubStep::class);
+        return $this->hasMany(TemplateTask::class);
     }
 }

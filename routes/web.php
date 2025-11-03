@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\ClientController as AdminClientController;
 use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Company\StaffController;
+use App\Http\Controllers\Company\CompanyController;
 use App\Http\Controllers\Admin\ProjectTemplateController;
 use App\Http\Controllers\Admin\UserController;
 use App\Models\Task;
@@ -43,6 +44,8 @@ Route::get('/dashboard', function () {
     switch ($roleName) {
         case 'admin':
             return redirect()->route('admin.dashboard');
+        case 'company':
+            return redirect()->route('company.dashboard');
         case 'partner':
             return redirect()->route('partner.dashboard');
         case 'staff':
@@ -104,6 +107,9 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
         Route::delete('team-members/{teamMember}', [ProjectController::class, 'destroyTeamMember'])->name('team-members.destroy');
     });
 
+    // Admin Task Management (full access to all tasks)
+    Route::post('/tasks/{task}/update-status', [ProjectController::class, 'updateTaskStatus'])->name('tasks.update-status');
+
     // Audit Management Routes (Old routes - might be deprecated)
     Route::get('/project', [ProjectController::class, 'index'])->name('project.index');
     Route::get('/project/client/{client}', [ProjectController::class, 'show'])->name('project.show');
@@ -162,6 +168,15 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
 });
 
 
+
+// Company Routes
+Route::middleware(['auth', 'verified', 'role:company'])->prefix('company')->name('company.')->group(function () {
+    Route::get('/dashboard', [CompanyController::class, 'dashboard'])->name('dashboard');
+    Route::get('/projects', [CompanyController::class, 'myProjects'])->name('projects.index');
+    Route::get('/projects/{project}', [CompanyController::class, 'showProject'])->name('projects.show');
+    Route::put('/tasks/{task}/status', [CompanyController::class, 'updateTaskStatus'])->name('tasks.update-status');
+    Route::post('/tasks/{task}/comment', [CompanyController::class, 'addTaskComment'])->name('tasks.add-comment');
+});
 
 // Partner Routes
 Route::middleware(['auth', 'verified', 'role:partner'])->prefix('partner')->name('partner.')->group(function () {

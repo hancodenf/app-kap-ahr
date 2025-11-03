@@ -25,6 +25,7 @@ return new class extends Migration
             $table->text('client_comment')->nullable();
             $table->boolean('client_interact')->default(false); // default read only
             $table->boolean('multiple_files')->default(false); // default single file
+            $table->boolean('is_required')->default(false); // Required to unlock next step
             $table->timestamps();
         });
     }

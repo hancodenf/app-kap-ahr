@@ -34,6 +34,7 @@ class TemplateTask extends Model
         'client_comment',
         'client_interact',
         'multiple_files',
+        'is_required',
     ];
 
     /**
@@ -47,6 +48,7 @@ class TemplateTask extends Model
             'time' => 'datetime',
             'client_interact' => 'boolean',
             'multiple_files' => 'boolean',
+            'is_required' => 'boolean',
         ];
     }
 

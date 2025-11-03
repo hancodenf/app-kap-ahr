@@ -15,18 +15,19 @@ class TemplateWorkingStepSeeder extends Seeder
     public function run(): void
     {
         $steps = [
-            ['name' => 'Perikatan', 'bundle_id' => 1],
-            ['name' => 'Perencanaan Audit', 'bundle_id' => 1],
-            ['name' => 'Pelaksanaan Audit', 'bundle_id' => 1], 
-            ['name' => 'Pelaporan', 'bundle_id' => 1],
-            ['name' => 'Tindak Lanjut', 'bundle_id' => 1]
+            ['name' => 'Perikatan', 'project_template_id' => 1, 'order' => 1],
+            ['name' => 'Perencanaan Audit', 'project_template_id' => 1, 'order' => 2],
+            ['name' => 'Pelaksanaan Audit', 'project_template_id' => 1, 'order' => 3], 
+            ['name' => 'Pelaporan', 'project_template_id' => 1, 'order' => 4],
+            ['name' => 'Tindak Lanjut', 'project_template_id' => 1, 'order' => 5]
         ];
 
-        foreach ($steps as $step) {
+        foreach ($steps as $index => $step) {
             TemplateWorkingStep::create([
                 'name' => $step['name'],
                 'slug' => Str::slug($step['name']),
-                'bundle_id' => $step['bundle_id']
+                'project_template_id' => $step['project_template_id'],
+                'order' => $step['order']
             ]);
         }
     }

@@ -22,7 +22,9 @@ class ProjectController extends Controller
     
     public function index()
     {
-        $projects = Project::orderBy('name')->get();
+        $projects = Project::with('client:id,name')
+            ->orderBy('name')
+            ->get();
 
         return Inertia::render('Admin/Project/Index', [
             'bundles' => $projects,
@@ -118,27 +120,39 @@ class ProjectController extends Controller
             ->orderBy('order')
             ->get();
 
-        foreach ($templateSteps as $templateStep) {
+        foreach ($templateSteps as $index => $templateStep) {
             // Create step for project in working_steps table
             $newStep = WorkingStep::create([
                 'project_id' => $projectId,
                 'name' => $templateStep->name,
                 'slug' => $templateStep->slug . '-' . $projectId, // Make slug unique per project
                 'order' => $templateStep->order,
+                'is_locked' => $index === 0 ? false : true, // First step unlocked, others locked
                 'project_name' => $project->name,
                 'project_client_name' => $project->client_name,
             ]);
 
             // Copy tasks from template_tasks to tasks
             foreach ($templateStep->templateTasks as $templateTask) {
+                // Generate truly unique slug
+                $baseSlug = $templateTask->slug;
+                $slug = $baseSlug . '-' . $projectId;
+                $count = 1;
+                while (Task::where('slug', $slug)->exists()) {
+                    $slug = $baseSlug . '-' . $projectId . '-' . $count;
+                    $count++;
+                }
+                
                 Task::create([
                     'project_id' => $projectId,
                     'working_step_id' => $newStep->id,
                     'name' => $templateTask->name,
-                    'slug' => $templateTask->slug . '-' . $projectId, // Make slug unique per project
+                    'slug' => $slug,
                     'order' => $templateTask->order,
                     'client_interact' => $templateTask->client_interact,
                     'multiple_files' => $templateTask->multiple_files,
+                    'is_required' => $templateTask->is_required ?? false,
+                    'completion_status' => 'pending',
                     'project_name' => $project->name,
                     'project_client_name' => $project->client_name,
                     'working_step_name' => $newStep->name,
@@ -152,10 +166,47 @@ class ProjectController extends Controller
         // Get working steps for this project
         $workingSteps = WorkingStep::where('project_id', $bundle->id)
             ->with(['tasks' => function($query) {
-                $query->with('taskWorkers')->orderBy('order');
+                $query->with(['taskWorkers', 'documents'])->orderBy('order');
             }])
             ->orderBy('order')
-            ->get();
+            ->get()
+            ->map(function($step) {
+                return [
+                    'id' => $step->id,
+                    'name' => $step->name,
+                    'slug' => $step->slug,
+                    'order' => $step->order,
+                    'is_locked' => $step->is_locked,
+                    'can_access' => true, // Admin always has access
+                    'required_progress' => null,
+                    'tasks' => $step->tasks->map(function($task) {
+                        return [
+                            'id' => $task->id,
+                            'name' => $task->name,
+                            'slug' => $task->slug,
+                            'order' => $task->order,
+                            'is_required' => $task->is_required,
+                            'completion_status' => $task->completion_status,
+                            'status' => $task->status,
+                            'client_interact' => $task->client_interact,
+                            'multiple_files' => $task->multiple_files,
+                            'time' => $task->time,
+                            'comment' => $task->comment,
+                            'client_comment' => $task->client_comment,
+                            'is_assigned_to_me' => true, // Admin can edit all tasks
+                            'my_assignment_id' => null,
+                            'documents' => $task->documents->map(function($doc) {
+                                return [
+                                    'id' => $doc->id,
+                                    'name' => $doc->name,
+                                    'file' => $doc->file,
+                                    'uploaded_at' => $doc->uploaded_at,
+                                ];
+                            }),
+                        ];
+                    }),
+                ];
+            });
 
         // Get team members with their assigned tasks
         $teamMembers = ProjectTeam::where('project_id', $bundle->id)
@@ -166,6 +217,12 @@ class ProjectController extends Controller
 
         return Inertia::render('Admin/Project/Show', [
             'bundle' => $bundle,
+            'project' => [
+                'id' => $bundle->id,
+                'name' => $bundle->name,
+                'client_name' => $bundle->client_name,
+                'status' => $bundle->status,
+            ],
             'workingSteps' => $workingSteps,
             'teamMembers' => $teamMembers,
         ]);
@@ -398,6 +455,8 @@ class ProjectController extends Controller
             'order' => $nextOrder,
             'client_interact' => false,
             'multiple_files' => false,
+            'is_required' => $request->boolean('is_required'),
+            'completion_status' => 'pending',
             'project_name' => $project->name,
             'project_client_name' => $project->client_name,
             'working_step_name' => $workingStep->name,
@@ -422,6 +481,7 @@ class ProjectController extends Controller
             'name' => $request->name,
             'client_interact' => $request->boolean('client_interact'),
             'multiple_files' => $request->boolean('multiple_files'),
+            'is_required' => $request->boolean('is_required'),
         ];
 
         if ($task->name !== $request->name) {
@@ -602,5 +662,55 @@ class ProjectController extends Controller
         $teamMember->delete();
 
         return redirect()->back()->with('success', 'Team member removed successfully!');
+    }
+
+    /**
+     * Admin: Update task (no restrictions)
+     */
+    public function updateTaskStatus(Request $request, Task $task)
+    {
+        $request->validate([
+            'comment' => 'nullable|string',
+            'time' => 'nullable|string',
+            'files.*' => 'nullable|file|max:10240', // Max 10MB per file
+        ]);
+        
+        // Update comment and time if provided
+        if ($request->has('comment')) {
+            $task->comment = $request->comment;
+        }
+        if ($request->has('time')) {
+            $task->time = $request->time;
+        }
+        
+        // Handle file uploads
+        if ($request->hasFile('files')) {
+            $project = $task->workingStep->project;
+            
+            foreach ($request->file('files') as $file) {
+                $originalName = $file->getClientOriginalName();
+                $filename = time() . '_' . uniqid() . '_' . $originalName;
+                
+                // Store in storage/app/public/task-files
+                $path = $file->storeAs('task-files', $filename, 'public');
+                
+                // Create document record
+                Document::create([
+                    'task_id' => $task->id,
+                    'task_name' => $task->name,
+                    'working_step_name' => $task->workingStep->name ?? 'N/A',
+                    'project_name' => $project->name,
+                    'project_client_name' => $project->client->name ?? 'N/A',
+                    'name' => $originalName,
+                    'slug' => Str::slug($originalName . '-' . time()),
+                    'file' => $path,
+                    'uploaded_at' => now(),
+                ]);
+            }
+        }
+        
+        $task->save();
+        
+        return back()->with('success', 'Task updated successfully!');
     }
 }

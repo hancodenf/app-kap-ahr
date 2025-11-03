@@ -118,57 +118,154 @@ export default function Login({
             <div className="mt-8 border-t border-gray-200 pt-6">
                 <div className="text-center mb-4">
                     <p className="text-sm text-gray-600 font-medium">
-                        Demo Login - Quick Access
+                        🚀 Demo Login - Quick Access
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                        Click any button below to autofill credentials
+                        Click any button below to autofill credentials (password: <span className="font-mono font-semibold">password</span>)
                     </p>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-3">
+                    {/* Admin */}
                     <button
                         type="button"
                         onClick={() => autofillCredentials('admin@example.com', 'password')}
-                        className="flex items-center justify-center px-4 py-3 border border-primary-300 rounded-lg text-sm font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors"
+                        className="w-full flex items-center justify-between px-4 py-3 border-2 border-red-300 rounded-lg text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all shadow-sm hover:shadow"
                     >
-                        <div className="text-center">
-                            <div className="font-semibold">Admin</div>
-                            <div className="text-xs opacity-75">Full Access</div>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-red-200 flex items-center justify-center">
+                                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                            </div>
+                            <div className="text-left">
+                                <div className="font-bold">Admin User</div>
+                                <div className="text-xs opacity-75">admin@example.com • Full System Access</div>
+                            </div>
                         </div>
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
                     </button>
 
-                    <button
-                        type="button"
-                        onClick={() => autofillCredentials('partner@example.com', 'password')}
-                        className="flex items-center justify-center px-4 py-3 border border-primary-400 rounded-lg text-sm font-medium text-primary-800 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors"
-                    >
-                        <div className="text-center">
-                            <div className="font-semibold">Partner</div>
-                            <div className="text-xs opacity-75">Business Access</div>
-                        </div>
-                    </button>
+                    {/* Company Users */}
+                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                        <p className="text-xs font-semibold text-blue-700 mb-2">Company Users (Project Team Members)</p>
+                        <div className="space-y-2">
+                            <button
+                                type="button"
+                                onClick={() => autofillCredentials('partner@company.com', 'password')}
+                                className="w-full flex items-center justify-between px-3 py-2 bg-white border border-blue-300 rounded-lg text-sm font-medium text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs">
+                                        JP
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="font-semibold">John Partner</div>
+                                        <div className="text-xs opacity-75">partner@company.com</div>
+                                    </div>
+                                </div>
+                                <span className="text-xs bg-blue-100 px-2 py-1 rounded">Partner</span>
+                            </button>
 
-                    <button
-                        type="button"
-                        onClick={() => autofillCredentials('staff@example.com', 'password')}
-                        className="flex items-center justify-center px-4 py-3 border border-primary-500 rounded-lg text-sm font-medium text-primary-900 bg-primary-200 hover:bg-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors"
-                    >
-                        <div className="text-center">
-                            <div className="font-semibold">Staff</div>
-                            <div className="text-xs opacity-75">Operational Access</div>
-                        </div>
-                    </button>
+                            <button
+                                type="button"
+                                onClick={() => autofillCredentials('manager@company.com', 'password')}
+                                className="w-full flex items-center justify-between px-3 py-2 bg-white border border-blue-300 rounded-lg text-sm font-medium text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs">
+                                        JM
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="font-semibold">Jane Manager</div>
+                                        <div className="text-xs opacity-75">manager@company.com</div>
+                                    </div>
+                                </div>
+                                <span className="text-xs bg-blue-100 px-2 py-1 rounded">Manager</span>
+                            </button>
 
+                            <button
+                                type="button"
+                                onClick={() => autofillCredentials('supervisor@company.com', 'password')}
+                                className="w-full flex items-center justify-between px-3 py-2 bg-white border border-blue-300 rounded-lg text-sm font-medium text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs">
+                                        BS
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="font-semibold">Bob Supervisor</div>
+                                        <div className="text-xs opacity-75">supervisor@company.com</div>
+                                    </div>
+                                </div>
+                                <span className="text-xs bg-blue-100 px-2 py-1 rounded">Supervisor</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => autofillCredentials('teamleader@company.com', 'password')}
+                                className="w-full flex items-center justify-between px-3 py-2 bg-white border border-blue-300 rounded-lg text-sm font-medium text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs">
+                                        AT
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="font-semibold">Alice Team Leader</div>
+                                        <div className="text-xs opacity-75">teamleader@company.com</div>
+                                    </div>
+                                </div>
+                                <span className="text-xs bg-blue-100 px-2 py-1 rounded">Team Leader</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => autofillCredentials('auditor@company.com', 'password')}
+                                className="w-full flex items-center justify-between px-3 py-2 bg-white border border-blue-300 rounded-lg text-sm font-medium text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs">
+                                        MA
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="font-semibold">Mike Auditor</div>
+                                        <div className="text-xs opacity-75">auditor@company.com</div>
+                                    </div>
+                                </div>
+                                <span className="text-xs bg-blue-100 px-2 py-1 rounded">Sr. Auditor</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Client */}
                     <button
                         type="button"
-                        onClick={() => autofillCredentials('klien@example.com', 'password')}
-                        className="flex items-center justify-center px-4 py-3 border border-primary-600 rounded-lg text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors"
+                        onClick={() => autofillCredentials('client@client.com', 'password')}
+                        className="w-full flex items-center justify-between px-4 py-3 border-2 border-green-300 rounded-lg text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all shadow-sm hover:shadow"
                     >
-                        <div className="text-center">
-                            <div className="font-semibold">Klien</div>
-                            <div className="text-xs opacity-75">Client Access</div>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center">
+                                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <div className="text-left">
+                                <div className="font-bold">Client Representative</div>
+                                <div className="text-xs opacity-75">client@client.com • Client Portal Access</div>
+                            </div>
                         </div>
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
                     </button>
+                </div>
+
+                <div className="mt-4 text-center">
+                    <p className="text-xs text-gray-500">
+                        💡 All accounts use password: <span className="font-mono font-bold text-gray-700">password</span>
+                    </p>
                 </div>
             </div>
         </GuestLayout>

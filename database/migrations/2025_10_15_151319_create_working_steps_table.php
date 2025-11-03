@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('working_steps', function (Blueprint $table) {
             $table->id();
             $table->integer('order')->default(0);
+            $table->boolean('is_locked')->default(true); // Locked by default, except for first step
             
             // Foreign key reference (nullable untuk denormalisasi)
             $table->unsignedBigInteger('project_id')->nullable();

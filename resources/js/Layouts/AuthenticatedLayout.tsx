@@ -17,6 +17,8 @@ export default function Authenticated({
         switch (role) {
             case 'admin':
                 return 'admin.dashboard';
+            case 'company':
+                return 'company.dashboard';
             case 'partner':
                 return 'partner.dashboard';
             case 'staff':
@@ -35,35 +37,34 @@ export default function Authenticated({
             href: route(getDashboardRoute()),
             icon: (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v4H8V5z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
             ),
             active: route().current(getDashboardRoute()) || route().current('dashboard'),
         },
         ...(user.role === 'admin' ? [
             {
-                name: 'Project',
+                name: 'Projects',
                 href: route('admin.projects.bundles.index'),
-                icon: (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                ),
-                active: route().current('admin.projects.*'),
-            },
-            {
-                name: 'Project Template',
-                href: route('admin.project-templates.template-bundles.index'),
                 icon: (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                 ),
+                active: route().current('admin.projects.*'),
+            },
+            {
+                name: 'Project Templates',
+                href: route('admin.project-templates.template-bundles.index'),
+                icon: (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                    </svg>
+                ),
                 active: route().current('admin.project-templates.*'),
             },
             {
-                name: 'User Management',
+                name: 'Users',
                 href: route('admin.users.index'),
                 icon: (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,7 +74,7 @@ export default function Authenticated({
                 active: route().current('admin.users.*'),
             },
             {
-                name: 'Client Management',
+                name: 'Clients',
                 href: route('admin.clients.index'),
                 icon: (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,6 +83,18 @@ export default function Authenticated({
                 ),
                 active: route().current('admin.clients.*'),
             }
+        ] : []),
+        ...(user.role === 'company' ? [
+            {
+                name: 'My Projects',
+                href: route('company.projects.index'),
+                icon: (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                ),
+                active: route().current('company.projects.*'),
+            },
         ] : []),
     ];
 

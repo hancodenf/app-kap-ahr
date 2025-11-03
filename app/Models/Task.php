@@ -25,13 +25,24 @@ class Task extends Model
         'project_name',
         'project_client_name',
         'working_step_name',
-        'time',
-        'comment',
-        'client_comment',
         'client_interact',
         'multiple_files',
+        'is_required',
+        'completion_status',
         'status',
     ];
+
+    /**
+     * Get the attributes that should be cast.
+     */
+    protected function casts(): array
+    {
+        return [
+            'client_interact' => 'boolean',
+            'multiple_files' => 'boolean',
+            'is_required' => 'boolean',
+        ];
+    }
 
     /**
      * Get the working step that owns the task.
@@ -63,5 +74,34 @@ class Task extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(Document::class);
+    }
+
+    /**
+     * Mark task as completed and check if next step should be unlocked
+     */
+    public function markAsCompleted(): void
+    {
+        $this->update(['completion_status' => 'completed']);
+        
+        // Check if this unlocks the next step (only for required tasks)
+        if ($this->is_required) {
+            $this->workingStep->checkAndUnlockNextStep();
+        }
+    }
+
+    /**
+     * Mark task as in progress
+     */
+    public function markAsInProgress(): void
+    {
+        $this->update(['completion_status' => 'in_progress']);
+    }
+
+    /**
+     * Mark task as pending
+     */
+    public function markAsPending(): void
+    {
+        $this->update(['completion_status' => 'pending']);
     }
 }

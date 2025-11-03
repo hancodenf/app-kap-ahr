@@ -15,14 +15,8 @@ return new class extends Migration
             $table->id();
             
             // Foreign key reference (nullable untuk denormalisasi)
-            $table->unsignedBigInteger('task_id')->nullable();
-            $table->foreign('task_id')->references('id')->on('tasks')->onDelete('set null');
-            
-            // Denormalized working sub step data
-            $table->string('task_name');
-            $table->string('working_step_name');
-            $table->string('project_name');
-            $table->string('project_client_name');
+            $table->unsignedBigInteger('task_assignment_id')->nullable();
+            $table->foreign('task_assignment_id')->references('id')->on('task_assignments')->onDelete('set null');
             
             $table->string('name');
             $table->string('slug')->unique();

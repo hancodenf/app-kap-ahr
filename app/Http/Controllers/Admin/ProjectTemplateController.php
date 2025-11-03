@@ -199,6 +199,7 @@ class ProjectTemplateController extends Controller
             'template_working_step_id' => $request->template_working_step_id,
             'project_template_id' => $workingStep->project_template_id,
             'order' => $nextOrder,
+            'is_required' => $request->boolean('is_required'),
         ]);
 
         return redirect()->back()->with('success', 'Template task created successfully!');
@@ -210,6 +211,7 @@ class ProjectTemplateController extends Controller
             'name' => 'required|string|max:255',
             'client_interact' => 'boolean',
             'multiple_files' => 'boolean',
+            'is_required' => 'boolean',
         ]);
 
         // Generate new slug if name changed
@@ -217,6 +219,7 @@ class ProjectTemplateController extends Controller
             'name' => $request->name,
             'client_interact' => $request->boolean('client_interact'),
             'multiple_files' => $request->boolean('multiple_files'),
+            'is_required' => $request->boolean('is_required'),
         ];
 
         if ($templateTask->name !== $request->name) {
