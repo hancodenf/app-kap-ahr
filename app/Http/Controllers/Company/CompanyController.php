@@ -98,7 +98,12 @@ class CompanyController extends Controller
         // Get working steps with tasks
         $workingSteps = WorkingStep::where('project_id', $project->id)
             ->with(['tasks' => function($query) {
-                $query->with(['taskWorkers.projectTeam'])->orderBy('order');
+                $query->with([
+                    'taskWorkers.projectTeam',
+                    'taskAssignments' => function($q) {
+                        $q->with('documents')->orderBy('created_at', 'desc');
+                    }
+                ])->orderBy('order');
             }])
             ->orderBy('order')
             ->get()
@@ -134,6 +139,9 @@ class CompanyController extends Controller
                             return $worker->project_team_id == $teamMember->id;
                         });
                         
+                        // Get latest assignment for display
+                        $latestAssignment = $task->taskAssignments->first();
+                        
                         return [
                             'id' => $task->id,
                             'name' => $task->name,
@@ -144,17 +152,36 @@ class CompanyController extends Controller
                             'status' => $task->status,
                             'client_interact' => $task->client_interact,
                             'multiple_files' => $task->multiple_files,
-                            'time' => $task->time,
-                            'comment' => $task->comment,
-                            'client_comment' => $task->client_comment,
                             'is_assigned_to_me' => $myAssignment !== null,
                             'my_assignment_id' => $myAssignment ? $myAssignment->id : null,
-                            'documents' => $task->documents->map(function($doc) {
+                            // Latest assignment info for display
+                            'latest_assignment' => $latestAssignment ? [
+                                'id' => $latestAssignment->id,
+                                'time' => $latestAssignment->time,
+                                'notes' => $latestAssignment->notes,
+                                'comment' => $latestAssignment->comment,
+                                'client_comment' => $latestAssignment->client_comment,
+                                'is_approved' => $latestAssignment->is_approved,
+                                'created_at' => $latestAssignment->created_at,
+                            ] : null,
+                            // All assignments with documents
+                            'assignments' => $task->taskAssignments->map(function($assignment) {
                                 return [
-                                    'id' => $doc->id,
-                                    'name' => $doc->name,
-                                    'file' => $doc->file,
-                                    'uploaded_at' => $doc->uploaded_at,
+                                    'id' => $assignment->id,
+                                    'time' => $assignment->time,
+                                    'notes' => $assignment->notes,
+                                    'comment' => $assignment->comment,
+                                    'client_comment' => $assignment->client_comment,
+                                    'is_approved' => $assignment->is_approved,
+                                    'created_at' => $assignment->created_at,
+                                    'documents' => $assignment->documents->map(function($doc) {
+                                        return [
+                                            'id' => $doc->id,
+                                            'name' => $doc->name,
+                                            'file' => $doc->file,
+                                            'uploaded_at' => $doc->uploaded_at,
+                                        ];
+                                    }),
                                 ];
                             }),
                         ];
@@ -199,23 +226,25 @@ class CompanyController extends Controller
         }
         
         $request->validate([
-            'comment' => 'nullable|string',
-            'time' => 'nullable|string',
+            'notes' => 'nullable|string',
             'files.*' => 'nullable|file|max:10240', // Max 10MB per file
         ]);
         
-        // Update comment and time if provided
-        if ($request->has('comment')) {
-            $task->comment = $request->comment;
-        }
-        if ($request->has('time')) {
-            $task->time = $request->time;
-        }
+        // Create new TaskAssignment
+        $taskAssignment = \App\Models\TaskAssignment::create([
+            'task_id' => $task->id,
+            'task_name' => $task->name,
+            'working_step_name' => $task->working_step_name,
+            'project_name' => $task->project_name,
+            'project_client_name' => $task->project_client_name,
+            'time' => now(),
+            'notes' => $request->notes,
+            'comment' => null, // Will be filled by reviewer if rejected
+            'is_approved' => false,
+        ]);
         
         // Handle file uploads
         if ($request->hasFile('files')) {
-            $project = $task->workingStep->project;
-            
             foreach ($request->file('files') as $file) {
                 $originalName = $file->getClientOriginalName();
                 $filename = time() . '_' . uniqid() . '_' . $originalName;
@@ -223,13 +252,9 @@ class CompanyController extends Controller
                 // Store in storage/app/public/task-files
                 $path = $file->storeAs('task-files', $filename, 'public');
                 
-                // Create document record
+                // Create document record linked to this assignment
                 \App\Models\Document::create([
-                    'task_id' => $task->id,
-                    'task_name' => $task->name,
-                    'working_step_name' => $task->workingStep->name ?? 'N/A',
-                    'project_name' => $project->name,
-                    'project_client_name' => $project->client->name ?? 'N/A',
+                    'task_assignment_id' => $taskAssignment->id,
                     'name' => $originalName,
                     'slug' => \Illuminate\Support\Str::slug($originalName . '-' . time()),
                     'file' => $path,
@@ -238,9 +263,13 @@ class CompanyController extends Controller
             }
         }
         
-        $task->save();
+        // Update task status if needed
+        if ($task->status === 'Draft') {
+            $task->status = 'Submitted';
+            $task->save();
+        }
         
-        return back()->with('success', 'Task updated successfully!');
+        return back()->with('success', 'Task assignment created successfully!');
     }
 
     /**

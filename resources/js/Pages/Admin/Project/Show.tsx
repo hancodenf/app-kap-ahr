@@ -10,6 +10,17 @@ interface Document {
     uploaded_at: string;
 }
 
+interface TaskAssignment {
+    id: number;
+    time: string;
+    notes: string | null;
+    comment: string | null;
+    client_comment: string | null;
+    is_approved: boolean;
+    created_at: string;
+    documents: Document[];
+}
+
 interface Task {
     id: number;
     name: string;
@@ -20,12 +31,10 @@ interface Task {
     status: string;
     client_interact: boolean;
     multiple_files: boolean;
-    time: string | null;
-    comment: string | null;
-    client_comment: string | null;
     is_assigned_to_me: boolean;
     my_assignment_id: number | null;
-    documents: Document[];
+    latest_assignment: TaskAssignment | null;
+    assignments: TaskAssignment[];
 }
 
 interface RequiredProgress {
@@ -79,12 +88,10 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
     }, [showTaskModal]);
 
     const { data, setData, post, processing, errors, reset } = useForm<{
-        comment: string;
-        time: string;
+        notes: string;
         files: File[];
     }>({
-        comment: '',
-        time: '',
+        notes: '',
         files: [],
     });
 
@@ -109,8 +116,7 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
         setFileInputs([{ id: 0, label: '', file: null }]);
         setNextFileId(1);
         setData({
-            comment: task.comment || '',
-            time: task.time || '',
+            notes: task.latest_assignment?.notes || '',
             files: [],
         });
         setShowTaskModal(true);
@@ -420,14 +426,14 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                                                                                     </span>
                                                                                 )}
                                                                             </div>
-                                                                            {task.comment && (
+                                                                            {task.latest_assignment?.comment && (
                                                                                 <p className="text-sm text-gray-600 mt-1">
-                                                                                    💬 {task.comment}
+                                                                                    💬 {task.latest_assignment.comment}
                                                                                 </p>
                                                                             )}
-                                                                            {task.time && (
+                                                                            {task.latest_assignment?.time && (
                                                                                 <p className="text-sm text-gray-500 mt-1">
-                                                                                    ⏱️ {task.time}
+                                                                                    ⏱️ {new Date(task.latest_assignment.time).toLocaleDateString('id-ID')}
                                                                                 </p>
                                                                             )}
                                                                         </div>
@@ -476,53 +482,39 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
 
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Time Spent
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={data.time}
-                                            onChange={(e) => setData('time', e.target.value)}
-                                            placeholder="e.g., 2 hours"
-                                            className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                                        />
-                                        {errors.time && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.time}</p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Comment
+                                            Notes
+                                            <span className="ml-2 text-xs text-gray-500">(Your submission notes)</span>
                                         </label>
                                         <textarea
-                                            value={data.comment}
-                                            onChange={(e) => setData('comment', e.target.value)}
+                                            value={data.notes}
+                                            onChange={(e) => setData('notes', e.target.value)}
                                             rows={3}
-                                            placeholder="Add notes or comments..."
+                                            placeholder="Add your notes here..."
                                             className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500"
                                         />
-                                        {errors.comment && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.comment}</p>
+                                        {errors.notes && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.notes}</p>
                                         )}
                                     </div>
 
-                                    {/* Existing Documents Section */}
-                                    {selectedTask.documents && selectedTask.documents.length > 0 && (
+                                    {/* Previous Assignments History */}
+                                    {selectedTask.assignments && selectedTask.assignments.length > 0 && (
                                         <div className="mb-6">
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                Uploaded Documents
+                                            <label className="block text-sm font-medium text-gray-700 mb-3">
+                                                Submission History ({selectedTask.assignments.length} submission{selectedTask.assignments.length > 1 ? 's' : ''})
                                             </label>
-                                            <div className="space-y-2">
-                                                {selectedTask.documents.map((doc) => (
-                                                    <div key={doc.id} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                                        <div className="flex items-center space-x-3">
-                                                            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                            </svg>
+                                            <div className="space-y-4">
+                                                {selectedTask.assignments.map((assignment, index) => (
+                                                    <div key={assignment.id} className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                                                        <div className="flex items-start justify-between mb-3">
                                                             <div>
-                                                                <p className="text-sm font-medium text-gray-900">{doc.name}</p>
-                                                                <p className="text-xs text-gray-500">
-                                                                    Uploaded: {new Date(doc.uploaded_at).toLocaleDateString('id-ID', {
+                                                                <p className="text-sm font-semibold text-gray-900">
+                                                                    Submission #{selectedTask.assignments.length - index}
+                                                                    {index === 0 && <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">Latest</span>}
+                                                                    {assignment.is_approved && <span className="ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">Approved</span>}
+                                                                </p>
+                                                                <p className="text-xs text-gray-500 mt-1">
+                                                                    {new Date(assignment.created_at).toLocaleDateString('id-ID', {
                                                                         year: 'numeric',
                                                                         month: 'long',
                                                                         day: 'numeric',
@@ -532,16 +524,53 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                                                                 </p>
                                                             </div>
                                                         </div>
-                                                        <a
-                                                            href={`/storage/${doc.file}`}
-                                                            download
-                                                            className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 bg-white border border-blue-600 rounded-md hover:bg-blue-600 hover:text-white transition-colors"
-                                                        >
-                                                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                                            </svg>
-                                                            Download
-                                                        </a>
+                                                        
+                                                        {assignment.notes && (
+                                                            <div className="mb-3">
+                                                                <p className="text-xs font-medium text-gray-700">📝 Notes:</p>
+                                                                <p className="text-sm text-gray-600 mt-1">{assignment.notes}</p>
+                                                            </div>
+                                                        )}
+                                                        
+                                                        {assignment.comment && (
+                                                            <div className="mb-3 p-2 bg-red-50 border-l-4 border-red-400 rounded">
+                                                                <p className="text-xs font-medium text-red-800">❌ Rejection Reason:</p>
+                                                                <p className="text-sm text-red-900 mt-1">{assignment.comment}</p>
+                                                            </div>
+                                                        )}
+                                                        
+                                                        {assignment.client_comment && (
+                                                            <div className="mb-3 p-2 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+                                                                <p className="text-xs font-medium text-yellow-800">💬 Client Reply:</p>
+                                                                <p className="text-sm text-yellow-900 mt-1">{assignment.client_comment}</p>
+                                                            </div>
+                                                        )}
+                                                        
+                                                        {assignment.documents && assignment.documents.length > 0 && (
+                                                            <div className="space-y-2">
+                                                                <p className="text-xs font-medium text-gray-700">Documents ({assignment.documents.length}):</p>
+                                                                {assignment.documents.map((doc) => (
+                                                                    <div key={doc.id} className="flex items-center justify-between p-2 bg-white border border-gray-200 rounded">
+                                                                        <div className="flex items-center space-x-2">
+                                                                            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                            </svg>
+                                                                            <span className="text-sm text-gray-900">{doc.name}</span>
+                                                                        </div>
+                                                                        <a
+                                                                            href={`/storage/${doc.file}`}
+                                                                            download
+                                                                            className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800"
+                                                                        >
+                                                                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                                            </svg>
+                                                                            Download
+                                                                        </a>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>

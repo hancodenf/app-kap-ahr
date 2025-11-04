@@ -16,14 +16,7 @@ class Document extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'task_id',
-        'task_name',
-        'time',
-        'comment',
-        'client_comment',
-        'working_step_name',
-        'project_name',
-        'project_client_name',
+        'task_assignment_id',
         'name',
         'slug',
         'file',
@@ -43,10 +36,10 @@ class Document extends Model
     }
 
     /**
-     * Get the task that owns the document.
+     * Get the task assignment that owns the document.
      */
-    public function task(): BelongsTo
+    public function taskAssignment(): BelongsTo
     {
-        return $this->belongsTo(Task::class);
+        return $this->belongsTo(TaskAssignment::class);
     }
 }

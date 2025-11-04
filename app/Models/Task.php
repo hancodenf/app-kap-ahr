@@ -69,11 +69,11 @@ class Task extends Model
     }
 
     /**
-     * Get the documents for the task.
+     * Get the task assignments for the task.
      */
-    public function documents(): HasMany
+    public function taskAssignments(): HasMany
     {
-        return $this->hasMany(Document::class);
+        return $this->hasMany(TaskAssignment::class);
     }
 
     /**

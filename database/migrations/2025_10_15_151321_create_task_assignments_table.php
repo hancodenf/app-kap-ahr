@@ -23,8 +23,9 @@ return new class extends Migration
             $table->string('project_client_name');
 
             $table->timestamp('time')->nullable();
-            $table->text('comment')->nullable();
-            $table->text('client_comment')->nullable();
+            $table->longText('comment')->nullable();
+            $table->longText('notes')->nullable();
+            $table->longText('client_comment')->nullable();
             $table->boolean('is_approved')->default(false);
 
             $table->timestamps();
