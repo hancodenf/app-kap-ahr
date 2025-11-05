@@ -16,16 +16,30 @@ class Document extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        'task_assignment_id',
         'name',
         'slug',
-        'sub_level_id',
+        'file',
+        'uploaded_at',
     ];
 
     /**
-     * Get the sub level that owns the document.
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
      */
-    public function subLevel(): BelongsTo
+    protected function casts(): array
     {
-        return $this->belongsTo(SubLevel::class);
+        return [
+            'uploaded_at' => 'datetime',
+        ];
+    }
+
+    /**
+     * Get the task assignment that owns the document.
+     */
+    public function taskAssignment(): BelongsTo
+    {
+        return $this->belongsTo(TaskAssignment::class);
     }
 }

@@ -26,7 +26,8 @@ class RoleMiddleware
             abort(403, 'Access denied. No role assigned.');
         }
 
-        if (!$user->hasAnyRole($roles)) {
+        // Check if user's role is in the allowed roles array
+        if (!in_array($user->role, $roles)) {
             abort(403, 'Access denied. Insufficient permissions.');
         }
 

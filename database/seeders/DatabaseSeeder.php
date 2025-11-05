@@ -16,12 +16,29 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            RoleSeeder::class,
-            AdminUserSeeder::class,
-            LevelSeeder::class,
-            SubLevelSeeder::class,
-            DocumentSeeder::class, 
-            TemplateSeeder::class,
+            // First create users and clients
+            UserSeeder::class,
+            ClientSeeder::class,
+            
+            // Create project templates
+            ProjectTemplateSeeder::class,
+            
+            // Create template working steps and tasks (needs project templates)
+            TemplateWorkingStepSeeder::class,
+            TemplateTaskSeeder::class,
+            
+            // Create projects (needs clients)
+            ProjectSeeder::class,
+            
+            // Create working steps and tasks (needs projects for denormalized data)
+            WorkingStepSeeder::class,
+            TaskSeeder::class,
+            
+            // Create task workers (needs tasks and project teams)
+            TaskWorkerSeeder::class,
+            
+            // Other seeders
+            RegisteredApSeeder::class,
         ]);
     }
 }
