@@ -29,7 +29,8 @@ class ClientSeeder extends Seeder
         // Create additional clients for testing
         $additionalUsers = User::factory()->count(3)->create([
             'role' => 'client',
-            'position' => 'Finance Director',
+            'position' => null,  // Client role should have null position
+            'user_type' => null, // Client role should have null user_type
         ]);
 
         $clientData = [

@@ -11,12 +11,31 @@ use Inertia\Inertia;
 
 class ClientController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $clients = Client::with('user')->orderBy('name')->get();
+        $search = $request->get('search', '');
+
+        $clients = Client::with('user')
+            ->when($search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('alamat', 'like', "%{$search}%")
+                        ->orWhere('kementrian', 'like', "%{$search}%")
+                        ->orWhere('kode_satker', 'like', "%{$search}%")
+                        ->orWhereHas('user', function ($q) use ($search) {
+                            $q->where('email', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->orderBy('name')
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('Admin/Clients/Index', [
             'clients' => $clients,
+            'filters' => [
+                'search' => $search,
+            ],
         ]);
     }
 

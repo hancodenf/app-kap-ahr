@@ -33,6 +33,8 @@ class UserController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'position' => $user->position ?? null,
+                'user_type' => $user->user_type ?? null,
                 'role' => [
                     'name' => $user->role,
                     'display_name' => ucfirst($user->role),
@@ -60,8 +62,29 @@ class UserController extends Controller
             ['id' => 'company', 'name' => 'company', 'display_name' => 'Company'],
         ];
 
+        $positions = [
+            'Founder - Partner',
+            'Managing Partner',
+            'Partner',
+            'Associates Manager',
+            'Tenaga Ahli - Supervisor',
+            'Senior Auditor',
+            'Junior Auditor',
+            'Internship Auditor',
+            'Internship Finance',
+            'Support',
+            'Internship HR',
+        ];
+
+        $userTypes = [
+            'Tenaga Ahli',
+            'Staff',
+        ];
+
         return Inertia::render('Admin/Users/Create', [
             'roles' => $roles,
+            'positions' => $positions,
+            'userTypes' => $userTypes,
         ]);
     }
 
@@ -70,23 +93,72 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|in:admin,client,company',
-        ]);
+            'role_id' => 'required|in:admin,client,company',
+        ];
 
-        User::create([
+        // Add position and user_type validation only for company role
+        if ($request->role_id === 'company') {
+            $rules['position'] = 'required|in:Founder - Partner,Managing Partner,Partner,Associates Manager,Tenaga Ahli - Supervisor,Senior Auditor,Junior Auditor,Internship Auditor,Internship Finance,Support,Internship HR';
+            $rules['user_type'] = 'required|in:Tenaga Ahli,Staff';
+        }
+
+        $request->validate($rules);
+
+        $userData = [
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => $request->role,
+            'role' => $request->role_id,
             'email_verified_at' => now(), // Auto verify untuk admin created users
-        ]);
+        ];
+
+        // Set position and user_type based on role
+        if ($request->role_id === 'company') {
+            $userData['position'] = $request->position;
+            $userData['user_type'] = $request->user_type;
+        } elseif ($request->role_id === 'admin') {
+            $userData['position'] = null;
+            $userData['user_type'] = 'Staff';
+        } else { // client
+            $userData['position'] = null;
+            $userData['user_type'] = null;
+        }
+
+        User::create($userData);
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User berhasil dibuat.');
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(User $user)
+    {
+        // Transform user data to match frontend expectations
+        $userData = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'position' => $user->position ?? null,
+            'user_type' => $user->user_type ?? null,
+            'role' => [
+                'id' => $user->role,
+                'name' => $user->role,
+                'display_name' => ucfirst($user->role),
+            ],
+            'email_verified_at' => $user->email_verified_at,
+            'created_at' => $user->created_at,
+            'updated_at' => $user->updated_at,
+        ];
+
+        return Inertia::render('Admin/Users/Show', [
+            'user' => $userData,
+        ]);
     }
 
     /**
@@ -100,11 +172,32 @@ class UserController extends Controller
             ['id' => 'company', 'name' => 'company', 'display_name' => 'Company'],
         ];
 
+        $positions = [
+            'Founder - Partner',
+            'Managing Partner',
+            'Partner',
+            'Associates Manager',
+            'Tenaga Ahli - Supervisor',
+            'Senior Auditor',
+            'Junior Auditor',
+            'Internship Auditor',
+            'Internship Finance',
+            'Support',
+            'Internship HR',
+        ];
+
+        $userTypes = [
+            'Tenaga Ahli',
+            'Staff',
+        ];
+
         // Transform user data to match frontend expectations
         $userData = [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'position' => $user->position ?? null,
+            'user_type' => $user->user_type ?? null,
             'role' => [
                 'id' => $user->role,
                 'name' => $user->role,
@@ -118,6 +211,8 @@ class UserController extends Controller
         return Inertia::render('Admin/Users/Edit', [
             'user' => $userData,
             'roles' => $roles,
+            'positions' => $positions,
+            'userTypes' => $userTypes,
         ]);
     }
 
@@ -126,18 +221,38 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
-        $request->validate([
+        $rules = [
             'name' => 'required|string|max:255',
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => 'nullable|string|min:8|confirmed',
-            'role' => 'required|in:admin,client,company',
-        ]);
+            'role_id' => 'required|in:admin,client,company',
+        ];
+
+        // Add position and user_type validation only for company role
+        if ($request->role_id === 'company') {
+            $rules['position'] = 'required|in:Founder - Partner,Managing Partner,Partner,Associates Manager,Tenaga Ahli - Supervisor,Senior Auditor,Junior Auditor,Internship Auditor,Internship Finance,Support,Internship HR';
+            $rules['user_type'] = 'required|in:Tenaga Ahli,Staff';
+        }
+
+        $request->validate($rules);
 
         $userData = [
             'name' => $request->name,
             'email' => $request->email,
-            'role' => $request->role,
+            'role' => $request->role_id,
         ];
+
+        // Set position and user_type based on role
+        if ($request->role_id === 'company') {
+            $userData['position'] = $request->position;
+            $userData['user_type'] = $request->user_type;
+        } elseif ($request->role_id === 'admin') {
+            $userData['position'] = null;
+            $userData['user_type'] = 'Staff';
+        } else { // client
+            $userData['position'] = null;
+            $userData['user_type'] = null;
+        }
 
         // Only update password if provided
         if ($request->filled('password')) {
