@@ -11,13 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('clients', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('alamat');
-            $table->string('kementrian');
-            $table->string('kode_satker');
-            $table->timestamps();
+        Schema::table('users', function (Blueprint $table) {
+            $table->foreign('client_id')->references('id')->on('clients')->onDelete('set null');
         });
     }
 
@@ -26,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('clients');
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropForeign(['client_id']);
+        });
     }
 };

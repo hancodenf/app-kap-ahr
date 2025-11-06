@@ -14,7 +14,6 @@ class Client extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'user_id',
         'name',
         'alamat',
         'kementrian',
@@ -22,11 +21,12 @@ class Client extends Model
     ];
 
     /**
-     * Get the user that owns the client.
+     * Get all user accounts related to this client.
+     * 1 Client has many Users (users with role client that have client_id = this client's id)
      */
-    public function user(): BelongsTo
+    public function clientUsers(): HasMany
     {
-        return $this->belongsTo(User::class);
+        return $this->hasMany(User::class, 'client_id', 'id');
     }
 
     /**

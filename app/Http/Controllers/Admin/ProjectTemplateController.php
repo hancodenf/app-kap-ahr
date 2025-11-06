@@ -15,12 +15,23 @@ class ProjectTemplateController extends Controller
 {
     // ==================== BUNDLE MANAGEMENT ====================
     
-    public function index()
+    public function index(Request $request)
     {
-        $templates = ProjectTemplate::orderBy('name')->get();
+        $query = ProjectTemplate::query();
+
+        // Search functionality
+        if ($request->has('search') && $request->search) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+
+        // Pagination
+        $templates = $query->orderBy('name')->paginate(10)->withQueryString();
 
         return Inertia::render('Admin/ProjectTemplates/TemplateIndex', [
-            'bundles' => $templates, // Keep 'bundles' key for frontend compatibility
+            'bundles' => $templates,
+            'filters' => [
+                'search' => $request->search,
+            ],
         ]);
     }
 

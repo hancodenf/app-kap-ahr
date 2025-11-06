@@ -15,7 +15,7 @@ class ProjectSeeder extends Seeder
      */
     public function run(): void
     {
-        $clients = Client::with('user')->get();
+        $clients = Client::all();
 
         foreach ($clients as $client) {
             $project = Project::create([

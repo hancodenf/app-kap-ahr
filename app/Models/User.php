@@ -27,6 +27,8 @@ class User extends Authenticatable
         'password',
         'role',
         'position',
+        'user_type',
+        'client_id',
     ];
 
     protected $hidden = [
@@ -48,11 +50,12 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the client associated with the user.
+     * Get the client this user belongs to (for user accounts under a client).
+     * This is for user accounts with role 'client' linked to a client.
      */
-    public function client(): HasOne
+    public function belongsToClient(): BelongsTo
     {
-        return $this->hasOne(Client::class);
+        return $this->belongsTo(Client::class, 'client_id');
     }
 
     /**

@@ -18,7 +18,21 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->enum('role', ['admin', 'client', 'company'])->default('company');
-            $table->string('position')->nullable();
+            $table->unsignedBigInteger('client_id')->nullable();
+            $table->enum('position', [
+                'Founder - Partner',
+                'Managing Partner',
+                'Partner',
+                'Associates Manager',
+                'Tenaga Ahli - Supervisor',
+                'Senior Auditor',
+                'Junior Auditor',
+                'Internship Auditor',
+                'Internship Finance',
+                'Support',
+                'Internship HR'
+            ])->nullable();
+            $table->enum('user_type', ['Tenaga Ahli', 'Staff'])->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
