@@ -18,6 +18,7 @@ class ClientDocument extends Model
     protected $fillable = [
         'task_assignment_id',
         'name',
+        'description',
         'slug',
         'file',
         'uploaded_at',

@@ -16,7 +16,7 @@ class ClientController extends Controller
      */
     public function index()
     {
-        $clients = Client::with('user')->paginate(10);
+        $clients = Client::with('clientUsers')->paginate(10);
         
         return Inertia::render('Admin/Client/Index', [
             'clients' => $clients

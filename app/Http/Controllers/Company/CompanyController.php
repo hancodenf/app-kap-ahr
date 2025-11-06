@@ -101,7 +101,7 @@ class CompanyController extends Controller
                 $query->with([
                     'taskWorkers.projectTeam',
                     'taskAssignments' => function($q) {
-                        $q->with('documents')->orderBy('created_at', 'desc');
+                        $q->with(['documents', 'clientDocuments'])->orderBy('created_at', 'desc');
                     }
                 ])->orderBy('order');
             }])
@@ -182,6 +182,13 @@ class CompanyController extends Controller
                                             'uploaded_at' => $doc->uploaded_at,
                                         ];
                                     }),
+                                    'client_documents' => $assignment->clientDocuments->map(function($clientDoc) {
+                                        return [
+                                            'id' => $clientDoc->id,
+                                            'name' => $clientDoc->name,
+                                            'description' => $clientDoc->description,
+                                        ];
+                                    }),
                                 ];
                             }),
                         ];
@@ -225,10 +232,22 @@ class CompanyController extends Controller
             return back()->withErrors(['error' => 'This step is locked. Complete required tasks in the previous step first.']);
         }
         
-        $request->validate([
-            'notes' => 'nullable|string',
-            'files.*' => 'nullable|file|max:10240', // Max 10MB per file
-        ]);
+        // Validate based on upload mode
+        $uploadMode = $request->input('upload_mode', 'upload');
+        
+        if ($uploadMode === 'upload') {
+            $request->validate([
+                'notes' => 'nullable|string',
+                'files.*' => 'nullable|file|max:10240', // Max 10MB per file
+            ]);
+        } else {
+            $request->validate([
+                'notes' => 'nullable|string',
+                'client_documents' => 'nullable|array',
+                'client_documents.*.name' => 'required|string',
+                'client_documents.*.description' => 'nullable|string',
+            ]);
+        }
         
         // Create new TaskAssignment
         $taskAssignment = \App\Models\TaskAssignment::create([
@@ -243,29 +262,49 @@ class CompanyController extends Controller
             'is_approved' => false,
         ]);
         
-        // Handle file uploads
-        if ($request->hasFile('files')) {
-            foreach ($request->file('files') as $file) {
-                $originalName = $file->getClientOriginalName();
-                $filename = time() . '_' . uniqid() . '_' . $originalName;
-                
-                // Store in storage/app/public/task-files
-                $path = $file->storeAs('task-files', $filename, 'public');
-                
-                // Create document record linked to this assignment
-                \App\Models\Document::create([
-                    'task_assignment_id' => $taskAssignment->id,
-                    'name' => $originalName,
-                    'slug' => \Illuminate\Support\Str::slug($originalName . '-' . time()),
-                    'file' => $path,
-                    'uploaded_at' => now(),
-                ]);
+        // Handle based on upload mode
+        if ($uploadMode === 'upload') {
+            // Handle file uploads
+            if ($request->hasFile('files')) {
+                foreach ($request->file('files') as $file) {
+                    $originalName = $file->getClientOriginalName();
+                    $filename = time() . '_' . uniqid() . '_' . $originalName;
+                    
+                    // Store in storage/app/public/task-files
+                    $path = $file->storeAs('task-files', $filename, 'public');
+                    
+                    // Create document record linked to this assignment
+                    \App\Models\Document::create([
+                        'task_assignment_id' => $taskAssignment->id,
+                        'name' => $originalName,
+                        'slug' => \Illuminate\Support\Str::slug($originalName . '-' . time()),
+                        'file' => $path,
+                        'uploaded_at' => now(),
+                    ]);
+                }
+            }
+        } else {
+            // Handle client document requests
+            if ($request->has('client_documents')) {
+                foreach ($request->client_documents as $clientDoc) {
+                    \App\Models\ClientDocument::create([
+                        'task_assignment_id' => $taskAssignment->id,
+                        'name' => $clientDoc['name'],
+                        'description' => $clientDoc['description'] ?? null,
+                    ]);
+                }
             }
         }
         
         // Update task status if needed
         if ($task->status === 'Draft') {
-            $task->status = 'Submitted';
+            $task->status = $uploadMode === 'upload' ? 'Submitted' : 'Submitted to Client';
+            $task->save();
+        }
+        
+        // Update completion_status to in_progress when first submission is made
+        if ($task->completion_status === 'pending') {
+            $task->completion_status = 'in_progress';
             $task->save();
         }
         
