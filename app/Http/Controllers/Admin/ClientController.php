@@ -15,17 +15,13 @@ class ClientController extends Controller
     {
         $search = $request->get('search', '');
 
-        $clients = Client::with('user')
-            ->withCount('clientUsers') // Count related user accounts
+        $clients = Client::withCount('clientUsers') // Count related user accounts
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                         ->orWhere('alamat', 'like', "%{$search}%")
                         ->orWhere('kementrian', 'like', "%{$search}%")
-                        ->orWhere('kode_satker', 'like', "%{$search}%")
-                        ->orWhereHas('user', function ($q) use ($search) {
-                            $q->where('email', 'like', "%{$search}%");
-                        });
+                        ->orWhere('kode_satker', 'like', "%{$search}%");
                 });
             })
             ->orderBy('name')
@@ -68,7 +64,7 @@ class ClientController extends Controller
 
     public function show(Client $client)
     {
-        $client->load(['user', 'clientUsers']);
+        $client->load('clientUsers');
 
         return Inertia::render('Admin/Clients/Show', [
             'client' => $client,
@@ -77,8 +73,6 @@ class ClientController extends Controller
 
     public function edit(Client $client)
     {
-        $client->load('user');
-
         return Inertia::render('Admin/Clients/Edit', [
             'client' => $client,
         ]);

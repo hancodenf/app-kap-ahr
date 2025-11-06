@@ -4,20 +4,12 @@ import { PageProps } from '@/types';
 import { useState } from 'react';
 import ConfirmDialog from '@/Components/ConfirmDialog';
 
-interface User {
-	id: number;
-	name: string;
-	email: string;
-	position?: string;
-}
-
 interface Client {
 	id: number;
 	name: string;
 	alamat: string;
 	kementrian: string;
 	kode_satker: string;
-	user: User;
 	created_at: string;
 	client_users_count?: number;
 }
@@ -197,9 +189,6 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 													<div>
 														<div className="text-sm font-medium text-gray-900">
 															{client.name}
-														</div>
-														<div className="text-sm text-gray-500">
-															{client.user?.email}
 														</div>
 														<div className="text-xs text-gray-400 mt-1">
 															{client.alamat}

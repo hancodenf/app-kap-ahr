@@ -82,10 +82,10 @@ class UserController extends Controller
             'Staff',
         ];
 
-        // Get all clients with their primary user
-        $clients = Client::with('user:id,name')->orderBy('name')->get()->map(function($client) {
+        // Get all clients
+        $clients = Client::orderBy('name')->get()->map(function($client) {
             return [
-                'id' => $client->user_id,
+                'id' => $client->id,
                 'name' => $client->name,
             ];
         });
@@ -118,7 +118,7 @@ class UserController extends Controller
 
         // Add client_id validation for client role
         if ($request->role_id === 'client') {
-            $rules['client_id'] = 'required|exists:users,id';
+            $rules['client_id'] = 'required|exists:clients,id';
         }
 
         $request->validate($rules);
@@ -207,10 +207,10 @@ class UserController extends Controller
             'Staff',
         ];
 
-        // Get all clients with their primary user
-        $clients = Client::with('user:id,name')->orderBy('name')->get()->map(function($client) {
+        // Get all clients
+        $clients = Client::orderBy('name')->get()->map(function($client) {
             return [
-                'id' => $client->user_id,
+                'id' => $client->id,
                 'name' => $client->name,
             ];
         });
@@ -262,7 +262,7 @@ class UserController extends Controller
 
         // Add client_id validation for client role
         if ($request->role_id === 'client') {
-            $rules['client_id'] = 'required|exists:users,id';
+            $rules['client_id'] = 'required|exists:clients,id';
         }
 
         $request->validate($rules);

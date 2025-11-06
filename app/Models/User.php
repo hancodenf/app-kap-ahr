@@ -50,27 +50,12 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the client associated with the user.
-     */
-    public function client(): HasOne
-    {
-        return $this->hasOne(Client::class);
-    }
-
-    /**
      * Get the client this user belongs to (for user accounts under a client).
+     * This is for user accounts with role 'client' linked to a client.
      */
     public function belongsToClient(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'client_id');
-    }
-
-    /**
-     * Get all user accounts that belong to this client.
-     */
-    public function clientUsers(): HasMany
-    {
-        return $this->hasMany(User::class, 'client_id');
+        return $this->belongsTo(Client::class, 'client_id');
     }
 
     /**

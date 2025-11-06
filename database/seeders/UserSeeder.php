@@ -74,15 +74,7 @@ class UserSeeder extends Seeder
             ]);
         }
 
-        // Client user - position null, user_type null
-        User::create([
-            'name' => 'Client Representative',
-            'email' => 'client@client.com',
-            'password' => Hash::make('password'),
-            'email_verified_at' => now(),
-            'role' => 'client',
-            'position' => null,
-            'user_type' => null,
-        ]);
+        // Client users - akan dibuat setelah clients terseeder
+        // Akan diassign client_id di ClientSeeder
     }
 }

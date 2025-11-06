@@ -1,14 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 
-interface User {
-	id: number;
-	name: string;
-	email: string;
-	position?: string;
-	created_at: string;
-}
-
 interface ClientUser {
 	id: number;
 	name: string;
@@ -22,7 +14,6 @@ interface Client {
 	alamat: string;
 	kementrian: string;
 	kode_satker: string;
-	user: User;
 	client_users: ClientUser[];
 	created_at: string;
 	updated_at: string;
@@ -112,37 +103,6 @@ export default function Show(props: Props) {
 								<div className="md:col-span-2">
 									<dt className="text-sm font-medium text-gray-500">Address</dt>
 									<dd className="mt-1 text-sm text-gray-900">{client.alamat}</dd>
-								</div>
-							</dl>
-						</div>
-					</div>
-
-					{/* Account Information */}
-					<div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-						<div className="p-6">
-							<h4 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
-								Account Information
-							</h4>
-							<dl className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-								<div>
-									<dt className="text-sm font-medium text-gray-500">Email</dt>
-									<dd className="mt-1 text-sm text-gray-900">{client.user?.email}</dd>
-								</div>
-								<div>
-									<dt className="text-sm font-medium text-gray-500">Position</dt>
-									<dd className="mt-1 text-sm text-gray-900">
-										{client.user?.position || (
-											<span className="text-gray-400 italic">Not specified</span>
-										)}
-									</dd>
-								</div>
-								<div>
-									<dt className="text-sm font-medium text-gray-500">Account Created</dt>
-									<dd className="mt-1 text-sm text-gray-900">{formatDate(client.user?.created_at || client.created_at)}</dd>
-								</div>
-								<div>
-									<dt className="text-sm font-medium text-gray-500">Last Updated</dt>
-									<dd className="mt-1 text-sm text-gray-900">{formatDate(client.updated_at)}</dd>
 								</div>
 							</dl>
 						</div>
