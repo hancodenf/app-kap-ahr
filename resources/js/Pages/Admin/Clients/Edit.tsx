@@ -30,13 +30,9 @@ export default function Edit(props: Props) {
 	const { client } = props;
 	const { data, setData, put, processing, errors } = useForm({
 		name: client.name || '',
-		email: client.user?.email || '',
-		password: '',
-		password_confirmation: '',
 		alamat: client.alamat || '',
 		kementrian: client.kementrian || '',
 		kode_satker: client.kode_satker || '',
-		position: client.user?.position || '',
 	});
 
 	const handleSubmit = (e: React.FormEvent) => {
@@ -129,80 +125,6 @@ export default function Edit(props: Props) {
 												required
 											/>
 											<InputError message={errors.alamat} className="mt-2" />
-										</div>
-									</div>
-								</div>
-
-								{/* Account Information Section */}
-								<div>
-									<h3 className="text-lg font-medium text-gray-900 mb-4 pb-2 border-b">
-										Account Information
-									</h3>
-									<div className="space-y-4">
-										<div>
-											<InputLabel htmlFor="email" value="Email Address *" />
-											<TextInput
-												id="email"
-												type="email"
-												value={data.email}
-												onChange={e => setData('email', e.target.value)}
-												className="mt-1 block w-full"
-												placeholder="client@example.com"
-												required
-											/>
-											<InputError message={errors.email} className="mt-2" />
-											<p className="mt-1 text-sm text-gray-500">
-												This email is used for login credentials
-											</p>
-										</div>
-
-										<div>
-											<InputLabel htmlFor="position" value="Position (Optional)" />
-											<TextInput
-												id="position"
-												type="text"
-												value={data.position}
-												onChange={e => setData('position', e.target.value)}
-												className="mt-1 block w-full"
-												placeholder="e.g., Project Manager"
-											/>
-											<InputError message={errors.position} className="mt-2" />
-										</div>
-
-										<div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-											<h4 className="text-sm font-medium text-yellow-800 mb-2">
-												Change Password (Optional)
-											</h4>
-											<p className="text-xs text-yellow-700 mb-3">
-												Leave blank if you don't want to change the password
-											</p>
-											
-											<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-												<div>
-													<InputLabel htmlFor="password" value="New Password" />
-													<TextInput
-														id="password"
-														type="password"
-														value={data.password}
-														onChange={e => setData('password', e.target.value)}
-														className="mt-1 block w-full"
-														placeholder="Minimum 8 characters"
-													/>
-													<InputError message={errors.password} className="mt-2" />
-												</div>
-
-												<div>
-													<InputLabel htmlFor="password_confirmation" value="Confirm New Password" />
-													<TextInput
-														id="password_confirmation"
-														type="password"
-														value={data.password_confirmation}
-														onChange={e => setData('password_confirmation', e.target.value)}
-														className="mt-1 block w-full"
-														placeholder="Re-type password"
-													/>
-												</div>
-											</div>
 										</div>
 									</div>
 								</div>

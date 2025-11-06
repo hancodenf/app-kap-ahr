@@ -16,6 +16,7 @@ class ClientController extends Controller
         $search = $request->get('search', '');
 
         $clients = Client::with('user')
+            ->withCount('clientUsers') // Count related user accounts
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -48,26 +49,13 @@ class ClientController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
             'alamat' => 'required|string|max:255',
             'kementrian' => 'required|string|max:255',
             'kode_satker' => 'required|string|max:255',
-            'position' => 'nullable|string|max:255',
-        ]);
-
-        // Create user first
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'client',
-            'position' => $request->position,
         ]);
 
         // Create client
         Client::create([
-            'user_id' => $user->id,
             'name' => $request->name,
             'alamat' => $request->alamat,
             'kementrian' => $request->kementrian,
@@ -80,7 +68,7 @@ class ClientController extends Controller
 
     public function show(Client $client)
     {
-        $client->load('user');
+        $client->load(['user', 'clientUsers']);
 
         return Inertia::render('Admin/Clients/Show', [
             'client' => $client,
@@ -100,26 +88,10 @@ class ClientController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $client->user_id,
             'alamat' => 'required|string|max:255',
             'kementrian' => 'required|string|max:255',
             'kode_satker' => 'required|string|max:255',
-            'position' => 'nullable|string|max:255',
-            'password' => 'nullable|string|min:8|confirmed',
         ]);
-
-        // Update user
-        $userData = [
-            'name' => $request->name,
-            'email' => $request->email,
-            'position' => $request->position,
-        ];
-
-        if ($request->filled('password')) {
-            $userData['password'] = Hash::make($request->password);
-        }
-
-        $client->user->update($userData);
 
         // Update client
         $client->update([
@@ -135,9 +107,8 @@ class ClientController extends Controller
 
     public function destroy(Client $client)
     {
-        // With denormalization, we can safely delete client
-        // Projects will have denormalized client data and client_id will be set to null
-        $client->user->delete();
+        // Delete client (associated user accounts will handle themselves via client_id nullable)
+        $client->delete();
 
         return redirect()->route('admin.clients.index')
             ->with('success', 'Client berhasil dihapus!');

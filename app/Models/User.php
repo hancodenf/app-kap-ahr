@@ -28,6 +28,7 @@ class User extends Authenticatable
         'role',
         'position',
         'user_type',
+        'client_id',
     ];
 
     protected $hidden = [
@@ -54,6 +55,22 @@ class User extends Authenticatable
     public function client(): HasOne
     {
         return $this->hasOne(Client::class);
+    }
+
+    /**
+     * Get the client this user belongs to (for user accounts under a client).
+     */
+    public function belongsToClient(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'client_id');
+    }
+
+    /**
+     * Get all user accounts that belong to this client.
+     */
+    public function clientUsers(): HasMany
+    {
+        return $this->hasMany(User::class, 'client_id');
     }
 
     /**

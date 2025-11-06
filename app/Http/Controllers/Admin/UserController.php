@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -81,10 +82,19 @@ class UserController extends Controller
             'Staff',
         ];
 
+        // Get all clients with their primary user
+        $clients = Client::with('user:id,name')->orderBy('name')->get()->map(function($client) {
+            return [
+                'id' => $client->user_id,
+                'name' => $client->name,
+            ];
+        });
+
         return Inertia::render('Admin/Users/Create', [
             'roles' => $roles,
             'positions' => $positions,
             'userTypes' => $userTypes,
+            'clients' => $clients,
         ]);
     }
 
@@ -104,6 +114,11 @@ class UserController extends Controller
         if ($request->role_id === 'company') {
             $rules['position'] = 'required|in:Founder - Partner,Managing Partner,Partner,Associates Manager,Tenaga Ahli - Supervisor,Senior Auditor,Junior Auditor,Internship Auditor,Internship Finance,Support,Internship HR';
             $rules['user_type'] = 'required|in:Tenaga Ahli,Staff';
+        }
+
+        // Add client_id validation for client role
+        if ($request->role_id === 'client') {
+            $rules['client_id'] = 'required|exists:users,id';
         }
 
         $request->validate($rules);
@@ -126,6 +141,7 @@ class UserController extends Controller
         } else { // client
             $userData['position'] = null;
             $userData['user_type'] = null;
+            $userData['client_id'] = $request->client_id;
         }
 
         User::create($userData);
@@ -191,6 +207,14 @@ class UserController extends Controller
             'Staff',
         ];
 
+        // Get all clients with their primary user
+        $clients = Client::with('user:id,name')->orderBy('name')->get()->map(function($client) {
+            return [
+                'id' => $client->user_id,
+                'name' => $client->name,
+            ];
+        });
+
         // Transform user data to match frontend expectations
         $userData = [
             'id' => $user->id,
@@ -198,6 +222,7 @@ class UserController extends Controller
             'email' => $user->email,
             'position' => $user->position ?? null,
             'user_type' => $user->user_type ?? null,
+            'client_id' => $user->client_id ?? null,
             'role' => [
                 'id' => $user->role,
                 'name' => $user->role,
@@ -213,6 +238,7 @@ class UserController extends Controller
             'roles' => $roles,
             'positions' => $positions,
             'userTypes' => $userTypes,
+            'clients' => $clients,
         ]);
     }
 
@@ -234,6 +260,11 @@ class UserController extends Controller
             $rules['user_type'] = 'required|in:Tenaga Ahli,Staff';
         }
 
+        // Add client_id validation for client role
+        if ($request->role_id === 'client') {
+            $rules['client_id'] = 'required|exists:users,id';
+        }
+
         $request->validate($rules);
 
         $userData = [
@@ -246,12 +277,15 @@ class UserController extends Controller
         if ($request->role_id === 'company') {
             $userData['position'] = $request->position;
             $userData['user_type'] = $request->user_type;
+            $userData['client_id'] = null;
         } elseif ($request->role_id === 'admin') {
             $userData['position'] = null;
             $userData['user_type'] = 'Staff';
+            $userData['client_id'] = null;
         } else { // client
             $userData['position'] = null;
             $userData['user_type'] = null;
+            $userData['client_id'] = $request->client_id;
         }
 
         // Only update password if provided

@@ -18,6 +18,7 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->enum('role', ['admin', 'client', 'company'])->default('company');
+            $table->foreignId('client_id')->nullable()->constrained('users')->onDelete('cascade');
             $table->enum('position', [
                 'Founder - Partner',
                 'Managing Partner',

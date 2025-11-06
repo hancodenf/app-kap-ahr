@@ -9,13 +9,9 @@ import SecondaryButton from '@/Components/SecondaryButton';
 export default function Create() {
 	const { data, setData, post, processing, errors } = useForm({
 		name: '',
-		email: '',
-		password: '',
-		password_confirmation: '',
 		alamat: '',
 		kementrian: '',
 		kode_satker: '',
-		position: '',
 	});
 
 	const handleSubmit = (e: React.FormEvent) => {
@@ -108,73 +104,6 @@ export default function Create() {
 												required
 											/>
 											<InputError message={errors.alamat} className="mt-2" />
-										</div>
-									</div>
-								</div>
-
-								{/* Account Information Section */}
-								<div>
-									<h3 className="text-lg font-medium text-gray-900 mb-4 pb-2 border-b">
-										Account Information
-									</h3>
-									<div className="space-y-4">
-										<div>
-											<InputLabel htmlFor="email" value="Email Address *" />
-											<TextInput
-												id="email"
-												type="email"
-												value={data.email}
-												onChange={e => setData('email', e.target.value)}
-												className="mt-1 block w-full"
-												placeholder="client@example.com"
-												required
-											/>
-											<InputError message={errors.email} className="mt-2" />
-											<p className="mt-1 text-sm text-gray-500">
-												This will be used for login credentials
-											</p>
-										</div>
-
-										<div>
-											<InputLabel htmlFor="position" value="Position (Optional)" />
-											<TextInput
-												id="position"
-												type="text"
-												value={data.position}
-												onChange={e => setData('position', e.target.value)}
-												className="mt-1 block w-full"
-												placeholder="e.g., Project Manager"
-											/>
-											<InputError message={errors.position} className="mt-2" />
-										</div>
-
-										<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-											<div>
-												<InputLabel htmlFor="password" value="Password *" />
-												<TextInput
-													id="password"
-													type="password"
-													value={data.password}
-													onChange={e => setData('password', e.target.value)}
-													className="mt-1 block w-full"
-													placeholder="Minimum 8 characters"
-													required
-												/>
-												<InputError message={errors.password} className="mt-2" />
-											</div>
-
-											<div>
-												<InputLabel htmlFor="password_confirmation" value="Confirm Password *" />
-												<TextInput
-													id="password_confirmation"
-													type="password"
-													value={data.password_confirmation}
-													onChange={e => setData('password_confirmation', e.target.value)}
-													className="mt-1 block w-full"
-													placeholder="Re-type password"
-													required
-												/>
-											</div>
 										</div>
 									</div>
 								</div>

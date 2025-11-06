@@ -30,6 +30,14 @@ class Client extends Model
     }
 
     /**
+     * Get all user accounts related to this client.
+     */
+    public function clientUsers(): HasMany
+    {
+        return $this->hasMany(User::class, 'client_id', 'user_id');
+    }
+
+    /**
      * Get the projects for the client.
      */
     public function projects(): HasMany

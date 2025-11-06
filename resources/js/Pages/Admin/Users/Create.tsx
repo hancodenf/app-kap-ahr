@@ -9,13 +9,19 @@ interface Role {
     display_name: string;
 }
 
+interface Client {
+    id: number;
+    name: string;
+}
+
 interface CreateUserPageProps extends PageProps {
     roles: Role[];
     positions: string[];
     userTypes: string[];
+    clients: Client[];
 }
 
-export default function Create({ roles, positions, userTypes }: CreateUserPageProps) {
+export default function Create({ roles, positions, userTypes, clients }: CreateUserPageProps) {
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         email: '',
@@ -24,6 +30,7 @@ export default function Create({ roles, positions, userTypes }: CreateUserPagePr
         role_id: '',
         position: '',
         user_type: '',
+        client_id: '',
     });
 
     const [showPassword, setShowPassword] = useState(false);
@@ -197,6 +204,37 @@ export default function Create({ roles, positions, userTypes }: CreateUserPagePr
                                         {errors.user_type && (
                                             <p className="mt-1 text-sm text-red-600">{errors.user_type}</p>
                                         )}
+                                    </div>
+                                )}
+
+                                {/* Client - Only for Client role */}
+                                {data.role_id === 'client' && (
+                                    <div>
+                                        <label htmlFor="client_id" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Client <span className="text-red-500">*</span>
+                                        </label>
+                                        <select
+                                            id="client_id"
+                                            value={data.client_id}
+                                            onChange={(e) => setData('client_id', e.target.value)}
+                                            className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                                                errors.client_id ? 'border-red-500' : 'border-gray-300'
+                                            }`}
+                                            required
+                                        >
+                                            <option value="">Pilih Client</option>
+                                            {clients.map((client) => (
+                                                <option key={client.id} value={client.id}>
+                                                    {client.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.client_id && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.client_id}</p>
+                                        )}
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            Akun ini akan terkait dengan client yang dipilih
+                                        </p>
                                     </div>
                                 )}
 
