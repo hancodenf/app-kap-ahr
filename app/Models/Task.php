@@ -33,6 +33,26 @@ class Task extends Model
     ];
 
     /**
+     * Valid status values for tasks
+     */
+    const STATUS_DRAFT = 'Draft';
+    const STATUS_SUBMITTED = 'Submitted';
+    const STATUS_UNDER_REVIEW_TEAM_LEADER = 'Under Review by Team Leader';
+    const STATUS_APPROVED_TEAM_LEADER = 'Approved by Team Leader';
+    const STATUS_RETURNED_TEAM_LEADER = 'Returned for Revision (by Team Leader)';
+    const STATUS_UNDER_REVIEW_MANAGER = 'Under Review by Manager';
+    const STATUS_APPROVED_MANAGER = 'Approved by Manager';
+    const STATUS_RETURNED_MANAGER = 'Returned for Revision (by Manager)';
+    const STATUS_UNDER_REVIEW_SUPERVISOR = 'Under Review by Supervisor';
+    const STATUS_APPROVED_SUPERVISOR = 'Approved by Supervisor';
+    const STATUS_RETURNED_SUPERVISOR = 'Returned for Revision (by Supervisor)';
+    const STATUS_UNDER_REVIEW_PARTNER = 'Under Review by Partner';
+    const STATUS_APPROVED_PARTNER = 'Approved by Partner';
+    const STATUS_RETURNED_PARTNER = 'Returned for Revision (by Partner)';
+    const STATUS_SUBMITTED_TO_CLIENT = 'Submitted to Client';
+    const STATUS_CLIENT_REPLY = 'Client Reply';
+
+    /**
      * Get the attributes that should be cast.
      */
     protected function casts(): array
