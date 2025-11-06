@@ -57,18 +57,40 @@ class ClientController extends Controller
     /**
      * Display client's projects.
      */
-    public function myProjects()
+    public function myProjects(Request $request)
     {
         $user = Auth::user();
         
-        $projects = Project::where('client_id', $user->client_id)
+        // Get filter parameters
+        $status = $request->get('status', 'open');
+        $search = $request->get('search');
+
+        // Get status counts
+        $statusCounts = [
+            'open' => Project::where('client_id', $user->client_id)->where('status', 'open')->count(),
+            'closed' => Project::where('client_id', $user->client_id)->where('status', 'closed')->count(),
+        ];
+
+        // Build query
+        $query = Project::where('client_id', $user->client_id)
+            ->where('status', $status)
             ->withCount(['workingSteps', 'tasks'])
-            ->with(['client'])
-            ->latest()
-            ->paginate(10);
+            ->with(['client']);
+
+        // Apply search filter
+        if ($search) {
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        $projects = $query->latest()->paginate(10)->withQueryString();
 
         return Inertia::render('Client/Projects/Index', [
             'projects' => $projects,
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+            ],
+            'statusCounts' => $statusCounts,
         ]);
     }
 
