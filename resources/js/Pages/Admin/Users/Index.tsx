@@ -309,9 +309,9 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                                 {activeRole === 'client' && (
                                                     <td className="px-6 py-4 text-sm text-gray-900">
                                                         {user.client_name ? (
-                                                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                                                {user.client_name}
-                                                            </span>
+                                                            <div>
+                                                                {user.client_name} 
+                                                            </div>
                                                         ) : (
                                                             <span className="text-gray-400">-</span>
                                                         )}
@@ -413,9 +413,11 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
 
                                         {/* Client specific fields */}
                                         {activeRole === 'client' && user.client_name && (
-                                            <div className="bg-gray-50 rounded-lg p-2 mb-3">
-                                                <div className="text-[10px] text-gray-500 mb-0.5">Client</div>
-                                                <div className="text-sm font-medium text-gray-900">{user.client_name}</div>
+                                            <div className="mb-3">
+                                                <div className="bg-gray-50 rounded-lg p-2">
+                                                    <div className="text-[10px] text-gray-500 mb-0.5">Client</div>
+                                                    <div className="text-sm font-medium text-gray-900 truncate">{user.client_name}</div>
+                                                </div>
                                             </div>
                                         )}
 

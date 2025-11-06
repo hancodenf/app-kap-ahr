@@ -35,8 +35,8 @@ class UserController extends Controller
             ->withQueryString();
 
         // Transform data to match frontend expectations
-        $users->getCollection()->transform(function ($user) {
-            return [
+        $users->getCollection()->transform(function ($user) use ($roleFilter) {
+            $data = [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
@@ -53,6 +53,8 @@ class UserController extends Controller
                 'created_at' => $user->created_at,
                 'updated_at' => $user->updated_at,
             ];
+            
+            return $data;
         });
 
         // Get role counts for tabs
