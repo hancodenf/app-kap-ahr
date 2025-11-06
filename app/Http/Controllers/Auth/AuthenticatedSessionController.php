@@ -19,30 +19,55 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): Response
     {
-        // Get demo users for quick login
+        // Get demo users for quick login grouped by role and type
         $demoUsers = [
-            'admin' => User::where('role', 'admin')->first(),
-            'tenaga_ahli' => User::where('user_type', 'Tenaga Ahli')
-                ->where('role', 'company')
+            'admin' => User::where('role', 'admin')
                 ->orderBy('name')
                 ->get()
                 ->map(fn($user) => [
                     'name' => $user->name,
                     'email' => $user->email,
+                    'profile_photo' => $user->profile_photo,
                     'position' => $user->position,
                     'initials' => $this->getInitials($user->name),
                 ]),
-            'staff' => User::where('user_type', 'Staff')
-                ->where('role', 'company')
+            'company' => [
+                'tenaga_ahli' => User::where('user_type', 'Tenaga Ahli')
+                    ->where('role', 'company')
+                    ->orderBy('name')
+                    ->get()
+                    ->map(fn($user) => [
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'profile_photo' => $user->profile_photo,
+                        'position' => $user->position,
+                        'user_type' => $user->user_type,
+                        'initials' => $this->getInitials($user->name),
+                    ]),
+                'staff' => User::where('user_type', 'Staff')
+                    ->where('role', 'company')
+                    ->orderBy('name')
+                    ->get()
+                    ->map(fn($user) => [
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'profile_photo' => $user->profile_photo,
+                        'position' => $user->position,
+                        'user_type' => $user->user_type,
+                        'initials' => $this->getInitials($user->name),
+                    ]),
+            ],
+            'client' => User::where('role', 'client')
+                ->with('belongsToClient:id,name')
                 ->orderBy('name')
                 ->get()
                 ->map(fn($user) => [
                     'name' => $user->name,
                     'email' => $user->email,
-                    'position' => $user->position,
+                    'profile_photo' => $user->profile_photo,
+                    'client_name' => $user->belongsToClient?->name,
                     'initials' => $this->getInitials($user->name),
                 ]),
-            'client' => User::where('role', 'client')->first(),
         ];
 
         return Inertia::render('Auth/Login', [

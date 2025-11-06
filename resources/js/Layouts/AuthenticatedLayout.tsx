@@ -192,11 +192,19 @@ export default function Authenticated({
                     <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''}`}>
                         <div className="flex items-center">
                             <div className="flex-shrink-0">
-                                <div className={`${sidebarCollapsed ? 'w-10 h-10' : 'w-8 h-8'} rounded-full bg-primary-100 flex items-center justify-center transition-all duration-300`}>
-                                    <span className={`${sidebarCollapsed ? 'text-base' : 'text-sm'} font-medium text-primary-600`}>
-                                        {user.name.charAt(0).toUpperCase()}
-                                    </span>
-                                </div>
+                                {user.profile_photo ? (
+                                    <img 
+                                        src={`/storage/${user.profile_photo}`} 
+                                        alt={user.name}
+                                        className={`${sidebarCollapsed ? 'w-10 h-10' : 'w-8 h-8'} rounded-full object-cover border-2 border-primary-300 transition-all duration-300`}
+                                    />
+                                ) : (
+                                    <div className={`${sidebarCollapsed ? 'w-10 h-10' : 'w-8 h-8'} rounded-full bg-primary-100 flex items-center justify-center transition-all duration-300`}>
+                                        <span className={`${sidebarCollapsed ? 'text-base' : 'text-sm'} font-medium text-primary-600`}>
+                                            {user.name.charAt(0).toUpperCase()}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                             {!sidebarCollapsed && (
                                 <div className="ml-3">

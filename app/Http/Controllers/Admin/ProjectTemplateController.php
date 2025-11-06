@@ -24,6 +24,9 @@ class ProjectTemplateController extends Controller
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
+        // Load counts for related data
+        $query->withCount(['templateWorkingSteps', 'templateTasks']);
+
         // Pagination
         $templates = $query->orderBy('name')->paginate(10)->withQueryString();
 

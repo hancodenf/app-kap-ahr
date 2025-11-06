@@ -26,8 +26,19 @@ class RoleMiddleware
             abort(403, 'Access denied. No role assigned.');
         }
 
+        // Normalize role - treat 'client' and 'klien' as the same
+        $userRole = $user->role;
+        if ($userRole === 'client') {
+            $userRole = 'klien';
+        }
+
+        // Also normalize the allowed roles
+        $normalizedRoles = array_map(function($role) {
+            return $role === 'client' ? 'klien' : $role;
+        }, $roles);
+
         // Check if user's role is in the allowed roles array
-        if (!in_array($user->role, $roles)) {
+        if (!in_array($userRole, $normalizedRoles)) {
             abort(403, 'Access denied. Insufficient permissions.');
         }
 

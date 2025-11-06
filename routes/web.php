@@ -190,7 +190,10 @@ Route::middleware(['auth', 'verified', 'role:staff'])->prefix('staff')->name('st
 
 // Klien Routes
 Route::middleware(['auth', 'verified', 'role:klien'])->prefix('klien')->name('klien.')->group(function () {
-    // Route::get('/dashboard', [KlienController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard', [ClientController::class, 'dashboard'])->name('dashboard');
+    Route::get('/projects', [ClientController::class, 'myProjects'])->name('projects.index');
+    Route::get('/projects/{project}', [ClientController::class, 'showProject'])->name('projects.show');
+    Route::get('/tasks/{task}', [ClientController::class, 'viewTask'])->name('tasks.view');
 });
 
 require __DIR__ . '/auth.php';

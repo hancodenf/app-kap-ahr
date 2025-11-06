@@ -1,148 +1,123 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Client;
 
-use App\Models\Client;
-use App\Models\User;
+use App\Http\Controllers\Controller;
+use App\Models\Project;
+use App\Models\Task;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class ClientController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display client dashboard.
      */
-    public function index()
+    public function dashboard()
     {
-        $clients = Client::with('user')->paginate(10);
+        $user = Auth::user();
         
-        return Inertia::render('Admin/Client/Index', [
-            'clients' => $clients
+        // Get client's projects
+        $projects = Project::where('client_id', $user->client_id)
+            ->withCount(['workingSteps', 'tasks'])
+            ->with(['client'])
+            ->latest()
+            ->get();
+
+        // Get task statistics
+        $totalTasks = Task::whereHas('project', function ($query) use ($user) {
+            $query->where('client_id', $user->client_id);
+        })->count();
+
+        $completedTasks = Task::whereHas('project', function ($query) use ($user) {
+            $query->where('client_id', $user->client_id);
+        })->where('status', 'completed')->count();
+
+        $pendingTasks = Task::whereHas('project', function ($query) use ($user) {
+            $query->where('client_id', $user->client_id);
+        })->where('status', 'pending')->count();
+
+        $inProgressTasks = Task::whereHas('project', function ($query) use ($user) {
+            $query->where('client_id', $user->client_id);
+        })->where('status', 'in_progress')->count();
+
+        return Inertia::render('Client/Dashboard', [
+            'projects' => $projects,
+            'stats' => [
+                'total_projects' => $projects->count(),
+                'total_tasks' => $totalTasks,
+                'completed_tasks' => $completedTasks,
+                'pending_tasks' => $pendingTasks,
+                'in_progress_tasks' => $inProgressTasks,
+            ],
         ]);
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Display client's projects.
      */
-    public function create()
+    public function myProjects()
     {
-        return Inertia::render('Admin/Client/Create');
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:users',
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'client_name' => 'required|string|max:255',
-            'alamat' => 'required|string',
-            'kementrian' => 'required|string|max:255',
-            'kode_satker' => 'required|string|max:255',
-        ]);
-
-        // Create user first
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'client',
-        ]);
-
-        // Create client
-        Client::create([
-            'user_id' => $user->id,
-            'name' => $request->client_name,
-            'alamat' => $request->alamat,
-            'kementrian' => $request->kementrian,
-            'kode_satker' => $request->kode_satker,
-        ]);
-
-        return redirect()->route('admin.project.index')
-            ->with('success', 'Klien berhasil ditambahkan.');
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(Client $client)
-    {
-        $client->load('user');
+        $user = Auth::user();
         
-        return Inertia::render('Admin/Client/Show', [
-            'client' => $client
+        $projects = Project::where('client_id', $user->client_id)
+            ->withCount(['workingSteps', 'tasks'])
+            ->with(['client'])
+            ->latest()
+            ->paginate(10);
+
+        return Inertia::render('Client/Projects/Index', [
+            'projects' => $projects,
         ]);
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Display a specific project.
      */
-    public function edit(Client $client)
+    public function showProject(Project $project)
     {
-        $client->load('user');
-        
-        return Inertia::render('Admin/Client/Edit', [
-            'client' => $client
-        ]);
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Client $client)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:users,email,' . $client->user_id,
-            'client_name' => 'required|string|max:255',
-            'alamat' => 'required|string',
-            'kementrian' => 'required|string|max:255',
-            'kode_satker' => 'required|string|max:255',
-        ]);
-
-        // Update user
-        $client->user->update([
-            'name' => $request->name,
-            'email' => $request->email,
-        ]);
-
-        // Update password if provided
-        if ($request->filled('password')) {
-            $request->validate([
-                'password' => ['confirmed', Rules\Password::defaults()],
-            ]);
-            
-            $client->user->update([
-                'password' => Hash::make($request->password),
-            ]);
+        // Make sure client can only view their own projects
+        if ($project->client_id !== Auth::user()->client_id) {
+            abort(403, 'Unauthorized access to this project.');
         }
 
-        // Update client
-        $client->update([
-            'name' => $request->client_name,
-            'alamat' => $request->alamat,
-            'kementrian' => $request->kementrian,
-            'kode_satker' => $request->kode_satker,
+        $project->load([
+            'client',
+            'workingSteps' => function ($query) {
+                $query->orderBy('order');
+            },
+            'workingSteps.tasks' => function ($query) {
+                $query->orderBy('order');
+            },
+            'workingSteps.tasks.assignedUsers',
+            'teamMembers.user',
         ]);
 
-        return redirect()->route('admin.project.index')
-            ->with('success', 'Data klien berhasil diperbarui.');
+        return Inertia::render('Client/Projects/Show', [
+            'project' => $project,
+        ]);
     }
 
     /**
-     * Remove the specified resource from storage.
+     * View task details (read-only for client).
      */
-    public function destroy(Client $client)
+    public function viewTask(Task $task)
     {
-        // Delete the user as well (which will cascade to client)
-        $client->user->delete();
-        
-        return redirect()->route('admin.project.index')
-            ->with('success', 'Klien berhasil dihapus.');
+        // Make sure client can only view tasks from their projects
+        if ($task->project->client_id !== Auth::user()->client_id) {
+            abort(403, 'Unauthorized access to this task.');
+        }
+
+        $task->load([
+            'workingStep',
+            'project',
+            'assignedUsers',
+            'files',
+        ]);
+
+        return Inertia::render('Client/Tasks/View', [
+            'task' => $task,
+        ]);
     }
 }
