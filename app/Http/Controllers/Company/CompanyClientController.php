@@ -33,7 +33,7 @@ class CompanyClientController extends Controller
         // Build query for clients
         $query = Client::whereIn('id', $clientIds)
             ->withCount(['projects' => function ($q) use ($user) {
-                $q->whereHas('teamMembers', function ($query) use ($user) {
+                $q->whereHas('projectTeams', function ($query) use ($user) {
                     $query->where('user_id', $user->id);
                 });
             }]);
@@ -78,7 +78,7 @@ class CompanyClientController extends Controller
         // Load client with their projects where user is a team member
         $client->load([
             'projects' => function ($query) use ($user) {
-                $query->whereHas('teamMembers', function ($q) use ($user) {
+                $query->whereHas('projectTeams', function ($q) use ($user) {
                     $q->where('user_id', $user->id);
                 })
                 ->withCount(['workingSteps', 'tasks'])

@@ -20,10 +20,10 @@ class ClientSeeder extends Seeder
         $clientsData = [
             [
                 'client' => [
-                    'name' => 'PT Telekomunikasi Indonesia',
-                    'slug' => Str::slug('PT Telekomunikasi Indonesia'),
-                    'alamat' => 'Jl. Japati No. 1, Bandung 40133',
-                    'kementrian' => 'Kementerian BUMN',
+                    'name' => 'UIN Mataram',
+                    'slug' => Str::slug('UIN Mataram'),
+                    'alamat' => 'Jl. Gajah Mada No. 100, Mataram, NTB',
+                    'kementrian' => 'Kementerian Agama',
                     'kode_satker' => '012345',
                 ],
                 'user' => [
@@ -33,10 +33,10 @@ class ClientSeeder extends Seeder
             ],
             [
                 'client' => [
-                    'name' => 'PT Bank Negara Indonesia',
-                    'slug' => Str::slug('PT Bank Negara Indonesia'),
-                    'alamat' => 'Jl. Jenderal Sudirman Kav. 1, Jakarta 10220',
-                    'kementrian' => 'Kementerian BUMN',
+                    'name' => 'UIN Imam Bonjol Padang',
+                    'slug' => Str::slug('UIN Imam Bonjol Padang'),
+                    'alamat' => 'Jl. Prof. Mahmud Yunus Lubuk Lintah, Padang',
+                    'kementrian' => 'Kementerian Agama',
                     'kode_satker' => '012346',
                 ],
                 'user' => [
@@ -46,11 +46,8 @@ class ClientSeeder extends Seeder
             ],
             [
                 'client' => [
-                    'name' => 'PT Pertamina (Persero)',
-                    'slug' => Str::slug('PT Pertamina (Persero)'),
-                    'alamat' => 'Jl. Medan Merdeka Timur 1A, Jakarta 10110',
-                    'kementrian' => 'Kementerian BUMN',
                     'name' => 'UIN Mahmud Yunus Batusangkar',
+                    'slug' => Str::slug('UIN Mahmud Yunus Batusangkar'),
                     'alamat' => 'Jl. Sudirman No. 137, Batusangkar, Sumatera Barat',
                     'kementrian' => 'Kementerian Agama',
                     'kode_satker' => '012347',
@@ -62,10 +59,10 @@ class ClientSeeder extends Seeder
             ],
             [
                 'client' => [
-                    'name' => 'Kementerian Keuangan RI',
-                    'slug' => Str::slug('Kementerian Keuangan RI'),
-                    'alamat' => 'Jl. Lapangan Banteng Timur 2-4, Jakarta 10710',
-                    'kementrian' => 'Kementerian Keuangan',
+                    'name' => 'UIN K. H. Abdurrahman Wahid Pekalongan',
+                    'slug' => Str::slug('UIN K. H. Abdurrahman Wahid Pekalongan'),
+                    'alamat' => 'Jl. Kusuma Bangsa No. 9, Pekalongan, Jawa Tengah',
+                    'kementrian' => 'Kementerian Agama',
                     'kode_satker' => '012348',
                 ],
                 'user' => [
@@ -76,6 +73,7 @@ class ClientSeeder extends Seeder
             [
                 'client' => [
                     'name' => 'UIN Alauddin Makassar',
+                    'slug' => Str::slug('UIN Alauddin Makassar'),
                     'alamat' => 'Jl. Sultan Alauddin No. 63, Makassar, Sulawesi Selatan',
                     'kementrian' => 'Kementerian Agama',
                     'kode_satker' => '012349',

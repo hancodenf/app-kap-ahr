@@ -294,11 +294,12 @@ class CompanyController extends Controller
             }
         } else {
             // Handle client document requests
-            if ($request->has('client_documents')) {
+            if ($request->has('client_documents') && is_array($request->client_documents)) {
                 foreach ($request->client_documents as $clientDoc) {
                     \App\Models\ClientDocument::create([
                         'task_assignment_id' => $taskAssignment->id,
                         'name' => $clientDoc['name'],
+                        'slug' => \Illuminate\Support\Str::slug($clientDoc['name'] . '-' . time() . '-' . uniqid()),
                         'description' => $clientDoc['description'] ?? null,
                     ]);
                 }

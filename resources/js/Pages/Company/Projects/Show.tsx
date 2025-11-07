@@ -302,12 +302,22 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
         // Set upload_mode to current active tab
         const currentMode = uploadMode;
         
-        // Clear data from inactive tab and set upload_mode
+        // Prepare data based on current mode
         if (currentMode === 'upload') {
+            // In upload mode: clear client_documents, keep files
             data.client_documents = [];
         } else {
+            // In request mode: clear files, keep client_documents
             data.files = [];
             data.file_labels = [];
+            // Ensure client_documents is populated from clientDocInputs
+            const validClientDocs = clientDocInputs
+                .filter(input => input.name.trim() !== '')
+                .map(input => ({
+                    name: input.name,
+                    description: input.description
+                }));
+            data.client_documents = validClientDocs;
         }
         data.upload_mode = currentMode;
         data._method = 'PUT';

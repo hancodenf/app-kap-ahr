@@ -7,10 +7,11 @@ use App\Models\Client;
 use App\Models\Document;
 use App\Models\Project;
 use App\Models\ProjectTeam;
+use App\Models\Task;
+use App\Models\TaskAssignment;
 use App\Models\TaskWorker;
 use App\Models\User;
 use App\Models\WorkingStep;
-use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -341,8 +342,8 @@ class ProjectController extends Controller
             'project_client_name' => $client->name,
         ]);
 
-        // Update denormalized client data in documents (via tasks)
-        Document::whereHas('task', function($query) use ($bundle) {
+        // Update denormalized client data in task_assignments
+        TaskAssignment::whereHas('task', function($query) use ($bundle) {
             $query->where('project_id', $bundle->id);
         })->update([
             'project_client_name' => $client->name,
