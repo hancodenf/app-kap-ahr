@@ -27,13 +27,13 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
                 'role' => 'admin',
-                'position' => null,
+                'position' => $user['position'],
                 'user_type' => 'Staff',
             ]);
         }
 
         // Company users from provided data
-        $companyUsers = [
+        $companyUsers = [   
             ["name" => "Abdul Hamid", "position" => "Founder - Partner", "user_type" => "Staff"],
             ["name" => "Wilda Farah", "position" => "Managing Partner", "user_type" => "Staff"],
             ["name" => "Syamsul Bahri", "position" => "Partner", "user_type" => "Staff"],

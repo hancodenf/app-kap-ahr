@@ -19,50 +19,62 @@ class ClientSeeder extends Seeder
         $clientsData = [
             [
                 'client' => [
-                    'name' => 'PT Telekomunikasi Indonesia',
-                    'alamat' => 'Jl. Japati No. 1, Bandung 40133',
-                    'kementrian' => 'Kementerian BUMN',
+                    'name' => 'UIN Mataram',
+                    'alamat' => 'Jl. Gajah Mada No. 100, Mataram, NTB',
+                    'kementrian' => 'Kementerian Agama',
                     'kode_satker' => '012345',
                 ],
                 'user' => [
-                    'name' => 'Budi Santoso',
-                    'email' => 'budi.santoso@telkom.co.id',
+                    'name' => 'Ahmad Fauzi',
+                    'email' => 'ahmad.fauzi@uinmataram.ac.id',
                 ]
             ],
             [
                 'client' => [
-                    'name' => 'PT Bank Negara Indonesia',
-                    'alamat' => 'Jl. Jenderal Sudirman Kav. 1, Jakarta 10220',
-                    'kementrian' => 'Kementerian BUMN',
+                    'name' => 'UIN Imam Bonjol Padang',
+                    'alamat' => 'Jl. Prof. Mahmud Yunus Lubuk Lintah, Padang',
+                    'kementrian' => 'Kementerian Agama',
                     'kode_satker' => '012346',
                 ],
                 'user' => [
-                    'name' => 'Siti Nurhaliza',
-                    'email' => 'siti.nurhaliza@bni.co.id',
+                    'name' => 'Siti Rahma',
+                    'email' => 'siti.rahma@uinib.ac.id',
                 ]
             ],
             [
                 'client' => [
-                    'name' => 'PT Pertamina (Persero)',
-                    'alamat' => 'Jl. Medan Merdeka Timur 1A, Jakarta 10110',
-                    'kementrian' => 'Kementerian BUMN',
+                    'name' => 'UIN Mahmud Yunus Batusangkar',
+                    'alamat' => 'Jl. Sudirman No. 137, Batusangkar, Sumatera Barat',
+                    'kementrian' => 'Kementerian Agama',
                     'kode_satker' => '012347',
                 ],
                 'user' => [
-                    'name' => 'Ahmad Wijaya',
-                    'email' => 'ahmad.wijaya@pertamina.com',
+                    'name' => 'Budi Santoso',
+                    'email' => 'budi.santoso@uinmybatusangkar.ac.id',
                 ]
             ],
             [
                 'client' => [
-                    'name' => 'Kementerian Keuangan RI',
-                    'alamat' => 'Jl. Lapangan Banteng Timur 2-4, Jakarta 10710',
-                    'kementrian' => 'Kementerian Keuangan',
+                    'name' => 'UIN K. H. Abdurrahman Wahid Pekalongan',
+                    'alamat' => 'Jl. Kusuma Bangsa No. 9, Pekalongan, Jawa Tengah',
+                    'kementrian' => 'Kementerian Agama',
                     'kode_satker' => '012348',
                 ],
                 'user' => [
                     'name' => 'Dewi Kusuma',
-                    'email' => 'dewi.kusuma@kemenkeu.go.id',
+                    'email' => 'dewi.kusuma@uingusdur.ac.id',
+                ]
+            ],
+            [
+                'client' => [
+                    'name' => 'UIN Alauddin Makassar',
+                    'alamat' => 'Jl. Sultan Alauddin No. 63, Makassar, Sulawesi Selatan',
+                    'kementrian' => 'Kementerian Agama',
+                    'kode_satker' => '012349',
+                ],
+                'user' => [
+                    'name' => 'Muhammad Rizki',
+                    'email' => 'muhammad.rizki@uin-alauddin.ac.id',
                 ]
             ],
         ];
