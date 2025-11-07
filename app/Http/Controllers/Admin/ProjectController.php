@@ -709,6 +709,8 @@ class ProjectController extends Controller
             'notes' => 'nullable|string',
             'upload_mode' => 'required|in:upload,request',
             'files.*' => 'nullable|file|max:10240', // Max 10MB per file
+            'file_labels' => 'nullable|array',
+            'file_labels.*' => 'nullable|string|max:255',
             'client_documents' => 'nullable|array',
             'client_documents.*.name' => 'required|string|max:255',
             'client_documents.*.description' => 'nullable|string',
@@ -731,18 +733,27 @@ class ProjectController extends Controller
         if ($request->upload_mode === 'upload') {
             // Upload Files Mode - Store actual files
             if ($request->hasFile('files')) {
-                foreach ($request->file('files') as $file) {
+                $files = $request->file('files');
+                $fileLabels = $request->input('file_labels', []);
+                
+                // Get task storage path: clients/{client_slug}/{project_slug}/{task_slug}
+                $taskStoragePath = $task->getStoragePath();
+                
+                foreach ($files as $index => $file) {
                     $originalName = $file->getClientOriginalName();
                     $filename = time() . '_' . uniqid() . '_' . $originalName;
                     
-                    // Store in storage/app/public/task-files
-                    $path = $file->storeAs('task-files', $filename, 'public');
+                    // Store in task-specific directory
+                    $path = $file->storeAs($taskStoragePath, $filename, 'public');
+                    
+                    // Get label for this file (use label if provided, otherwise use original filename)
+                    $documentName = !empty($fileLabels[$index]) ? $fileLabels[$index] : $originalName;
                     
                     // Create document record linked to this assignment
                     Document::create([
                         'task_assignment_id' => $taskAssignment->id,
-                        'name' => $originalName,
-                        'slug' => Str::slug($originalName . '-' . time() . '-' . uniqid()),
+                        'name' => $documentName,
+                        'slug' => Str::slug($documentName . '-' . time() . '-' . uniqid()),
                         'file' => $path,
                         'uploaded_at' => now(),
                     ]);

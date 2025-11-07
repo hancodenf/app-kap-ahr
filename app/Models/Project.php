@@ -19,6 +19,7 @@ class Project extends Model
      */
     protected $fillable = [
         'name',
+        'slug',
         'status',
         'client_id',
         'client_name',
@@ -74,5 +75,29 @@ class Project extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'project_teams')->withPivot('role')->withTimestamps();
+    }
+
+    /**
+     * Get the storage path for this project relative to storage/app/public.
+     * Format: clients/{client_slug}/{project_slug}
+     * 
+     * @return string
+     */
+    public function getStoragePath(): string
+    {
+        // Get client slug from denormalized data or from relationship
+        $clientSlug = $this->client ? $this->client->slug : \Illuminate\Support\Str::slug($this->client_name);
+        
+        return "clients/{$clientSlug}/{$this->slug}";
+    }
+
+    /**
+     * Get the full storage path (with storage/app/public prefix).
+     * 
+     * @return string
+     */
+    public function getFullStoragePath(): string
+    {
+        return storage_path("app/public/{$this->getStoragePath()}");
     }
 }

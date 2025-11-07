@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\ProjectTeam;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class ProjectSeeder extends Seeder
 {
@@ -18,8 +19,11 @@ class ProjectSeeder extends Seeder
         $clients = Client::all();
 
         foreach ($clients as $client) {
+            $projectName = 'Audit Laporan Keuangan ' . $client->name . ' Tahun 2024';
+            
             $project = Project::create([
-                'name' => 'Audit Laporan Keuangan ' . $client->name . ' Tahun 2024',
+                'name' => $projectName,
+                'slug' => Str::slug($projectName),
                 'client_id' => $client->id,
                 // Denormalized client data
                 'client_name' => $client->name,

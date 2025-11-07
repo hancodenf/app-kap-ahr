@@ -15,6 +15,7 @@ class Client extends Model
      */
     protected $fillable = [
         'name',
+        'slug',
         'alamat',
         'kementrian',
         'kode_satker',
@@ -35,5 +36,25 @@ class Client extends Model
     public function projects(): HasMany
     {
         return $this->hasMany(Project::class);
+    }
+
+    /**
+     * Get the storage path for this client.
+     * 
+     * @return string
+     */
+    public function getStoragePath(): string
+    {
+        return "clients/{$this->slug}";
+    }
+
+    /**
+     * Get the full storage path (with storage/app/public prefix).
+     * 
+     * @return string
+     */
+    public function getFullStoragePath(): string
+    {
+        return storage_path("app/public/{$this->getStoragePath()}");
     }
 }

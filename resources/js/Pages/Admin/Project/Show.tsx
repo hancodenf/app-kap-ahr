@@ -104,11 +104,13 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
     const { data, setData, post, processing, errors, reset } = useForm<{
         notes: string;
         files: File[];
+        file_labels: string[];
         upload_mode: 'upload' | 'request';
         client_documents: Array<{ name: string; description: string }>;
     }>({
         notes: '',
         files: [],
+        file_labels: [],
         upload_mode: 'upload',
         client_documents: [],
     });
@@ -171,6 +173,10 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
             input.id === id ? { ...input, label } : input
         );
         setFileInputs(updatedInputs);
+        
+        // Update form data with labels (sync with files that have been uploaded)
+        const allLabels = updatedInputs.filter(input => input.file !== null).map(input => input.label || '');
+        setData('file_labels', allLabels);
     };
 
     const handleFileChange = (id: number, file: File) => {
@@ -179,9 +185,11 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
         );
         setFileInputs(updatedInputs);
         
-        // Update form data with all files
+        // Update form data with all files and labels
         const allFiles = updatedInputs.filter(input => input.file !== null).map(input => input.file!);
+        const allLabels = updatedInputs.filter(input => input.file !== null).map(input => input.label || '');
         setData('files', allFiles);
+        setData('file_labels', allLabels);
     };
 
     const handleFileDrop = (id: number, e: React.DragEvent<HTMLDivElement>) => {
@@ -217,13 +225,16 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
             setFileInputs(newInputs);
             setNextFileId(nextFileId + 1);
             setData('files', []);
+            setData('file_labels', []);
         } else {
             const updatedInputs = fileInputs.filter(input => input.id !== id);
             setFileInputs(updatedInputs);
             
             // Update form data
             const allFiles = updatedInputs.filter(input => input.file !== null).map(input => input.file!);
+            const allLabels = updatedInputs.filter(input => input.file !== null).map(input => input.label || '');
             setData('files', allFiles);
+            setData('file_labels', allLabels);
         }
     };
 

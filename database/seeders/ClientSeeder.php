@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class ClientSeeder extends Seeder
 {
@@ -20,6 +21,7 @@ class ClientSeeder extends Seeder
             [
                 'client' => [
                     'name' => 'PT Telekomunikasi Indonesia',
+                    'slug' => Str::slug('PT Telekomunikasi Indonesia'),
                     'alamat' => 'Jl. Japati No. 1, Bandung 40133',
                     'kementrian' => 'Kementerian BUMN',
                     'kode_satker' => '012345',
@@ -32,6 +34,7 @@ class ClientSeeder extends Seeder
             [
                 'client' => [
                     'name' => 'PT Bank Negara Indonesia',
+                    'slug' => Str::slug('PT Bank Negara Indonesia'),
                     'alamat' => 'Jl. Jenderal Sudirman Kav. 1, Jakarta 10220',
                     'kementrian' => 'Kementerian BUMN',
                     'kode_satker' => '012346',
@@ -44,6 +47,7 @@ class ClientSeeder extends Seeder
             [
                 'client' => [
                     'name' => 'PT Pertamina (Persero)',
+                    'slug' => Str::slug('PT Pertamina (Persero)'),
                     'alamat' => 'Jl. Medan Merdeka Timur 1A, Jakarta 10110',
                     'kementrian' => 'Kementerian BUMN',
                     'kode_satker' => '012347',
@@ -56,6 +60,7 @@ class ClientSeeder extends Seeder
             [
                 'client' => [
                     'name' => 'Kementerian Keuangan RI',
+                    'slug' => Str::slug('Kementerian Keuangan RI'),
                     'alamat' => 'Jl. Lapangan Banteng Timur 2-4, Jakarta 10710',
                     'kementrian' => 'Kementerian Keuangan',
                     'kode_satker' => '012348',

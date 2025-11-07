@@ -103,13 +103,17 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
     const { data, setData, post, put, processing, errors, reset } = useForm<{
         notes: string;
         files: File[];
-        client_documents: Array<{ name: string; description: string }>;
+        file_labels: string[];
         upload_mode: 'upload' | 'request';
+        client_documents: Array<{ name: string; description: string }>;
+        _method?: string;
     }>({
         notes: '',
         files: [],
-        client_documents: [],
+        file_labels: [],
         upload_mode: 'upload',
+        client_documents: [],
+        _method: 'PUT',
     });
 
     const toggleStep = (stepId: number) => {
@@ -170,6 +174,10 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
             input.id === id ? { ...input, label } : input
         );
         setFileInputs(updatedInputs);
+        
+        // Update form data with labels (sync with files that have been uploaded)
+        const allLabels = updatedInputs.filter(input => input.file !== null).map(input => input.label || '');
+        setData('file_labels', allLabels);
     };
 
     const handleFileChange = (id: number, file: File) => {
@@ -178,9 +186,11 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
         );
         setFileInputs(updatedInputs);
         
-        // Update form data with all files
+        // Update form data with all files and labels
         const allFiles = updatedInputs.filter(input => input.file !== null).map(input => input.file!);
+        const allLabels = updatedInputs.filter(input => input.file !== null).map(input => input.label || '');
         setData('files', allFiles);
+        setData('file_labels', allLabels);
     };
 
     const handleFileDrop = (id: number, e: React.DragEvent<HTMLDivElement>) => {
@@ -216,13 +226,16 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
             setFileInputs(newInputs);
             setNextFileId(nextFileId + 1);
             setData('files', []);
+            setData('file_labels', []);
         } else {
             const updatedInputs = fileInputs.filter(input => input.id !== id);
             setFileInputs(updatedInputs);
             
             // Update form data
             const allFiles = updatedInputs.filter(input => input.file !== null).map(input => input.file!);
+            const allLabels = updatedInputs.filter(input => input.file !== null).map(input => input.label || '');
             setData('files', allFiles);
+            setData('file_labels', allLabels);
         }
     };
 
@@ -288,36 +301,36 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
 
         // Set upload_mode to current active tab
         const currentMode = uploadMode;
-        setData('upload_mode', currentMode);
         
-        // Clear data from inactive tab before submission
+        // Clear data from inactive tab and set upload_mode
         if (currentMode === 'upload') {
-            setData('client_documents', []);
+            data.client_documents = [];
         } else {
-            setData('files', []);
+            data.files = [];
+            data.file_labels = [];
         }
+        data.upload_mode = currentMode;
+        data._method = 'PUT';
 
-        // Use setTimeout to ensure state update before put
-        setTimeout(() => {
-            put(route('company.tasks.update-status', selectedTask.id), {
-                preserveScroll: true,
-                forceFormData: true,
-                onSuccess: () => {
-                    setShowTaskModal(false);
-                    setSelectedTask(null);
-                    setShowForm(false);
-                    setUploadMode('upload');
-                    setFileInputs([{ id: 0, label: '', file: null }]);
-                    setClientDocInputs([{ id: 0, name: '', description: '' }]);
-                    setNextFileId(1);
-                    setNextClientDocId(1);
-                    reset();
-                    
-                    // Reload page data to show updated assignments
-                    router.reload({ only: ['workingSteps'] });
-                },
-            });
-        }, 0);
+        // Use post with _method spoofing for PUT with file uploads
+        post(route('company.tasks.update-status', selectedTask.id), {
+            preserveScroll: true,
+            forceFormData: true,
+            onSuccess: () => {
+                setShowTaskModal(false);
+                setSelectedTask(null);
+                setShowForm(false);
+                setUploadMode('upload');
+                setFileInputs([{ id: 0, label: '', file: null }]);
+                setClientDocInputs([{ id: 0, name: '', description: '' }]);
+                setNextFileId(1);
+                setNextClientDocId(1);
+                reset();
+                
+                // Reload page data to show updated assignments
+                router.reload({ only: ['workingSteps'] });
+            },
+        });
     };
 
     const getStatusBadgeClass = (status: string) => {
@@ -359,9 +372,8 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                 );
             case 'in_progress':
                 return (
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                     </svg>
                 );
             default:

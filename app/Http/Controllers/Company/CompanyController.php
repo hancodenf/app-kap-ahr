@@ -13,9 +13,7 @@ use Inertia\Inertia;
 
 class CompanyController extends Controller
 {
-    /**
-     * Company Dashboard
-     */
+
     public function dashboard()
     {
         $user = Auth::user();
@@ -239,6 +237,8 @@ class CompanyController extends Controller
             $request->validate([
                 'notes' => 'nullable|string',
                 'files.*' => 'nullable|file|max:10240', // Max 10MB per file
+                'file_labels' => 'nullable|array',
+                'file_labels.*' => 'nullable|string|max:255',
             ]);
         } else {
             $request->validate([
@@ -266,18 +266,27 @@ class CompanyController extends Controller
         if ($uploadMode === 'upload') {
             // Handle file uploads
             if ($request->hasFile('files')) {
-                foreach ($request->file('files') as $file) {
+                $files = $request->file('files');
+                $fileLabels = $request->input('file_labels', []);
+                
+                // Get task storage path: clients/{client_slug}/{project_slug}/{task_slug}
+                $taskStoragePath = $task->getStoragePath();
+                
+                foreach ($files as $index => $file) {
                     $originalName = $file->getClientOriginalName();
                     $filename = time() . '_' . uniqid() . '_' . $originalName;
                     
-                    // Store in storage/app/public/task-files
-                    $path = $file->storeAs('task-files', $filename, 'public');
+                    // Store in task-specific directory
+                    $path = $file->storeAs($taskStoragePath, $filename, 'public');
+                    
+                    // Get label for this file (use label if provided, otherwise use original filename)
+                    $documentName = !empty($fileLabels[$index]) ? $fileLabels[$index] : $originalName;
                     
                     // Create document record linked to this assignment
                     \App\Models\Document::create([
                         'task_assignment_id' => $taskAssignment->id,
-                        'name' => $originalName,
-                        'slug' => \Illuminate\Support\Str::slug($originalName . '-' . time()),
+                        'name' => $documentName,
+                        'slug' => \Illuminate\Support\Str::slug($documentName . '-' . time() . '-' . uniqid()),
                         'file' => $path,
                         'uploaded_at' => now(),
                     ]);

@@ -124,4 +124,34 @@ class Task extends Model
     {
         $this->update(['completion_status' => 'pending']);
     }
+
+    /**
+     * Get the storage path for this task relative to storage/app/public.
+     * Format: clients/{client_slug}/{project_slug}/{task_slug}
+     * 
+     * @return string
+     */
+    public function getStoragePath(): string
+    {
+        // Get slugs from denormalized data or from relationships
+        $clientSlug = $this->project && $this->project->client 
+            ? $this->project->client->slug 
+            : \Illuminate\Support\Str::slug($this->project_client_name);
+        
+        $projectSlug = $this->project 
+            ? $this->project->slug 
+            : \Illuminate\Support\Str::slug($this->project_name);
+        
+        return "clients/{$clientSlug}/{$projectSlug}/{$this->slug}";
+    }
+
+    /**
+     * Get the full storage path (with storage/app/public prefix).
+     * 
+     * @return string
+     */
+    public function getFullStoragePath(): string
+    {
+        return storage_path("app/public/{$this->getStoragePath()}");
+    }
 }
