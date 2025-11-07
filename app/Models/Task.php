@@ -5,7 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Support\Facades\DB;
 
 class Task extends Model
 {
@@ -94,6 +97,22 @@ class Task extends Model
     public function taskAssignments(): HasMany
     {
         return $this->hasMany(TaskAssignment::class);
+    }
+
+    /**
+     * Get the assigned users for the task through task workers and project teams.
+     */
+    public function assignedUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            User::class,
+            'task_workers',
+            'task_id',
+            'project_team_id'
+        )
+        ->join('project_teams', 'project_teams.id', '=', 'task_workers.project_team_id')
+        ->where('project_teams.user_id', '=', DB::raw('users.id'))
+        ->select('users.*', 'project_teams.role as team_role');
     }
 
     /**

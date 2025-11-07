@@ -10,21 +10,20 @@ import { FormEventHandler, useState } from 'react';
 interface DemoUser {
     name: string;
     email: string;
+    profile_photo?: string | null;
     position?: string;
+    user_type?: string;
+    client_name?: string;
     initials: string;
 }
 
 interface DemoUsers {
-    admin: {
-        name: string;
-        email: string;
-    } | null;
-    tenaga_ahli: DemoUser[];
-    staff: DemoUser[];
-    client: {
-        name: string;
-        email: string;
-    } | null;
+    admin: DemoUser[];
+    company: {
+        tenaga_ahli: DemoUser[];
+        staff: DemoUser[];
+    };
+    client: DemoUser[];
 }
 
 export default function Login({
@@ -42,8 +41,11 @@ export default function Login({
         remember: false as boolean,
     });
 
+    const [showAdmin, setShowAdmin] = useState(false);
+    const [showCompany, setShowCompany] = useState(false);
     const [showTenagaAhli, setShowTenagaAhli] = useState(false);
     const [showStaff, setShowStaff] = useState(false);
+    const [showClient, setShowClient] = useState(false);
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -60,6 +62,36 @@ export default function Login({
             remember: false,
         });
     };
+
+    const renderUserCard = (user: DemoUser, colorClass: string) => (
+        <div className="flex items-start gap-2">
+            {user.profile_photo ? (
+                <img 
+                    src={`/storage/${user.profile_photo}`} 
+                    alt={user.name}
+                    className={`w-7 h-7 rounded-full object-cover border-2 border-${colorClass}-300 flex-shrink-0`}
+                />
+            ) : (
+                <div className={`w-7 h-7 rounded-full bg-${colorClass}-200 flex items-center justify-center text-${colorClass}-700 font-bold text-[10px] flex-shrink-0`}>
+                    {user.initials}
+                </div>
+            )}
+            <div className="text-left flex-1 min-w-0">
+                <div className="font-semibold truncate text-xs">{user.name}</div>
+                <div className="text-[10px] opacity-75 truncate">{user.email}</div>
+                {user.position && (
+                    <div className={`text-[9px] bg-${colorClass}-100 px-1 py-0.5 rounded mt-0.5 inline-block`}>
+                        {user.position}
+                    </div>
+                )}
+                {user.client_name && (
+                    <div className={`text-[9px] bg-${colorClass}-100 px-1 py-0.5 rounded mt-0.5 inline-block`}>
+                        {user.client_name}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
 
     return (
         <GuestLayout>
@@ -170,49 +202,25 @@ export default function Login({
                     </div>
                     
                     <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                        {/* Admin */}
-                        {demoUsers?.admin && (
-                            <button
-                                type="button"
-                                onClick={() => autofillCredentials(demoUsers.admin!.email, 'password')}
-                                className="w-full flex items-center justify-between px-4 py-3 border-2 border-red-300 rounded-lg text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all shadow-sm hover:shadow"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-red-200 flex items-center justify-center">
-                                        <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                        </svg>
-                                    </div>
-                                    <div className="text-left flex-1">
-                                        <div className="font-bold">{demoUsers.admin.name}</div>
-                                        <div className="text-xs opacity-75">Full System Access</div>
-                                    </div>
-                                </div>
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                                </svg>
-                            </button>
-                        )}
-
-                        {/* Tenaga Ahli Section - Collapsible */}
-                        {demoUsers?.tenaga_ahli && demoUsers.tenaga_ahli.length > 0 && (
-                            <div className="bg-purple-50 rounded-lg border border-purple-200 overflow-hidden">
+                        {/* Admin Section */}
+                        {demoUsers?.admin && demoUsers.admin.length > 0 && (
+                            <div className="bg-red-50 rounded-lg border border-red-200 overflow-hidden">
                                 <button
                                     type="button"
-                                    onClick={() => setShowTenagaAhli(!showTenagaAhli)}
-                                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-purple-100 transition-colors"
+                                    onClick={() => setShowAdmin(!showAdmin)}
+                                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-red-100 transition-colors"
                                 >
                                     <div className="flex items-center gap-2">
-                                        <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                                            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                                        <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                         </svg>
                                         <div className="text-left">
-                                            <p className="text-sm font-semibold text-purple-700">Tenaga Ahli</p>
-                                            <p className="text-xs text-purple-600">{demoUsers.tenaga_ahli.length} users</p>
+                                            <p className="text-sm font-semibold text-red-700">Admin</p>
+                                            <p className="text-xs text-red-600">{demoUsers.admin.length} users</p>
                                         </div>
                                     </div>
                                     <svg 
-                                        className={`w-5 h-5 text-purple-600 transition-transform ${showTenagaAhli ? 'rotate-180' : ''}`}
+                                        className={`w-5 h-5 text-red-600 transition-transform ${showAdmin ? 'rotate-180' : ''}`}
                                         fill="none" 
                                         stroke="currentColor" 
                                         viewBox="0 0 24 24"
@@ -221,27 +229,16 @@ export default function Login({
                                     </svg>
                                 </button>
                                 
-                                {showTenagaAhli && (
-                                    <div className="px-3 pb-3 space-y-2 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-purple-100">
-                                        {demoUsers.tenaga_ahli.map((user, index) => (
+                                {showAdmin && (
+                                    <div className="px-3 pb-3 space-y-2">
+                                        {demoUsers.admin.map((user, index) => (
                                             <button
                                                 key={index}
                                                 type="button"
                                                 onClick={() => autofillCredentials(user.email, 'password')}
-                                                className="w-full flex items-start gap-2 px-3 py-2 bg-white border border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                                                className="w-full flex items-start gap-2 px-2 py-1.5 bg-white border border-red-300 rounded-lg text-xs font-medium text-red-700 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all"
                                             >
-                                                <div className="w-8 h-8 rounded-full bg-purple-200 flex items-center justify-center text-purple-700 font-bold text-xs flex-shrink-0 mt-0.5">
-                                                    {user.initials}
-                                                </div>
-                                                <div className="text-left flex-1 min-w-0">
-                                                    <div className="font-semibold truncate">{user.name}</div>
-                                                    <div className="text-xs opacity-75 truncate">{user.email}</div>
-                                                    {user.position && (
-                                                        <div className="text-[10px] bg-purple-100 px-1.5 py-0.5 rounded mt-1 inline-block">
-                                                            {user.position}
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                {renderUserCard(user, 'red')}
                                             </button>
                                         ))}
                                     </div>
@@ -249,25 +246,27 @@ export default function Login({
                             </div>
                         )}
 
-                        {/* Staff Section - Collapsible */}
-                        {demoUsers?.staff && demoUsers.staff.length > 0 && (
+                        {/* Company Section with Sub-groups */}
+                        {demoUsers?.company && (
                             <div className="bg-blue-50 rounded-lg border border-blue-200 overflow-hidden">
                                 <button
                                     type="button"
-                                    onClick={() => setShowStaff(!showStaff)}
+                                    onClick={() => setShowCompany(!showCompany)}
                                     className="w-full flex items-center justify-between px-4 py-3 hover:bg-blue-100 transition-colors"
                                 >
                                     <div className="flex items-center gap-2">
                                         <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
                                         </svg>
                                         <div className="text-left">
-                                            <p className="text-sm font-semibold text-blue-700">Staff</p>
-                                            <p className="text-xs text-blue-600">{demoUsers.staff.length} users</p>
+                                            <p className="text-sm font-semibold text-blue-700">Company</p>
+                                            <p className="text-xs text-blue-600">
+                                                {demoUsers.company.tenaga_ahli.length + demoUsers.company.staff.length} users
+                                            </p>
                                         </div>
                                     </div>
                                     <svg 
-                                        className={`w-5 h-5 text-blue-600 transition-transform ${showStaff ? 'rotate-180' : ''}`}
+                                        className={`w-5 h-5 text-blue-600 transition-transform ${showCompany ? 'rotate-180' : ''}`}
                                         fill="none" 
                                         stroke="currentColor" 
                                         viewBox="0 0 24 24"
@@ -276,56 +275,132 @@ export default function Login({
                                     </svg>
                                 </button>
                                 
-                                {showStaff && (
-                                    <div className="px-3 pb-3 space-y-2 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-100">
-                                        {demoUsers.staff.map((user, index) => (
-                                            <button
-                                                key={index}
-                                                type="button"
-                                                onClick={() => autofillCredentials(user.email, 'password')}
-                                                className="w-full flex items-start gap-2 px-3 py-2 bg-white border border-blue-300 rounded-lg text-sm font-medium text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                                            >
-                                                <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs flex-shrink-0 mt-0.5">
-                                                    {user.initials}
-                                                </div>
-                                                <div className="text-left flex-1 min-w-0">
-                                                    <div className="font-semibold truncate">{user.name}</div>
-                                                    <div className="text-xs opacity-75 truncate">{user.email}</div>
-                                                    {user.position && (
-                                                        <div className="text-[10px] bg-blue-100 px-1.5 py-0.5 rounded mt-1 inline-block">
-                                                            {user.position}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </button>
-                                        ))}
+                                {showCompany && (
+                                    <div className="px-3 pb-3 space-y-2">
+                                        {/* Tenaga Ahli Sub-group */}
+                                        {demoUsers.company.tenaga_ahli.length > 0 && (
+                                            <div className="bg-purple-50 rounded-lg border border-purple-200 overflow-hidden">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowTenagaAhli(!showTenagaAhli)}
+                                                    className="w-full flex items-center justify-between px-3 py-2 hover:bg-purple-100 transition-colors"
+                                                >
+                                                    <div className="text-left">
+                                                        <p className="text-xs font-semibold text-purple-700">Tenaga Ahli</p>
+                                                        <p className="text-[10px] text-purple-600">{demoUsers.company.tenaga_ahli.length} users</p>
+                                                    </div>
+                                                    <svg 
+                                                        className={`w-4 h-4 text-purple-600 transition-transform ${showTenagaAhli ? 'rotate-180' : ''}`}
+                                                        fill="none" 
+                                                        stroke="currentColor" 
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                    </svg>
+                                                </button>
+                                                
+                                                {showTenagaAhli && (
+                                                    <div className="px-2 pb-2 space-y-1.5 max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-purple-100">
+                                                        {demoUsers.company.tenaga_ahli.map((user, index) => (
+                                                            <button
+                                                                key={index}
+                                                                type="button"
+                                                                onClick={() => autofillCredentials(user.email, 'password')}
+                                                                className="w-full px-2 py-1.5 bg-white border border-purple-300 rounded-lg text-xs font-medium text-purple-700 hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                                                            >
+                                                                {renderUserCard(user, 'purple')}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Staff Sub-group */}
+                                        {demoUsers.company.staff.length > 0 && (
+                                            <div className="bg-cyan-50 rounded-lg border border-cyan-200 overflow-hidden">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowStaff(!showStaff)}
+                                                    className="w-full flex items-center justify-between px-3 py-2 hover:bg-cyan-100 transition-colors"
+                                                >
+                                                    <div className="text-left">
+                                                        <p className="text-xs font-semibold text-cyan-700">Staff</p>
+                                                        <p className="text-[10px] text-cyan-600">{demoUsers.company.staff.length} users</p>
+                                                    </div>
+                                                    <svg 
+                                                        className={`w-4 h-4 text-cyan-600 transition-transform ${showStaff ? 'rotate-180' : ''}`}
+                                                        fill="none" 
+                                                        stroke="currentColor" 
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                    </svg>
+                                                </button>
+                                                
+                                                {showStaff && (
+                                                    <div className="px-2 pb-2 space-y-1.5 max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-cyan-300 scrollbar-track-cyan-100">
+                                                        {demoUsers.company.staff.map((user, index) => (
+                                                            <button
+                                                                key={index}
+                                                                type="button"
+                                                                onClick={() => autofillCredentials(user.email, 'password')}
+                                                                className="w-full px-2 py-1.5 bg-white border border-cyan-300 rounded-lg text-xs font-medium text-cyan-700 hover:bg-cyan-50 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
+                                                            >
+                                                                {renderUserCard(user, 'cyan')}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        {/* Client */}
-                        {demoUsers?.client && (
-                            <button
-                                type="button"
-                                onClick={() => autofillCredentials(demoUsers.client!.email, 'password')}
-                                className="w-full flex items-center justify-between px-4 py-3 border-2 border-green-300 rounded-lg text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all shadow-sm hover:shadow"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center">
-                                        <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {/* Client Section */}
+                        {demoUsers?.client && demoUsers.client.length > 0 && (
+                            <div className="bg-green-50 rounded-lg border border-green-200 overflow-hidden">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowClient(!showClient)}
+                                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-green-100 transition-colors"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                         </svg>
+                                        <div className="text-left">
+                                            <p className="text-sm font-semibold text-green-700">Client</p>
+                                            <p className="text-xs text-green-600">{demoUsers.client.length} users</p>
+                                        </div>
                                     </div>
-                                    <div className="text-left flex-1">
-                                        <div className="font-bold">{demoUsers.client.name}</div>
-                                        <div className="text-xs opacity-75">Client Portal Access</div>
+                                    <svg 
+                                        className={`w-5 h-5 text-green-600 transition-transform ${showClient ? 'rotate-180' : ''}`}
+                                        fill="none" 
+                                        stroke="currentColor" 
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                                
+                                {showClient && (
+                                    <div className="px-3 pb-3 space-y-2">
+                                        {demoUsers.client.map((user, index) => (
+                                            <button
+                                                key={index}
+                                                type="button"
+                                                onClick={() => autofillCredentials(user.email, 'password')}
+                                                className="w-full px-2 py-1.5 bg-white border border-green-300 rounded-lg text-xs font-medium text-green-700 hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                                            >
+                                                {renderUserCard(user, 'green')}
+                                            </button>
+                                        ))}
                                     </div>
-                                </div>
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                                </svg>
-                            </button>
+                                )}
+                            </div>
                         )}
                     </div>
 

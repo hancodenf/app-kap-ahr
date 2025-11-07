@@ -31,9 +31,23 @@ export default function Create({ roles, positions, userTypes, clients }: CreateU
         position: '',
         user_type: '',
         client_id: '',
+        profile_photo: null as File | null,
     });
 
     const [showPassword, setShowPassword] = useState(false);
+    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setData('profile_photo', file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPhotoPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const generatePassword = () => {
         const length = 12;
@@ -83,6 +97,49 @@ export default function Create({ roles, positions, userTypes, clients }: CreateU
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-6">
                             <form onSubmit={submit} className="space-y-6">
+                                {/* Profile Photo */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Foto Profil
+                                    </label>
+                                    <div className="flex items-center gap-4">
+                                        {photoPreview ? (
+                                            <img 
+                                                src={photoPreview} 
+                                                alt="Preview" 
+                                                className="w-20 h-20 rounded-full object-cover border-2 border-gray-300"
+                                            />
+                                        ) : (
+                                            <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-2xl border-2 border-gray-300">
+                                                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                </svg>
+                                            </div>
+                                        )}
+                                        <div className="flex-1">
+                                            <input
+                                                id="profile_photo"
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handlePhotoChange}
+                                                className="hidden"
+                                            />
+                                            <label
+                                                htmlFor="profile_photo"
+                                                className="cursor-pointer inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                                            >
+                                                Pilih Foto
+                                            </label>
+                                            <p className="mt-2 text-xs text-gray-500">
+                                                JPG, PNG, or GIF (MAX. 2MB)
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {errors.profile_photo && (
+                                        <p className="mt-2 text-sm text-red-600">{errors.profile_photo}</p>
+                                    )}
+                                </div>
+
                                 {/* Name */}
                                 <div>
                                     <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">

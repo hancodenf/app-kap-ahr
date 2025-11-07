@@ -27,8 +27,8 @@ class ClientSeeder extends Seeder
                     'kode_satker' => '012345',
                 ],
                 'user' => [
-                    'name' => 'Budi Santoso',
-                    'email' => 'budi.santoso@telkom.co.id',
+                    'name' => 'Ahmad Fauzi',
+                    'email' => 'ahmad.fauzi@uinmataram.ac.id',
                 ]
             ],
             [
@@ -40,8 +40,8 @@ class ClientSeeder extends Seeder
                     'kode_satker' => '012346',
                 ],
                 'user' => [
-                    'name' => 'Siti Nurhaliza',
-                    'email' => 'siti.nurhaliza@bni.co.id',
+                    'name' => 'Siti Rahma',
+                    'email' => 'siti.rahma@uinib.ac.id',
                 ]
             ],
             [
@@ -50,11 +50,14 @@ class ClientSeeder extends Seeder
                     'slug' => Str::slug('PT Pertamina (Persero)'),
                     'alamat' => 'Jl. Medan Merdeka Timur 1A, Jakarta 10110',
                     'kementrian' => 'Kementerian BUMN',
+                    'name' => 'UIN Mahmud Yunus Batusangkar',
+                    'alamat' => 'Jl. Sudirman No. 137, Batusangkar, Sumatera Barat',
+                    'kementrian' => 'Kementerian Agama',
                     'kode_satker' => '012347',
                 ],
                 'user' => [
-                    'name' => 'Ahmad Wijaya',
-                    'email' => 'ahmad.wijaya@pertamina.com',
+                    'name' => 'Budi Santoso',
+                    'email' => 'budi.santoso@uinmybatusangkar.ac.id',
                 ]
             ],
             [
@@ -67,7 +70,19 @@ class ClientSeeder extends Seeder
                 ],
                 'user' => [
                     'name' => 'Dewi Kusuma',
-                    'email' => 'dewi.kusuma@kemenkeu.go.id',
+                    'email' => 'dewi.kusuma@uingusdur.ac.id',
+                ]
+            ],
+            [
+                'client' => [
+                    'name' => 'UIN Alauddin Makassar',
+                    'alamat' => 'Jl. Sultan Alauddin No. 63, Makassar, Sulawesi Selatan',
+                    'kementrian' => 'Kementerian Agama',
+                    'kode_satker' => '012349',
+                ],
+                'user' => [
+                    'name' => 'Muhammad Rizki',
+                    'email' => 'muhammad.rizki@uin-alauddin.ac.id',
                 ]
             ],
         ];

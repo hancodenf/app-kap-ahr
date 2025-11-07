@@ -12,6 +12,7 @@ interface Client {
 	kode_satker: string;
 	created_at: string;
 	client_users_count?: number;
+	projects_count?: number;
 }
 
 interface ClientsPageProps extends PageProps {
@@ -123,11 +124,7 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 							{/* Search Bar */}
 							<div className="mb-6 flex gap-2">
 								<div className="relative flex-1">
-									<input
-										type="text"
-										placeholder="Cari nama, email, alamat, kementrian, atau kode satker..."
-										value={search}
-										onChange={(e) => setSearch(e.target.value)}
+									<input type="text" placeholder="Cari nama, email, alamat, kementrian, atau kode satker..." value={search} onChange={(e) => setSearch(e.target.value)}
 										onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
 										className="w-full border border-gray-300 rounded-md pl-10 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
 									/>
@@ -172,6 +169,9 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 												Jumlah Akun
 											</th>
 											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+												Projects
+											</th>
+											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Bergabung
 											</th>
 											<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -208,9 +208,16 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 														<svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 															<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
 														</svg>
-														<span className="font-medium">{client.client_users_count || 0}</span>
-														<span className="text-gray-400 text-xs">akun</span>
+														<span className="font-medium">{client.client_users_count || 0}</span> 
 													</div>
+												</td>
+												<td className="px-6 py-4 whitespace-nowrap">
+													<div className="flex items-center gap-1 text-sm text-gray-600">
+														<svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+														</svg>
+														<span className="font-medium">{client.projects_count || 0}</span> 
+													</div> 
 												</td>
 												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
 													{formatDate(client.created_at)}

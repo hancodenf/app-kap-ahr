@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Company\StaffController;
 use App\Http\Controllers\Company\CompanyController;
+use App\Http\Controllers\Company\CompanyClientController;
 use App\Http\Controllers\Admin\ProjectTemplateController;
 use App\Http\Controllers\Admin\UserController;
 use App\Models\Task;
@@ -176,6 +177,10 @@ Route::middleware(['auth', 'verified', 'role:company'])->prefix('company')->name
     Route::get('/projects/{project}', [CompanyController::class, 'showProject'])->name('projects.show');
     Route::put('/tasks/{task}/status', [CompanyController::class, 'updateTaskStatus'])->name('tasks.update-status');
     Route::post('/tasks/{task}/comment', [CompanyController::class, 'addTaskComment'])->name('tasks.add-comment');
+    
+    // Client Routes for Company
+    Route::get('/clients', [CompanyClientController::class, 'index'])->name('clients.index');
+    Route::get('/clients/{client}', [CompanyClientController::class, 'show'])->name('clients.show');
 });
 
 // Partner Routes
@@ -190,7 +195,10 @@ Route::middleware(['auth', 'verified', 'role:staff'])->prefix('staff')->name('st
 
 // Klien Routes
 Route::middleware(['auth', 'verified', 'role:klien'])->prefix('klien')->name('klien.')->group(function () {
-    // Route::get('/dashboard', [KlienController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard', [ClientController::class, 'dashboard'])->name('dashboard');
+    Route::get('/projects', [ClientController::class, 'myProjects'])->name('projects.index');
+    Route::get('/projects/{project}', [ClientController::class, 'showProject'])->name('projects.show');
+    Route::get('/tasks/{task}', [ClientController::class, 'viewTask'])->name('tasks.view');
 });
 
 require __DIR__ . '/auth.php';

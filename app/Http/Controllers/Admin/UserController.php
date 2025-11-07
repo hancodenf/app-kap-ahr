@@ -8,6 +8,7 @@ use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
@@ -18,24 +19,32 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $users = User::when($request->search, function ($query, $search) {
-            $query->where('name', 'like', '%' . $search . '%')
-                ->orWhere('email', 'like', '%' . $search . '%')
-                ->orWhere('role', 'like', '%' . $search . '%');
-        })
+        // Default role filter to 'admin' if not specified
+        $roleFilter = $request->role ?? 'admin';
+        
+        $users = User::with('belongsToClient:id,name')
+            ->when($request->search, function ($query, $search) {
+                $query->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('email', 'like', '%' . $search . '%')
+                    ->orWhere('role', 'like', '%' . $search . '%');
+            })
+            ->where('role', $roleFilter)
             ->where('id', '!=', Auth::id())
             ->orderBy('created_at', 'desc')
             ->paginate(10)
             ->withQueryString();
 
         // Transform data to match frontend expectations
-        $users->getCollection()->transform(function ($user) {
-            return [
+        $users->getCollection()->transform(function ($user) use ($roleFilter) {
+            $data = [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'profile_photo' => $user->profile_photo ?? null,
                 'position' => $user->position ?? null,
                 'user_type' => $user->user_type ?? null,
+                'client_id' => $user->client_id ?? null,
+                'client_name' => $user->belongsToClient?->name ?? null,
                 'role' => [
                     'name' => $user->role,
                     'display_name' => ucfirst($user->role),
@@ -44,11 +53,24 @@ class UserController extends Controller
                 'created_at' => $user->created_at,
                 'updated_at' => $user->updated_at,
             ];
+            
+            return $data;
         });
+
+        // Get role counts for tabs
+        $roleCounts = [
+            'admin' => User::where('role', 'admin')->where('id', '!=', Auth::id())->count(),
+            'company' => User::where('role', 'company')->where('id', '!=', Auth::id())->count(),
+            'client' => User::where('role', 'client')->where('id', '!=', Auth::id())->count(),
+        ];
 
         return Inertia::render('Admin/Users/Index', [
             'users' => $users,
-            'filters' => $request->only(['search']),
+            'filters' => [
+                'search' => $request->search,
+                'role' => $roleFilter,
+            ],
+            'roleCounts' => $roleCounts,
         ]);
     }
 
@@ -108,6 +130,7 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'role_id' => 'required|in:admin,client,company',
+            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ];
 
         // Add position and user_type validation only for company role
@@ -130,6 +153,14 @@ class UserController extends Controller
             'role' => $request->role_id,
             'email_verified_at' => now(), // Auto verify untuk admin created users
         ];
+
+        // Handle profile photo upload
+        if ($request->hasFile('profile_photo')) {
+            $file = $request->file('profile_photo');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->storeAs('profile_photos', $filename, 'public');
+            $userData['profile_photo'] = 'profile_photos/' . $filename;
+        }
 
         // Set position and user_type based on role
         if ($request->role_id === 'company') {
@@ -160,6 +191,7 @@ class UserController extends Controller
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'profile_photo' => $user->profile_photo ?? null,
             'position' => $user->position ?? null,
             'user_type' => $user->user_type ?? null,
             'role' => [
@@ -220,6 +252,7 @@ class UserController extends Controller
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'profile_photo' => $user->profile_photo ?? null,
             'position' => $user->position ?? null,
             'user_type' => $user->user_type ?? null,
             'client_id' => $user->client_id ?? null,
@@ -252,6 +285,7 @@ class UserController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => 'nullable|string|min:8|confirmed',
             'role_id' => 'required|in:admin,client,company',
+            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ];
 
         // Add position and user_type validation only for company role
@@ -272,6 +306,19 @@ class UserController extends Controller
             'email' => $request->email,
             'role' => $request->role_id,
         ];
+
+        // Handle profile photo upload
+        if ($request->hasFile('profile_photo')) {
+            // Delete old photo if exists
+            if ($user->profile_photo) {
+                Storage::disk('public')->delete($user->profile_photo);
+            }
+            
+            $file = $request->file('profile_photo');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->storeAs('profile_photos', $filename, 'public');
+            $userData['profile_photo'] = 'profile_photos/' . $filename;
+        }
 
         // Set position and user_type based on role
         if ($request->role_id === 'company') {

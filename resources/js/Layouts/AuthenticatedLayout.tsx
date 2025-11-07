@@ -95,6 +95,28 @@ export default function Authenticated({
                 ),
                 active: route().current('company.projects.*'),
             },
+            {
+                name: 'My Clients',
+                href: route('company.clients.index'),
+                icon: (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                ),
+                active: route().current('company.clients.*'),
+            },
+        ] : []),
+        ...(user.role === 'client' || user.role === 'klien' ? [
+            {
+                name: 'My Projects',
+                href: route('klien.projects.index'),
+                icon: (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                ),
+                active: route().current('klien.projects.*'),
+            },
         ] : []),
     ];
 
@@ -192,11 +214,19 @@ export default function Authenticated({
                     <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''}`}>
                         <div className="flex items-center">
                             <div className="flex-shrink-0">
-                                <div className={`${sidebarCollapsed ? 'w-10 h-10' : 'w-8 h-8'} rounded-full bg-primary-100 flex items-center justify-center transition-all duration-300`}>
-                                    <span className={`${sidebarCollapsed ? 'text-base' : 'text-sm'} font-medium text-primary-600`}>
-                                        {user.name.charAt(0).toUpperCase()}
-                                    </span>
-                                </div>
+                                {user.profile_photo ? (
+                                    <img 
+                                        src={`/storage/${user.profile_photo}`} 
+                                        alt={user.name}
+                                        className={`${sidebarCollapsed ? 'w-10 h-10' : 'w-8 h-8'} rounded-full object-cover border-2 border-primary-300 transition-all duration-300`}
+                                    />
+                                ) : (
+                                    <div className={`${sidebarCollapsed ? 'w-10 h-10' : 'w-8 h-8'} rounded-full bg-primary-100 flex items-center justify-center transition-all duration-300`}>
+                                        <span className={`${sidebarCollapsed ? 'text-base' : 'text-sm'} font-medium text-primary-600`}>
+                                            {user.name.charAt(0).toUpperCase()}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                             {!sidebarCollapsed && (
                                 <div className="ml-3">

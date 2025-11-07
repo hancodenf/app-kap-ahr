@@ -8,6 +8,16 @@ interface ClientUser {
 	created_at: string;
 }
 
+interface Project {
+	id: number;
+	name: string;
+	description: string | null;
+	status: 'open' | 'closed';
+	working_steps_count: number;
+	tasks_count: number;
+	created_at: string;
+}
+
 interface Client {
 	id: number;
 	name: string;
@@ -15,6 +25,7 @@ interface Client {
 	kementrian: string;
 	kode_satker: string;
 	client_users: ClientUser[];
+	projects: Project[];
 	created_at: string;
 	updated_at: string;
 }
@@ -166,6 +177,117 @@ export default function Show(props: Props) {
 											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
 										</svg>
 										Tambah Akun Baru
+									</Link>
+								</div>
+							)}
+						</div>
+					</div>
+
+					{/* Related Projects */}
+					<div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+						<div className="p-6">
+							<div className="flex items-center justify-between mb-4 pb-2 border-b">
+								<h4 className="text-lg font-semibold text-gray-900">
+									Projects Terkait
+								</h4>
+								<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+									{client.projects?.length || 0} projects
+								</span>
+							</div>
+							
+							{client.projects && client.projects.length > 0 ? (
+								<div className="space-y-4">
+									{client.projects.map((project, index) => (
+										<div key={project.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+											<div className="flex items-start justify-between mb-3">
+												<div className="flex-1">
+													<div className="flex items-center gap-2 mb-2">
+														<h5 className="text-base font-semibold text-gray-900">{project.name}</h5>
+														<span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
+															project.status === 'open' 
+																? 'bg-green-100 text-green-800' 
+																: 'bg-gray-100 text-gray-800'
+														}`}>
+															{project.status === 'open' ? 'Open' : 'Closed'}
+														</span>
+													</div>
+													{project.description && (
+														<p className="text-sm text-gray-600 mb-3">{project.description}</p>
+													)}
+												</div>
+											</div>
+											
+											<div className="grid grid-cols-3 gap-3 mb-3">
+												<div className="bg-blue-50 rounded-lg p-2">
+													<div className="flex items-center gap-1 mb-1">
+														<svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+														</svg>
+														<span className="text-[10px] text-blue-900 font-medium">Steps</span>
+													</div>
+													<div className="text-lg font-bold text-blue-700">
+														{project.working_steps_count}
+													</div>
+												</div>
+												
+												<div className="bg-purple-50 rounded-lg p-2">
+													<div className="flex items-center gap-1 mb-1">
+														<svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+														</svg>
+														<span className="text-[10px] text-purple-900 font-medium">Tasks</span>
+													</div>
+													<div className="text-lg font-bold text-purple-700">
+														{project.tasks_count}
+													</div>
+												</div>
+												
+												<div className="bg-gray-50 rounded-lg p-2">
+													<div className="flex items-center gap-1 mb-1">
+														<svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+														</svg>
+														<span className="text-[10px] text-gray-700 font-medium">Created</span>
+													</div>
+													<div className="text-xs font-medium text-gray-700">
+														{new Date(project.created_at).toLocaleDateString('id-ID', {
+															day: 'numeric',
+															month: 'short',
+															year: 'numeric'
+														})}
+													</div>
+												</div>
+											</div>
+											
+											<div className="flex justify-end">
+												<Link
+													href={route('admin.projects.bundles.show', project.id)}
+													className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors text-sm font-medium"
+												>
+													<svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+														<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+													</svg>
+													View Project
+												</Link>
+											</div>
+										</div>
+									))}
+								</div>
+							) : (
+								<div className="text-center py-8">
+									<svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+									</svg>
+									<p className="mt-2 text-sm text-gray-500">Belum ada project yang terkait dengan client ini</p>
+									<Link
+										href={route('admin.projects.bundles.create')}
+										className="mt-4 inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors gap-2"
+									>
+										<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+										</svg>
+										Tambah Project Baru
 									</Link>
 								</div>
 							)}

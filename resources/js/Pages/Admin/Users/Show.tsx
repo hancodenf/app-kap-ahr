@@ -11,6 +11,7 @@ interface User {
 	id: number;
 	name: string;
 	email: string;
+	profile_photo?: string | null;
 	email_verified_at: string | null;
 	role: Role | null;
 	position?: string;
@@ -61,11 +62,19 @@ export default function Show({ user }: Props) {
 							{/* Header with Actions */}
 							<div className="flex justify-between items-start mb-6 pb-6 border-b">
 								<div className="flex items-center gap-4">
-									<div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center">
-										<span className="text-2xl font-semibold text-primary-700">
-											{user.name.charAt(0).toUpperCase()}
-										</span>
-									</div>
+									{user.profile_photo ? (
+										<img 
+											src={`/storage/${user.profile_photo}`} 
+											alt={user.name}
+											className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+										/>
+									) : (
+										<div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center">
+											<span className="text-2xl font-semibold text-primary-700">
+												{user.name.charAt(0).toUpperCase()}
+											</span>
+										</div>
+									)}
 									<div>
 										<h3 className="text-2xl font-bold text-gray-900">{user.name}</h3>
 										<p className="text-sm text-gray-500">{user.email}</p>

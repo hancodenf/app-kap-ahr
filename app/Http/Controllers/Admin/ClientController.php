@@ -15,7 +15,7 @@ class ClientController extends Controller
     {
         $search = $request->get('search', '');
 
-        $clients = Client::withCount('clientUsers') // Count related user accounts
+        $clients = Client::withCount(['clientUsers', 'projects']) // Count related user accounts and projects
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -64,7 +64,13 @@ class ClientController extends Controller
 
     public function show(Client $client)
     {
-        $client->load('clientUsers');
+        $client->load([
+            'clientUsers',
+            'projects' => function ($query) {
+                $query->withCount(['workingSteps', 'tasks'])
+                    ->orderBy('created_at', 'desc');
+            }
+        ]);
 
         return Inertia::render('Admin/Clients/Show', [
             'client' => $client,

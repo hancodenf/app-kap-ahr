@@ -77,21 +77,7 @@ export default function UpdateProfileInformation({
                     />
 
                     <InputError className="mt-2" message={errors.email} />
-                </div>
-
-                <div>
-                    <InputLabel htmlFor="position" value="Position" />
-
-                    <TextInput
-                        id="position"
-                        className="mt-1 block w-full"
-                        value={data.position}
-                        onChange={(e) => setData('position', e.target.value)}
-                        autoComplete="organization-title"
-                    />
-
-                    <InputError className="mt-2" message={errors.position} />
-                </div>
+                </div> 
 
                 {mustVerifyEmail && user.email_verified_at === null && (
                     <div>
