@@ -10,6 +10,14 @@ interface Document {
     uploaded_at: string;
 }
 
+interface ClientDocument {
+    id: number;
+    name: string;
+    description: string | null;
+    file: string | null;
+    uploaded_at: string | null;
+}
+
 interface TaskAssignment {
     id: number;
     time: string;
@@ -19,6 +27,7 @@ interface TaskAssignment {
     is_approved: boolean;
     created_at: string;
     documents: Document[];
+    client_documents: ClientDocument[];
 }
 
 interface Task {
@@ -70,8 +79,13 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
     const [expandedSteps, setExpandedSteps] = useState<number[]>([]);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [showTaskModal, setShowTaskModal] = useState(false);
+    const [showForm, setShowForm] = useState(false);
+    const [expandedSubmissions, setExpandedSubmissions] = useState<number[]>([]);
+    const [uploadMode, setUploadMode] = useState<'upload' | 'request'>('upload'); // Tab state
     const [fileInputs, setFileInputs] = useState<Array<{ id: number; label: string; file: File | null }>>([{ id: 0, label: '', file: null }]);
+    const [clientDocInputs, setClientDocInputs] = useState<Array<{ id: number; name: string; description: string }>>([{ id: 0, name: '', description: '' }]);
     const [nextFileId, setNextFileId] = useState(1);
+    const [nextClientDocId, setNextClientDocId] = useState(1);
 
     // Disable body scroll when modal is open
     useEffect(() => {
@@ -90,9 +104,13 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
     const { data, setData, post, processing, errors, reset } = useForm<{
         notes: string;
         files: File[];
+        upload_mode: 'upload' | 'request';
+        client_documents: Array<{ name: string; description: string }>;
     }>({
         notes: '',
         files: [],
+        upload_mode: 'upload',
+        client_documents: [],
     });
 
     const toggleStep = (stepId: number) => {
@@ -113,13 +131,39 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
         }
 
         setSelectedTask(task);
+        
+        // If task has no assignments, show form directly
+        // If task has assignments, show list first (form hidden)
+        const hasNoAssignments = !task.assignments || task.assignments.length === 0;
+        setShowForm(hasNoAssignments);
+        
+        // Expand latest submission by default
+        if (task.assignments && task.assignments.length > 0) {
+            setExpandedSubmissions([task.assignments[0].id]);
+        } else {
+            setExpandedSubmissions([]);
+        }
+        
+        setUploadMode('upload');
         setFileInputs([{ id: 0, label: '', file: null }]);
+        setClientDocInputs([{ id: 0, name: '', description: '' }]);
         setNextFileId(1);
+        setNextClientDocId(1);
         setData({
             notes: task.latest_assignment?.notes || '',
             files: [],
+            upload_mode: 'upload',
+            client_documents: [],
         });
         setShowTaskModal(true);
+    };
+    
+    const toggleSubmission = (submissionId: number) => {
+        setExpandedSubmissions(prev =>
+            prev.includes(submissionId)
+                ? prev.filter(id => id !== submissionId)
+                : [...prev, submissionId]
+        );
     };
 
     const handleLabelChange = (id: number, label: string) => {
@@ -183,21 +227,83 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
         }
     };
 
+    // Client Document Handlers
+    const handleClientDocNameChange = (id: number, name: string) => {
+        const updatedInputs = clientDocInputs.map(input => 
+            input.id === id ? { ...input, name } : input
+        );
+        setClientDocInputs(updatedInputs);
+        updateClientDocumentsData(updatedInputs);
+    };
+
+    const handleClientDocDescriptionChange = (id: number, description: string) => {
+        const updatedInputs = clientDocInputs.map(input => 
+            input.id === id ? { ...input, description } : input
+        );
+        setClientDocInputs(updatedInputs);
+        updateClientDocumentsData(updatedInputs);
+    };
+
+    const updateClientDocumentsData = (inputs: Array<{ id: number; name: string; description: string }>) => {
+        const validDocs = inputs.filter(input => input.name.trim() !== '');
+        setData('client_documents', validDocs.map(({ name, description }) => ({ name, description })));
+    };
+
+    const addClientDocInput = () => {
+        if (selectedTask && !selectedTask.multiple_files && clientDocInputs.length >= 1) {
+            return;
+        }
+        setClientDocInputs([...clientDocInputs, { id: nextClientDocId, name: '', description: '' }]);
+        setNextClientDocId(nextClientDocId + 1);
+    };
+
+    const removeClientDocInput = (id: number) => {
+        if (clientDocInputs.length === 1) {
+            const newInputs = [{ id: nextClientDocId, name: '', description: '' }];
+            setClientDocInputs(newInputs);
+            setNextClientDocId(nextClientDocId + 1);
+            setData('client_documents', []);
+        } else {
+            const updatedInputs = clientDocInputs.filter(input => input.id !== id);
+            setClientDocInputs(updatedInputs);
+            updateClientDocumentsData(updatedInputs);
+        }
+    };
+
     const handleSubmitTaskUpdate: FormEventHandler = (e) => {
         e.preventDefault();
         if (!selectedTask) return;
 
-        post(route('admin.tasks.update-status', selectedTask.id), {
-            preserveScroll: true,
-            forceFormData: true,
-            onSuccess: () => {
-                setShowTaskModal(false);
-                setSelectedTask(null);
-                setFileInputs([{ id: 0, label: '', file: null }]);
-                setNextFileId(1);
-                reset();
-            },
-        });
+        // Set upload_mode to current active tab
+        setData('upload_mode', uploadMode);
+
+        // Only send data from the active tab
+        if (uploadMode === 'upload') {
+            // Clear client_documents if in upload mode
+            setData('client_documents', []);
+        } else {
+            // Clear files if in request mode
+            setData('files', []);
+        }
+
+        // Small delay to ensure state is updated before submitting
+        setTimeout(() => {
+            post(route('admin.tasks.update-status', selectedTask.id), {
+                preserveScroll: true,
+                forceFormData: true,
+                onSuccess: () => {
+                    setShowTaskModal(false);
+                    setSelectedTask(null);
+                    setShowForm(false);
+                    setUploadMode('upload');
+                    setFileInputs([{ id: 0, label: '', file: null }]);
+                    setClientDocInputs([{ id: 0, name: '', description: '' }]);
+                    setNextFileId(1);
+                    setNextClientDocId(1);
+                    reset();
+                },
+            });
+        }, 0);
     };
 
     const getStatusBadgeClass = (status: string) => {
@@ -464,10 +570,36 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
             {showTaskModal && selectedTask && (
                 <div className="fixed inset-0 bg-gray-500 bg-opacity-75 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-lg max-w-2xl w-full my-8 max-h-[90vh] overflow-y-auto">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4 sticky top-0 bg-white pt-6 pb-4 border-b border-gray-200 px-6 z-10">
-                                Update Task: {selectedTask.name}
-                            </h3>
+                            <div className="sticky top-0 bg-white pt-6 pb-4 border-b border-gray-200 px-6 z-10">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-lg font-semibold text-gray-900">
+                                        Update Task: {selectedTask.name}
+                                    </h3>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowTaskModal(false);
+                                            setSelectedTask(null);
+                                            setShowForm(false);
+                                            setUploadMode('upload');
+                                            setFileInputs([{ id: 0, label: '', file: null }]);
+                                            setClientDocInputs([{ id: 0, name: '', description: '' }]);
+                                            setNextFileId(1);
+                                            setNextClientDocId(1);
+                                            reset();
+                                        }}
+                                        className="text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-lg p-1.5 transition-colors"
+                                    >
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
                             <div className="px-6 pb-6">
+                            
+                            {/* Show form if no assignments OR if showForm is true */}
+                            {showForm ? (
                             <form onSubmit={handleSubmitTaskUpdate}>
                                 <div className="space-y-4">
                                     {/* Task Status Badge (Read-only) */}
@@ -547,8 +679,8 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                                                         )}
                                                         
                                                         {assignment.documents && assignment.documents.length > 0 && (
-                                                            <div className="space-y-2">
-                                                                <p className="text-xs font-medium text-gray-700">Documents ({assignment.documents.length}):</p>
+                                                            <div className="space-y-2 mb-3">
+                                                                <p className="text-xs font-medium text-gray-700">📎 Uploaded Documents ({assignment.documents.length}):</p>
                                                                 {assignment.documents.map((doc) => (
                                                                     <div key={doc.id} className="flex items-center justify-between p-2 bg-white border border-gray-200 rounded">
                                                                         <div className="flex items-center space-x-2">
@@ -571,39 +703,127 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                                                                 ))}
                                                             </div>
                                                         )}
+                                                        
+                                                        {assignment.client_documents && assignment.client_documents.length > 0 && (
+                                                            <div className="space-y-2">
+                                                                <p className="text-xs font-medium text-gray-700">📋 Document Requests for Client ({assignment.client_documents.length}):</p>
+                                                                {assignment.client_documents.map((clientDoc) => (
+                                                                    <div key={clientDoc.id} className="p-3 bg-purple-50 border border-purple-200 rounded">
+                                                                        <div className="flex items-start space-x-2">
+                                                                            <svg className="w-5 h-5 text-purple-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                            </svg>
+                                                                            <div className="flex-1">
+                                                                                <p className="text-sm font-medium text-gray-900">{clientDoc.name}</p>
+                                                                                {clientDoc.description && (
+                                                                                    <p className="text-xs text-gray-600 mt-1">{clientDoc.description}</p>
+                                                                                )}
+                                                                                {clientDoc.file ? (
+                                                                                    <div className="mt-2">
+                                                                                        <a
+                                                                                            href={`/storage/${clientDoc.file}`}
+                                                                                            download
+                                                                                            className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded hover:bg-green-200"
+                                                                                        >
+                                                                                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                                                            </svg>
+                                                                                            ✓ Uploaded by Client
+                                                                                        </a>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <p className="text-xs text-purple-700 mt-2 italic">⏳ Waiting for client upload...</p>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* File Upload Section - Form Repeater Style */}
+                                    {/* File Upload Section - Tabs for client_interact tasks */}
                                     <div>
+                                        {selectedTask.client_interact && (
+                                            <div className="mb-4 border-b border-gray-200">
+                                                <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setUploadMode('upload');
+                                                            // Reset Request from Client tab when switching to Upload
+                                                            setClientDocInputs([{ id: 0, name: '', description: '' }]);
+                                                            setNextClientDocId(1);
+                                                            setData('client_documents', []);
+                                                            setData('upload_mode', 'upload');
+                                                        }}
+                                                        className={`${
+                                                            uploadMode === 'upload'
+                                                                ? 'border-primary-500 text-primary-600'
+                                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                                        } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                                                    >
+                                                        <svg className="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                        </svg>
+                                                        Upload Files
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setUploadMode('request');
+                                                            // Reset Upload Files tab when switching to Request
+                                                            setFileInputs([{ id: 0, label: '', file: null }]);
+                                                            setNextFileId(1);
+                                                            setData('files', []);
+                                                            setData('upload_mode', 'request');
+                                                        }}
+                                                        className={`${
+                                                            uploadMode === 'request'
+                                                                ? 'border-primary-500 text-primary-600'
+                                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                                        } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                                                    >
+                                                        <svg className="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                        </svg>
+                                                        Request from Client
+                                                    </button>
+                                                </nav>
+                                            </div>
+                                        )}
+
                                         <div className="flex items-center justify-between mb-3">
                                             <label className="block text-sm font-medium text-gray-700">
-                                                Upload Files
+                                                {uploadMode === 'upload' ? 'Upload Files' : 'Request Documents from Client'}
                                                 {selectedTask.multiple_files ? (
-                                                    <span className="ml-2 text-xs text-gray-500">(Multiple files allowed)</span>
+                                                    <span className="ml-2 text-xs text-gray-500">(Multiple {uploadMode === 'upload' ? 'files' : 'documents'} allowed)</span>
                                                 ) : (
-                                                    <span className="ml-2 text-xs text-gray-500">(Single file only)</span>
+                                                    <span className="ml-2 text-xs text-gray-500">(Single {uploadMode === 'upload' ? 'file' : 'document'} only)</span>
                                                 )}
                                             </label>
                                             {selectedTask.multiple_files && (
                                                 <button
                                                     type="button"
-                                                    onClick={addFileInput}
+                                                    onClick={uploadMode === 'upload' ? addFileInput : addClientDocInput}
                                                     className="inline-flex items-center px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                                                 >
                                                     <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                                     </svg>
-                                                    Add File
+                                                    Add {uploadMode === 'upload' ? 'File' : 'Document'}
                                                 </button>
                                             )}
                                         </div>
                                         
-                                        <div className="space-y-4">
-                                            {fileInputs.map((input, index) => (
+                                        {/* Upload Files Mode */}
+                                        {uploadMode === 'upload' && (
+                                            <div className="space-y-4">
+                                                {fileInputs.map((input, index) => (
                                                 <div key={input.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                                                     <div className="flex items-start gap-3">
                                                         {/* Label Input */}
@@ -677,14 +897,71 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                                                     </div>
                                                 </div>
                                             ))}
+                                            
+                                            <p className="mt-2 text-xs text-gray-500">
+                                                Allowed: PDF, DOC, DOCX, XLS, XLSX, JPG, JPEG, PNG (Max. 10MB per file)
+                                            </p>
+                                            
+                                            {errors.files && (
+                                                <p className="mt-1 text-sm text-red-600">{errors.files}</p>
+                                            )}
                                         </div>
-                                        
-                                        <p className="mt-2 text-xs text-gray-500">
-                                            Allowed: PDF, DOC, DOCX, XLS, XLSX, JPG, JPEG, PNG (Max. 10MB per file)
-                                        </p>
-                                        
-                                        {errors.files && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.files}</p>
+                                        )}
+
+                                        {/* Request from Client Mode */}
+                                        {uploadMode === 'request' && (
+                                            <div className="space-y-4">
+                                                {clientDocInputs.map((input, index) => (
+                                                    <div key={input.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                                        <div className="flex items-start gap-3">
+                                                            {/* Document Name Input */}
+                                                            <div className="flex-1">
+                                                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                                    Document Name <span className="text-red-500">*</span>
+                                                                </label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={input.name}
+                                                                    onChange={(e) => handleClientDocNameChange(input.id, e.target.value)}
+                                                                    placeholder="e.g., Laporan Keuangan Q4, Surat Pernyataan"
+                                                                    className="block w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                                                    required
+                                                                />
+                                                            </div>
+
+                                                            {/* Remove Button */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeClientDocInput(input.id)}
+                                                                className="mt-6 p-1.5 text-red-600 hover:text-red-700 hover:bg-red-100 rounded-md transition-colors"
+                                                                title="Remove document request"
+                                                            >
+                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Description/Notes */}
+                                                        <div className="mt-3">
+                                                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                                Description / Notes (Optional)
+                                                            </label>
+                                                            <textarea
+                                                                value={input.description}
+                                                                onChange={(e) => handleClientDocDescriptionChange(input.id, e.target.value)}
+                                                                rows={2}
+                                                                placeholder="Additional details about this document request..."
+                                                                className="block w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                
+                                                <p className="mt-2 text-xs text-gray-500">
+                                                    💡 These document requests will be sent to the client for upload.
+                                                </p>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -695,8 +972,12 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                                         onClick={() => {
                                             setShowTaskModal(false);
                                             setSelectedTask(null);
+                                            setShowForm(false);
+                                            setUploadMode('upload');
                                             setFileInputs([{ id: 0, label: '', file: null }]);
+                                            setClientDocInputs([{ id: 0, name: '', description: '' }]);
                                             setNextFileId(1);
+                                            setNextClientDocId(1);
                                             reset();
                                         }}
                                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
@@ -712,6 +993,157 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                                     </button>
                                 </div>
                             </form>
+                            ) : (
+                            /* Show assignment list if task has assignments */
+                            <div className="space-y-4">
+                                {/* Assignment History */}
+                                {selectedTask.assignments && selectedTask.assignments.length > 0 && (
+                                    <div>
+                                        <h4 className="text-md font-semibold text-gray-900 mb-4">
+                                            Submission History ({selectedTask.assignments.length} submission{selectedTask.assignments.length > 1 ? 's' : ''})
+                                        </h4>
+                                        <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                                            {selectedTask.assignments.map((assignment, index) => (
+                                                <div key={assignment.id} className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+                                                    {/* Submission Header - Always Visible */}
+                                                    <div 
+                                                        className="p-4 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                                                        onClick={() => toggleSubmission(assignment.id)}
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <p className="text-sm font-semibold text-gray-900">
+                                                                        Submission #{selectedTask.assignments.length - index}
+                                                                    </p>
+                                                                    {index === 0 && (
+                                                                        <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">Latest</span>
+                                                                    )}
+                                                                    {assignment.is_approved && (
+                                                                        <span className="px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">✓ Approved</span>
+                                                                    )}
+                                                                    {assignment.comment && !assignment.is_approved && (
+                                                                        <span className="px-2 py-0.5 text-xs bg-red-100 text-red-800 rounded-full">✗ Rejected</span>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-xs text-gray-500 mt-1">
+                                                                    {new Date(assignment.created_at).toLocaleDateString('id-ID', {
+                                                                        year: 'numeric',
+                                                                        month: 'long',
+                                                                        day: 'numeric',
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit'
+                                                                    })}
+                                                                </p>
+                                                            </div>
+                                                            <svg 
+                                                                className={`w-5 h-5 text-gray-500 transition-transform ${
+                                                                    expandedSubmissions.includes(assignment.id) ? 'transform rotate-180' : ''
+                                                                }`}
+                                                                fill="none" 
+                                                                stroke="currentColor" 
+                                                                viewBox="0 0 24 24"
+                                                            >
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                            </svg>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {/* Submission Details - Collapsible */}
+                                                    {expandedSubmissions.includes(assignment.id) && (
+                                                    <div className="p-4 border-t border-gray-200 bg-white space-y-3">
+                                                        {assignment.notes && (
+                                                            <div>
+                                                                <p className="text-xs font-medium text-gray-700">📝 Notes:</p>
+                                                                <p className="text-sm text-gray-600 mt-1">{assignment.notes}</p>
+                                                            </div>
+                                                        )}
+                                                        
+                                                        {assignment.comment && (
+                                                            <div className="p-2 bg-red-50 border-l-4 border-red-400 rounded">
+                                                                <p className="text-xs font-medium text-red-800">❌ Rejection Reason:</p>
+                                                                <p className="text-sm text-red-900 mt-1">{assignment.comment}</p>
+                                                            </div>
+                                                        )}
+                                                        
+                                                        {assignment.client_comment && (
+                                                            <div className="p-2 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+                                                                <p className="text-xs font-medium text-yellow-800">💬 Client Reply:</p>
+                                                                <p className="text-sm text-yellow-900 mt-1">{assignment.client_comment}</p>
+                                                            </div>
+                                                        )}
+                                                        
+                                                        {assignment.documents && assignment.documents.length > 0 && (
+                                                            <div className="space-y-2">
+                                                                <p className="text-xs font-medium text-gray-700">📁 Uploaded Documents ({assignment.documents.length}):</p>
+                                                                {assignment.documents.map((doc) => (
+                                                                    <div key={doc.id} className="flex items-center justify-between p-2 bg-gray-50 border border-gray-200 rounded">
+                                                                        <div className="flex items-center space-x-2">
+                                                                            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                            </svg>
+                                                                            <span className="text-sm text-gray-900">{doc.name}</span>
+                                                                        </div>
+                                                                        <a
+                                                                            href={`/storage/${doc.file}`}
+                                                                            download
+                                                                            className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800"
+                                                                        >
+                                                                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                                            </svg>
+                                                                            Download
+                                                                        </a>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    
+                                                        {assignment.client_documents && assignment.client_documents.length > 0 && (
+                                                            <div className="space-y-2">
+                                                                <p className="text-xs font-medium text-gray-700">📋 Requested Documents ({assignment.client_documents.length}):</p>
+                                                                {assignment.client_documents.map((clientDoc) => (
+                                                                    <div key={clientDoc.id} className="p-2 bg-purple-50 border border-purple-200 rounded">
+                                                                        <div className="flex items-start space-x-2">
+                                                                            <svg className="w-5 h-5 text-purple-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                            </svg>
+                                                                            <div className="flex-1">
+                                                                                <p className="text-sm font-medium text-gray-900">{clientDoc.name}</p>
+                                                                                {clientDoc.description && (
+                                                                                    <p className="text-xs text-gray-600 mt-1">{clientDoc.description}</p>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Add New Submission button - only show if latest assignment is rejected */}
+                                        {selectedTask.assignments.length > 0 && selectedTask.assignments[0].comment && !selectedTask.assignments[0].is_approved && (
+                                            <div className="mt-6 flex justify-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowForm(true)}
+                                                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                                                >
+                                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                    </svg>
+                                                    Add New Submission
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            )}
                             </div>
                         </div>
                     </div>

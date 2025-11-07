@@ -57,4 +57,12 @@ class TaskAssignment extends Model
     {
         return $this->hasMany(Document::class);
     }
+
+    /**
+     * Get the client documents for the assignment.
+     */
+    public function clientDocuments(): HasMany
+    {
+        return $this->hasMany(ClientDocument::class);
+    }
 }

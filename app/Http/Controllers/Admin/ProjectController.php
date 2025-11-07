@@ -66,7 +66,7 @@ class ProjectController extends Controller
         ]);
 
         // Get client data
-        $client = \App\Models\Client::with('user')->find($request->client_id);
+        $client = \App\Models\Client::find($request->client_id);
 
         // Create project with denormalized client data
         $project = Project::create([
@@ -169,7 +169,7 @@ class ProjectController extends Controller
                 $query->with([
                     'taskWorkers',
                     'taskAssignments' => function($q) {
-                        $q->with('documents')->orderBy('created_at', 'desc');
+                        $q->with(['documents', 'clientDocuments'])->orderBy('created_at', 'desc');
                     }
                 ])->orderBy('order');
             }])
@@ -228,6 +228,15 @@ class ProjectController extends Controller
                                             'uploaded_at' => $doc->uploaded_at,
                                         ];
                                     }),
+                                    'client_documents' => $assignment->clientDocuments->map(function($clientDoc) {
+                                        return [
+                                            'id' => $clientDoc->id,
+                                            'name' => $clientDoc->name,
+                                            'description' => $clientDoc->description,
+                                            'file' => $clientDoc->file,
+                                            'uploaded_at' => $clientDoc->uploaded_at,
+                                        ];
+                                    }),
                                 ];
                             }),
                         ];
@@ -276,8 +285,8 @@ class ProjectController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'position']);
 
-        // Get clients with user relation for emails
-        $clients = Client::with('user')->orderBy('name')->get();
+        // Get clients with their users
+        $clients = Client::with('clientUsers')->orderBy('name')->get();
 
         return Inertia::render('Admin/Project/Edit', [
             'bundle' => $bundle,
@@ -296,8 +305,8 @@ class ProjectController extends Controller
             'status' => 'required|in:open,closed',
         ]);
 
-        // Get client with user relation for denormalized data
-        $client = Client::with('user')->findOrFail($request->client_id);
+        // Get client for denormalized data
+        $client = Client::findOrFail($request->client_id);
 
         // Update project with denormalized client data
         $bundle->update([
@@ -698,7 +707,11 @@ class ProjectController extends Controller
     {
         $request->validate([
             'notes' => 'nullable|string',
+            'upload_mode' => 'required|in:upload,request',
             'files.*' => 'nullable|file|max:10240', // Max 10MB per file
+            'client_documents' => 'nullable|array',
+            'client_documents.*.name' => 'required|string|max:255',
+            'client_documents.*.description' => 'nullable|string',
         ]);
         
         // Create new TaskAssignment
@@ -714,29 +727,54 @@ class ProjectController extends Controller
             'is_approved' => false,
         ]);
         
-        // Handle file uploads
-        if ($request->hasFile('files')) {
-            foreach ($request->file('files') as $file) {
-                $originalName = $file->getClientOriginalName();
-                $filename = time() . '_' . uniqid() . '_' . $originalName;
-                
-                // Store in storage/app/public/task-files
-                $path = $file->storeAs('task-files', $filename, 'public');
-                
-                // Create document record linked to this assignment
-                Document::create([
-                    'task_assignment_id' => $taskAssignment->id,
-                    'name' => $originalName,
-                    'slug' => Str::slug($originalName . '-' . time()),
-                    'file' => $path,
-                    'uploaded_at' => now(),
-                ]);
+        // Handle based on upload mode
+        if ($request->upload_mode === 'upload') {
+            // Upload Files Mode - Store actual files
+            if ($request->hasFile('files')) {
+                foreach ($request->file('files') as $file) {
+                    $originalName = $file->getClientOriginalName();
+                    $filename = time() . '_' . uniqid() . '_' . $originalName;
+                    
+                    // Store in storage/app/public/task-files
+                    $path = $file->storeAs('task-files', $filename, 'public');
+                    
+                    // Create document record linked to this assignment
+                    Document::create([
+                        'task_assignment_id' => $taskAssignment->id,
+                        'name' => $originalName,
+                        'slug' => Str::slug($originalName . '-' . time() . '-' . uniqid()),
+                        'file' => $path,
+                        'uploaded_at' => now(),
+                    ]);
+                }
+            }
+        } elseif ($request->upload_mode === 'request') {
+            // Request from Client Mode - Create document requests
+            if ($request->has('client_documents') && is_array($request->client_documents)) {
+                foreach ($request->client_documents as $clientDoc) {
+                    if (!empty($clientDoc['name'])) {
+                        \App\Models\ClientDocument::create([
+                            'task_assignment_id' => $taskAssignment->id,
+                            'name' => $clientDoc['name'],
+                            'description' => $clientDoc['description'] ?? null,
+                            'slug' => Str::slug($clientDoc['name'] . '-' . time() . '-' . uniqid()),
+                            'file' => null, // Will be filled when client uploads
+                            'uploaded_at' => null,
+                        ]);
+                    }
+                }
             }
         }
         
-        // Update task status if needed
+        // Update task status and completion_status if needed
         if ($task->status === 'Draft') {
             $task->status = 'Submitted';
+            $task->save();
+        }
+        
+        // Update completion_status to in_progress when first submission is made
+        if ($task->completion_status === 'pending') {
+            $task->completion_status = 'in_progress';
             $task->save();
         }
         
