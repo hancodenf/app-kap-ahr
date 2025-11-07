@@ -124,11 +124,7 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 							{/* Search Bar */}
 							<div className="mb-6 flex gap-2">
 								<div className="relative flex-1">
-									<input
-										type="text"
-										placeholder="Cari nama, email, alamat, kementrian, atau kode satker..."
-										value={search}
-										onChange={(e) => setSearch(e.target.value)}
+									<input type="text" placeholder="Cari nama, email, alamat, kementrian, atau kode satker..." value={search} onChange={(e) => setSearch(e.target.value)}
 										onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
 										className="w-full border border-gray-300 rounded-md pl-10 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
 									/>
