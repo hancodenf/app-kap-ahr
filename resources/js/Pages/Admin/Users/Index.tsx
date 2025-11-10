@@ -14,6 +14,7 @@ interface User {
     user_type?: string | null;
     client_id?: number | null;
     client_name?: string | null;
+    is_active: boolean;
     role: {
         id: number;
         name: string;
@@ -55,7 +56,9 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
     const [activeRole, setActiveRole] = useState(filters.role || 'admin');
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [showRelationDialog, setShowRelationDialog] = useState(false);
+    const [showToggleStatusDialog, setShowToggleStatusDialog] = useState(false);
     const [userToDelete, setUserToDelete] = useState<User | null>(null);
+    const [userToToggle, setUserToToggle] = useState<User | null>(null);
     const [relationMessage, setRelationMessage] = useState('');
 
     const handleSearch = () => {
@@ -106,6 +109,24 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
         
         setUserToDelete(user);
         setShowDeleteDialog(true);
+    };
+
+    const handleToggleStatus = (user: User) => {
+        setUserToToggle(user);
+        setShowToggleStatusDialog(true);
+    };
+
+    const handleToggleStatusConfirm = () => {
+        if (userToToggle) {
+            router.post(route('admin.users.toggle-status', userToToggle.id), {}, {
+                preserveState: true,
+                preserveScroll: true,
+                onSuccess: () => {
+                    setShowToggleStatusDialog(false);
+                    setUserToToggle(null);
+                },
+            });
+        }
     };
 
     const handleDeleteConfirm = () => {
@@ -282,6 +303,9 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                                 Projects
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Status
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Bergabung
                                             </th>
                                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -354,6 +378,21 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                                         </svg>
                                                         <span className="font-medium">{user.project_teams_count || 0}</span>
                                                     </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <button
+                                                        onClick={() => handleToggleStatus(user)}
+                                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
+                                                            user.is_active ? 'bg-green-600' : 'bg-gray-300'
+                                                        }`}
+                                                        title={user.is_active ? 'Klik untuk nonaktifkan' : 'Klik untuk aktifkan'}
+                                                    >
+                                                        <span
+                                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                                user.is_active ? 'translate-x-6' : 'translate-x-1'
+                                                            }`}
+                                                        />
+                                                    </button>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                     {formatDate(user.created_at)}
@@ -473,6 +512,24 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                                 <div className="text-[10px] text-gray-500 mb-0.5">Project Teams</div>
                                                 <div className="text-sm font-medium text-gray-900">{user.project_teams_count || 0} teams</div>
                                             </div>
+                                        </div>
+
+                                        {/* Status Toggle */}
+                                        <div className="mb-3 flex items-center justify-between">
+                                            <span className="text-sm text-gray-700 font-medium">Status Akun:</span>
+                                            <button
+                                                onClick={() => handleToggleStatus(user)}
+                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
+                                                    user.is_active ? 'bg-green-600' : 'bg-gray-300'
+                                                }`}
+                                                title={user.is_active ? 'Klik untuk nonaktifkan' : 'Klik untuk aktifkan'}
+                                            >
+                                                <span
+                                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                        user.is_active ? 'translate-x-6' : 'translate-x-1'
+                                                    }`}
+                                                />
+                                            </button>
                                         </div>
 
                                         <div className="text-xs text-gray-500 mb-3">
@@ -595,6 +652,25 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                     setRelationMessage('');
                 }}
                 type="warning"
+            />
+
+            {/* Toggle Status Confirmation Dialog */}
+            <ConfirmDialog
+                show={showToggleStatusDialog}
+                title={userToToggle?.is_active ? 'Nonaktifkan User' : 'Aktifkan User'}
+                message={
+                    userToToggle?.is_active
+                        ? `Apakah Anda yakin ingin menonaktifkan user "${userToToggle?.name}"? User tidak akan bisa login setelah dinonaktifkan.`
+                        : `Apakah Anda yakin ingin mengaktifkan user "${userToToggle?.name}"? User akan bisa login kembali setelah diaktifkan.`
+                }
+                confirmText={userToToggle?.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                cancelText="Batal"
+                onConfirm={handleToggleStatusConfirm}
+                onClose={() => {
+                    setShowToggleStatusDialog(false);
+                    setUserToToggle(null);
+                }}
+                type={userToToggle?.is_active ? 'warning' : 'info'}
             />
         </AuthenticatedLayout>
     );

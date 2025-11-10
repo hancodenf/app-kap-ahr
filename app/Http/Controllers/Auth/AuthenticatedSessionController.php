@@ -22,6 +22,7 @@ class AuthenticatedSessionController extends Controller
         // Get demo users for quick login grouped by role and type
         $demoUsers = [
             'admin' => User::where('role', 'admin')
+                ->where('is_active', true)
                 ->orderBy('name')
                 ->get()
                 ->map(fn($user) => [
@@ -34,6 +35,7 @@ class AuthenticatedSessionController extends Controller
             'company' => [
                 'tenaga_ahli' => User::where('user_type', 'Tenaga Ahli')
                     ->where('role', 'company')
+                    ->where('is_active', true)
                     ->orderBy('name')
                     ->get()
                     ->map(fn($user) => [
@@ -46,6 +48,7 @@ class AuthenticatedSessionController extends Controller
                     ]),
                 'staff' => User::where('user_type', 'Staff')
                     ->where('role', 'company')
+                    ->where('is_active', true)
                     ->orderBy('name')
                     ->get()
                     ->map(fn($user) => [
@@ -58,6 +61,7 @@ class AuthenticatedSessionController extends Controller
                     ]),
             ],
             'client' => User::where('role', 'client')
+                ->where('is_active', true)
                 ->with('belongsToClient:id,name')
                 ->orderBy('name')
                 ->get()

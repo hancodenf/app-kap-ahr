@@ -49,6 +49,16 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        // Check if user account is active
+        $user = Auth::user();
+        if ($user && !$user->is_active) {
+            Auth::logout();
+            
+            throw ValidationException::withMessages([
+                'email' => 'Akun Anda telah dinonaktifkan. Silakan hubungi administrator untuk mengaktifkan kembali akun Anda.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

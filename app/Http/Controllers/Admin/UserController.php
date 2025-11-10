@@ -46,6 +46,7 @@ class UserController extends Controller
                 'user_type' => $user->user_type ?? null,
                 'client_id' => $user->client_id ?? null,
                 'client_name' => $user->belongsToClient?->name ?? null,
+                'is_active' => $user->is_active,
                 'role' => [
                     'name' => $user->role,
                     'display_name' => ucfirst($user->role),
@@ -438,13 +439,34 @@ class UserController extends Controller
         }
 
         // Delete profile photo if exists
+        $role = $user->role;
         if ($user->profile_photo) {
             Storage::disk('public')->delete($user->profile_photo);
         }
 
         $user->delete();
 
-        return redirect()->route('admin.users.index')
+        return redirect()->route('admin.users.index', ['role' => $role])
             ->with('success', 'User berhasil dihapus.');
+    }
+
+    /**
+     * Toggle user active status.
+     */
+    public function toggleStatus(User $user)
+    {
+        // Prevent admin from deactivating themselves
+        if ($user->id === Auth::id()) {
+            return redirect()->back()
+                ->with('error', 'Anda tidak bisa menonaktifkan akun sendiri.');
+        }
+
+        $user->is_active = !$user->is_active;
+        $user->save();
+
+        $status = $user->is_active ? 'diaktifkan' : 'dinonaktifkan';
+
+        return redirect()->back()
+            ->with('success', "User {$user->name} berhasil {$status}.");
     }
 }

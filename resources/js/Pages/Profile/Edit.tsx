@@ -1,5 +1,4 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import DeleteUserForm from './Partials/DeleteUserForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
 import { Head } from '@inertiajs/react';
@@ -31,10 +30,6 @@ export default function Edit({
 
                     <div className="bg-white p-4 sm:p-6 lg:p-8 shadow sm:rounded-lg">
                         <UpdatePasswordForm className="max-w-2xl" />
-                    </div>
-
-                    <div className="bg-white p-4 sm:p-6 lg:p-8 shadow sm:rounded-lg">
-                        <DeleteUserForm className="max-w-2xl" />
                     </div>
                 </div>
             </div>
