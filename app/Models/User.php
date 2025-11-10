@@ -85,6 +85,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the activity logs for the user.
+     */
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(ActivityLog::class);
+    }
+
+    /**
      * Send the password reset notification.
      *
      * @param  string  $token

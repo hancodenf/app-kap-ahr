@@ -5,58 +5,170 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use App\Models\User;
+use App\Models\Client;
 use App\Models\Project;
+use App\Models\ProjectTeam;
 use App\Models\ProjectTemplate;
 use App\Models\WorkingStep;
 use App\Models\Task;
 use App\Models\Document;
+use App\Models\ActivityLog;
+use App\Models\RegisteredAp;
 use Carbon\Carbon;
 
 class AdminController extends Controller
 {
     public function dashboard()
     {
-        // Get user statistics
+        // =============================================
+        // 1. USER STATISTICS
+        // =============================================
         $totalUsers = User::count();
-        $newUsersThisMonth = User::whereMonth('created_at', Carbon::now()->month)->count();
-        $usersByRole = User::get()->groupBy('role')->map->count();
+        $newUsersThisMonth = User::whereMonth('created_at', Carbon::now()->month)
+            ->whereYear('created_at', Carbon::now()->year)
+            ->count();
+        
+        $usersByRole = [
+            'admin' => User::where('role', 'admin')->count(),
+            'company' => User::where('role', 'company')->count(),
+            'client' => User::where('role', 'client')->count(),
+        ];
 
-        // Get audit statistics (using Project as audits)
-        $totalAudits = Project::count();
-        $auditsThisMonth = Project::whereMonth('created_at', Carbon::now()->month)->count();
-        // Since status column doesn't exist, use 0 as default or calculate based on other criteria
-        $completedAudits = 0; // Can be adjusted based on actual business logic
-        $pendingAudits = $totalAudits; // Assume all are pending for now
-
-        // Get template statistics
-        $totalProjectTemplates = ProjectTemplate::count();
-        $templatesByWorkingStep = ProjectTemplate::with('templateWorkingSteps')->get()->groupBy(function($template) {
-            return $template->templateWorkingSteps->count() > 0 ? $template->templateWorkingSteps->first()->name : 'No Steps';
-        })->map->count();
-
-        // Get system statistics
-        $totalWorkingSteps = WorkingStep::count();
-        $totalTasks = Task::count();
-        $totalDocuments = Document::count();
-
-        // Recent activities
-        $recentProjects = Project::with(['client'])
-            ->orderBy('created_at', 'desc')
-            ->take(5)
-            ->get();
-
-        // Map projects to audits structure for frontend
-        $recentAudits = $recentProjects->map(function($project) {
-            return [
-                'id' => $project->id,
-                'working_step' => ['name' => $project->name ?? 'Unnamed Project'],
-                'task' => ['name' => $project->client_name ?? 'No Client'],
-                'status' => $project->status ?? 'closed',
-                'created_at' => $project->created_at
+        // User growth trend (last 6 months)
+        $userGrowth = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $month = Carbon::now()->subMonths($i);
+            $userGrowth[] = [
+                'month' => $month->format('M Y'),
+                'count' => User::whereYear('created_at', $month->year)
+                    ->whereMonth('created_at', $month->month)
+                    ->count()
             ];
-        });
+        }
+
+        // =============================================
+        // 2. CLIENT STATISTICS
+        // =============================================
+        $totalClients = Client::count();
+        $newClientsThisMonth = Client::whereMonth('created_at', Carbon::now()->month)
+            ->whereYear('created_at', Carbon::now()->year)
+            ->count();
+
+        // =============================================
+        // 3. PROJECT STATISTICS
+        // =============================================
+        $totalProjects = Project::count();
+        $activeProjects = Project::where('status', 'open')->count();
+        $closedProjects = Project::where('status', 'closed')->count();
+        $newProjectsThisMonth = Project::whereMonth('created_at', Carbon::now()->month)
+            ->whereYear('created_at', Carbon::now()->year)
+            ->count();
+
+        // Project status distribution
+        $projectsByStatus = [
+            'open' => $activeProjects,
+            'closed' => $closedProjects,
+        ];
+
+        // =============================================
+        // 4. TASK STATISTICS
+        // =============================================
+        $totalTasks = Task::count();
+        $tasksByStatus = [
+            'pending' => Task::where('completion_status', 'pending')->count(),
+            'in_progress' => Task::where('completion_status', 'in_progress')->count(),
+            'completed' => Task::where('completion_status', 'completed')->count(),
+        ];
+
+        // Task approval status
+        $tasksByApprovalStatus = Task::select('status', DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+
+        // =============================================
+        // 5. TEMPLATE & SYSTEM STATISTICS
+        // =============================================
+        $totalTemplates = ProjectTemplate::count();
+        $totalWorkingSteps = WorkingStep::count();
+        $totalDocuments = Document::count();
+        $totalRegisteredAPs = RegisteredAp::count();
+        
+        $activeAPs = RegisteredAp::where('status', 'active')->count();
+        $expiredAPs = RegisteredAp::where('status', 'expired')->count();
+
+        // =============================================
+        // 6. TEAM STATISTICS
+        // =============================================
+        $totalTeamMembers = ProjectTeam::count();
+        $teamsByRole = ProjectTeam::select('role', DB::raw('count(*) as count'))
+            ->groupBy('role')
+            ->pluck('count', 'role')
+            ->toArray();
+
+        // =============================================
+        // 7. ACTIVITY STATISTICS
+        // =============================================
+        $totalActivities = ActivityLog::count();
+        $activitiesToday = ActivityLog::whereDate('created_at', Carbon::today())->count();
+        $activitiesThisWeek = ActivityLog::whereBetween('created_at', [
+            Carbon::now()->startOfWeek(),
+            Carbon::now()->endOfWeek()
+        ])->count();
+
+        // Activity trend (last 7 days)
+        $activityTrend = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i);
+            $activityTrend[] = [
+                'date' => $date->format('D'),
+                'count' => ActivityLog::whereDate('created_at', $date)->count()
+            ];
+        }
+
+        // Activities by type
+        $activitiesByType = ActivityLog::select('action_type', DB::raw('count(*) as count'))
+            ->groupBy('action_type')
+            ->pluck('count', 'action_type')
+            ->toArray();
+
+        // =============================================
+        // 8. RECENT ACTIVITIES
+        // =============================================
+        $recentActivities = ActivityLog::with('user')
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get()
+            ->map(function($log) {
+                return [
+                    'id' => $log->id,
+                    'user_name' => $log->user_name ?? 'System',
+                    'action_type' => $log->action_type,
+                    'action' => $log->action,
+                    'target_name' => $log->target_name,
+                    'description' => $log->description,
+                    'created_at' => $log->created_at,
+                ];
+            });
+
+        // =============================================
+        // 9. RECENT ENTITIES
+        // =============================================
+        $recentProjects = Project::orderBy('created_at', 'desc')
+            ->take(5)
+            ->get()
+            ->map(function($project) {
+                return [
+                    'id' => $project->id,
+                    'name' => $project->name,
+                    'client_name' => $project->client_name,
+                    'status' => $project->status,
+                    'created_at' => $project->created_at,
+                ];
+            });
 
         $recentUsers = User::orderBy('created_at', 'desc')
             ->take(5)
@@ -66,10 +178,41 @@ class AdminController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'role' => [
-                        'display_name' => ucfirst($user->role)
-                    ],
-                    'created_at' => $user->created_at
+                    'role' => ucfirst($user->role),
+                    'created_at' => $user->created_at,
+                ];
+            });
+
+        // =============================================
+        // 10. TOP PERFORMERS
+        // =============================================
+        // Most active users (by activity logs)
+        $topActiveUsers = ActivityLog::select('user_id', 'user_name', DB::raw('count(*) as activity_count'))
+            ->whereNotNull('user_id')
+            ->groupBy('user_id', 'user_name')
+            ->orderByDesc('activity_count')
+            ->take(5)
+            ->get()
+            ->map(function($log) {
+                return [
+                    'user_id' => $log->user_id,
+                    'user_name' => $log->user_name,
+                    'activity_count' => $log->activity_count,
+                ];
+            });
+
+        // Most active projects (by task count)
+        $topActiveProjects = Project::withCount('tasks')
+            ->orderByDesc('tasks_count')
+            ->take(5)
+            ->get()
+            ->map(function($project) {
+                return [
+                    'id' => $project->id,
+                    'name' => $project->name,
+                    'client_name' => $project->client_name,
+                    'tasks_count' => $project->tasks_count,
+                    'status' => $project->status,
                 ];
             });
 
@@ -81,7 +224,7 @@ class AdminController extends Controller
                 'role' => [
                     'name' => Auth::user()->role,
                     'display_name' => ucfirst(Auth::user()->role),
-                    'description' => 'Administrator role with full system access'
+                    'description' => 'Full system access and management capabilities'
                 ]
             ],
             'statistics' => [
@@ -89,27 +232,51 @@ class AdminController extends Controller
                     'total' => $totalUsers,
                     'newThisMonth' => $newUsersThisMonth,
                     'byRole' => $usersByRole,
+                    'growth' => $userGrowth,
                 ],
-                'audits' => [
-                    'total' => $totalAudits,
-                    'thisMonth' => $auditsThisMonth,
-                    'completed' => $completedAudits,
-                    'pending' => $pendingAudits,
+                'clients' => [
+                    'total' => $totalClients,
+                    'newThisMonth' => $newClientsThisMonth,
+                ],
+                'projects' => [
+                    'total' => $totalProjects,
+                    'active' => $activeProjects,
+                    'closed' => $closedProjects,
+                    'newThisMonth' => $newProjectsThisMonth,
+                    'byStatus' => $projectsByStatus,
+                ],
+                'tasks' => [
+                    'total' => $totalTasks,
+                    'byStatus' => $tasksByStatus,
+                    'byApprovalStatus' => $tasksByApprovalStatus,
                 ],
                 'templates' => [
-                    'total' => $totalProjectTemplates,
-                    'byWorkingStep' => $templatesByWorkingStep,
+                    'total' => $totalTemplates,
                 ],
                 'system' => [
                     'working_steps' => $totalWorkingSteps,
-                    'tasks' => $totalTasks,
                     'documents' => $totalDocuments,
+                    'registered_aps' => $totalRegisteredAPs,
+                    'active_aps' => $activeAPs,
+                    'expired_aps' => $expiredAPs,
+                ],
+                'team' => [
+                    'total' => $totalTeamMembers,
+                    'byRole' => $teamsByRole,
+                ],
+                'activities' => [
+                    'total' => $totalActivities,
+                    'today' => $activitiesToday,
+                    'thisWeek' => $activitiesThisWeek,
+                    'trend' => $activityTrend,
+                    'byType' => $activitiesByType,
                 ],
             ],
-            'recentActivities' => [
-                'audits' => $recentAudits,
-                'users' => $recentUsers,
-            ],
+            'recentActivities' => $recentActivities,
+            'recentProjects' => $recentProjects,
+            'recentUsers' => $recentUsers,
+            'topActiveUsers' => $topActiveUsers,
+            'topActiveProjects' => $topActiveProjects,
         ]);
     }
 }

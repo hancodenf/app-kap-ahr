@@ -18,30 +18,186 @@ class CompanyController extends Controller
     {
         $user = Auth::user();
         
-        // Get projects where user is a team member
-        $projectCount = ProjectTeam::where('user_id', $user->id)->count();
-        
         // Get all project_team_ids for this user
         $projectTeamIds = ProjectTeam::where('user_id', $user->id)->pluck('id');
         
-        // Get tasks assigned to this user
-        $taskCount = \App\Models\TaskWorker::whereIn('project_team_id', $projectTeamIds)->count();
+        // Check if user has any project teams
+        $hasProjects = $projectTeamIds->isNotEmpty();
         
-        // Get completed tasks
-        $completedTaskCount = \App\Models\TaskWorker::whereIn('project_team_id', $projectTeamIds)
-            ->whereHas('task', function($query) {
-                $query->where('completion_status', 'completed');
+        // 1. Project Statistics
+        $projectStats = [
+            'total' => ProjectTeam::where('user_id', $user->id)->count(),
+            'active' => ProjectTeam::where('user_id', $user->id)
+                ->whereHas('project', function($query) {
+                    $query->where('status', 'open');
+                })
+                ->count(),
+            'closed' => ProjectTeam::where('user_id', $user->id)
+                ->whereHas('project', function($query) {
+                    $query->where('status', 'closed');
+                })
+                ->count(),
+            'by_role' => $hasProjects 
+                ? ProjectTeam::where('user_id', $user->id)
+                    ->select('role', \DB::raw('count(*) as count'))
+                    ->groupBy('role')
+                    ->pluck('count', 'role')
+                    ->toArray()
+                : [],
+        ];
+        
+        // 2. Task Statistics
+        $taskStats = [
+            'total' => $hasProjects 
+                ? \App\Models\TaskWorker::whereIn('project_team_id', $projectTeamIds)->count()
+                : 0,
+            'completed' => $hasProjects 
+                ? \App\Models\TaskWorker::whereIn('project_team_id', $projectTeamIds)
+                    ->whereHas('task', function($query) {
+                        $query->where('completion_status', 'completed');
+                    })
+                    ->count()
+                : 0,
+            'in_progress' => $hasProjects 
+                ? \App\Models\TaskWorker::whereIn('project_team_id', $projectTeamIds)
+                    ->whereHas('task', function($query) {
+                        $query->where('completion_status', 'in_progress');
+                    })
+                    ->count()
+                : 0,
+            'pending' => $hasProjects 
+                ? \App\Models\TaskWorker::whereIn('project_team_id', $projectTeamIds)
+                    ->whereHas('task', function($query) {
+                        $query->where('completion_status', 'pending');
+                    })
+                    ->count()
+                : 0,
+        ];
+        
+        // 3. Recent Projects (last 5)
+        $recentProjects = Project::whereHas('projectTeams', function($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })
+        ->with(['projectTeams' => function($query) use ($user) {
+            $query->where('user_id', $user->id);
+        }])
+        ->orderBy('created_at', 'desc')
+        ->limit(5)
+        ->get()
+        ->map(function($project) {
+            return [
+                'id' => $project->id,
+                'name' => $project->name,
+                'client_name' => $project->client_name,
+                'status' => $project->status,
+                'my_role' => $project->projectTeams->first()->role ?? 'member',
+                'created_at' => $project->created_at->format('Y-m-d H:i:s'),
+            ];
+        });
+        
+        // 4. My Active Tasks (tasks assigned to me that are not completed)
+        $myActiveTasks = $hasProjects
+            ? \App\Models\TaskWorker::whereIn('project_team_id', $projectTeamIds)
+                ->with(['task' => function($query) {
+                    $query->with('workingStep.project')
+                        ->where('completion_status', '!=', 'completed');
+                }])
+                ->get()
+                ->filter(function($taskWorker) {
+                    return $taskWorker->task !== null;
+                })
+                ->map(function($taskWorker) {
+                    return [
+                        'id' => $taskWorker->task->id,
+                        'name' => $taskWorker->task->name,
+                        'project_name' => $taskWorker->task->project_name,
+                        'working_step_name' => $taskWorker->task->working_step_name,
+                        'completion_status' => $taskWorker->task->completion_status,
+                        'status' => $taskWorker->task->status,
+                        'is_required' => $taskWorker->task->is_required,
+                    ];
+                })
+                ->take(10)
+            : collect([]);
+        
+        // 5. Task Completion Trend (last 7 days)
+        $taskTrend = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i);
+            $count = $hasProjects
+                ? \App\Models\TaskWorker::whereIn('project_team_id', $projectTeamIds)
+                    ->whereHas('task', function($query) use ($date) {
+                        $query->where('completion_status', 'completed')
+                            ->whereDate('updated_at', $date->format('Y-m-d'));
+                    })
+                    ->count()
+                : 0;
+            
+            $taskTrend[] = [
+                'date' => $date->format('Y-m-d'),
+                'count' => $count,
+            ];
+        }
+        
+        // 6. Projects by Status
+        $projectsByStatus = $hasProjects
+            ? Project::whereHas('projectTeams', function($query) use ($user) {
+                $query->where('user_id', $user->id);
             })
-            ->count();
+            ->select('status', \DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray()
+            : [];
+        
+        // 7. Upcoming Deadlines (tasks with assignments in next 7 days)
+        $upcomingDeadlines = $hasProjects
+            ? \App\Models\TaskWorker::whereIn('project_team_id', $projectTeamIds)
+                ->with(['task.taskAssignments' => function($query) {
+                    $query->orderBy('time', 'asc');
+                }, 'task.workingStep.project'])
+                ->get()
+                ->filter(function($taskWorker) {
+                    return $taskWorker->task && 
+                           $taskWorker->task->taskAssignments->isNotEmpty() &&
+                           $taskWorker->task->completion_status !== 'completed';
+                })
+                ->map(function($taskWorker) {
+                    $latestAssignment = $taskWorker->task->taskAssignments->first();
+                    return [
+                        'task_id' => $taskWorker->task->id,
+                        'task_name' => $taskWorker->task->name,
+                        'project_name' => $taskWorker->task->project_name,
+                        'deadline' => $latestAssignment->time,
+                        'status' => $taskWorker->task->status,
+                    ];
+                })
+                ->sortBy('deadline')
+                ->take(5)
+                ->values()
+            : collect([]);
 
         return Inertia::render('Company/Dashboard', [
-            'user' => $user,
-            'stats' => [
-                'projects' => $projectCount,
-                'tasks' => $taskCount,
-                'completed_tasks' => $completedTaskCount,
-                'pending_tasks' => $taskCount - $completedTaskCount,
-            ]
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => [
+                    'name' => $user->role,
+                    'display_name' => ucfirst($user->role),
+                    'description' => $user->role === 'company' ? 'Company Team Member' : ucfirst($user->role),
+                ],
+                'position' => $user->position ?? 'Staff',
+            ],
+            'statistics' => [
+                'projects' => $projectStats,
+                'tasks' => $taskStats,
+                'projects_by_status' => $projectsByStatus,
+            ],
+            'recentProjects' => $recentProjects,
+            'myActiveTasks' => $myActiveTasks,
+            'taskTrend' => $taskTrend,
+            'upcomingDeadlines' => $upcomingDeadlines,
         ]);
     }
 

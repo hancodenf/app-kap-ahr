@@ -20,6 +20,9 @@ interface User {
         display_name: string;
     } | null;
     created_at: string;
+    project_teams_count?: number;
+    activity_logs_count?: number;
+    registered_ap_count?: number;
 }
 
 interface UsersPageProps extends PageProps {
@@ -51,7 +54,9 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
     const [search, setSearch] = useState(filters.search || '');
     const [activeRole, setActiveRole] = useState(filters.role || 'admin');
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [showRelationDialog, setShowRelationDialog] = useState(false);
     const [userToDelete, setUserToDelete] = useState<User | null>(null);
+    const [relationMessage, setRelationMessage] = useState('');
 
     const handleSearch = () => {
         router.get(route('admin.users.index'), { search, role: activeRole }, {
@@ -77,6 +82,28 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
     };
 
     const handleDeleteClick = (user: User) => {
+        // Check if user has related data
+        const hasRelations = (user.project_teams_count || 0) > 0 || (user.activity_logs_count || 0) > 0 || (user.registered_ap_count || 0) > 0;
+        
+        if (hasRelations) {
+            // Show relation dialog instead of delete dialog
+            const messages = [];
+            if ((user.project_teams_count || 0) > 0) {
+                messages.push(`${user.project_teams_count} project team`);
+            }
+            if ((user.activity_logs_count || 0) > 0) {
+                messages.push(`${user.activity_logs_count} activity log`);
+            }
+            if ((user.registered_ap_count || 0) > 0) {
+                messages.push(`registrasi AP`);
+            }
+            
+            setUserToDelete(user);
+            setRelationMessage(`User "${user.name}" tidak dapat dihapus karena masih memiliki ${messages.join(', ')} yang terkait.\n\nSilakan hapus atau pindahkan data terkait terlebih dahulu.`);
+            setShowRelationDialog(true);
+            return;
+        }
+        
         setUserToDelete(user);
         setShowDeleteDialog(true);
     };
@@ -95,7 +122,7 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('id-ID', {
             year: 'numeric',
-            month: 'long',
+            month: 'numeric',
             day: 'numeric',
             hour: '2-digit',
             minute: '2-digit',
@@ -252,6 +279,9 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                                 </th>
                                             )}
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Projects
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Bergabung
                                             </th>
                                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -317,11 +347,19 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                                         )}
                                                     </td>
                                                 )}
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center gap-1 text-sm text-gray-600">
+                                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                        </svg>
+                                                        <span className="font-medium">{user.project_teams_count || 0}</span>
+                                                    </div>
+                                                </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                     {formatDate(user.created_at)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                    <div className="flex justify-end gap-2">
+                                                    <div className="flex justify-end gap-1">
                                                         <Link
                                                             href={route('admin.users.show', user.id)}
                                                             className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
@@ -343,8 +381,16 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                                         </Link>
                                                         <button
                                                             onClick={() => handleDeleteClick(user)}
-                                                            className="inline-flex items-center px-3 py-1.5 bg-red-50 text-red-700 rounded-md hover:bg-red-100 transition-colors"
-                                                            title="Delete"
+                                                            className={`inline-flex items-center px-3 py-1.5 rounded-md transition-colors ${
+                                                                (user.project_teams_count || 0) > 0 || (user.activity_logs_count || 0) > 0 || (user.registered_ap_count || 0) > 0
+                                                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                                    : 'bg-red-50 text-red-700 hover:bg-red-100'
+                                                            }`}
+                                                            title={
+                                                                (user.project_teams_count || 0) > 0 || (user.activity_logs_count || 0) > 0 || (user.registered_ap_count || 0) > 0
+                                                                    ? 'Tidak dapat dihapus karena memiliki data terkait'
+                                                                    : 'Delete'
+                                                            }
                                                         >
                                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -421,6 +467,14 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                             </div>
                                         )}
 
+                                        {/* Project Teams Count */}
+                                        <div className="mb-3">
+                                            <div className="bg-gray-50 rounded-lg p-2">
+                                                <div className="text-[10px] text-gray-500 mb-0.5">Project Teams</div>
+                                                <div className="text-sm font-medium text-gray-900">{user.project_teams_count || 0} teams</div>
+                                            </div>
+                                        </div>
+
                                         <div className="text-xs text-gray-500 mb-3">
                                             <span className="font-medium">Bergabung:</span> {formatDate(user.created_at)}
                                         </div>
@@ -447,7 +501,16 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                             </Link>
                                             <button
                                                 onClick={() => handleDeleteClick(user)}
-                                                className="inline-flex items-center justify-center px-3 py-2 bg-red-50 text-red-700 rounded-md hover:bg-red-100 transition-colors"
+                                                className={`inline-flex items-center justify-center px-3 py-2 rounded-md transition-colors ${
+                                                    (user.project_teams_count || 0) > 0 || (user.activity_logs_count || 0) > 0 || (user.registered_ap_count || 0) > 0
+                                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                        : 'bg-red-50 text-red-700 hover:bg-red-100'
+                                                }`}
+                                                title={
+                                                    (user.project_teams_count || 0) > 0 || (user.activity_logs_count || 0) > 0 || (user.registered_ap_count || 0) > 0
+                                                        ? 'Tidak dapat dihapus karena memiliki data terkait'
+                                                        : 'Delete'
+                                                }
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -502,16 +565,36 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
             {/* Delete Confirmation Dialog */}
             <ConfirmDialog
                 show={showDeleteDialog}
-                title="Delete User"
-                message={`Are you sure you want to delete ${userToDelete?.name}? This action cannot be undone.`}
-                confirmText="Delete"
-                cancelText="Cancel"
+                title="Hapus User"
+                message={`Apakah Anda yakin ingin menghapus user "${userToDelete?.name}"? Tindakan ini tidak dapat dibatalkan.`}
+                confirmText="Hapus"
+                cancelText="Batal"
                 onConfirm={handleDeleteConfirm}
                 onClose={() => {
                     setShowDeleteDialog(false);
                     setUserToDelete(null);
                 }}
                 type="danger"
+            />
+
+            {/* Relation Warning Dialog */}
+            <ConfirmDialog
+                show={showRelationDialog}
+                title="Tidak Dapat Menghapus User"
+                message={relationMessage}
+                confirmText="Mengerti"
+                cancelText=""
+                onConfirm={() => {
+                    setShowRelationDialog(false);
+                    setUserToDelete(null);
+                    setRelationMessage('');
+                }}
+                onClose={() => {
+                    setShowRelationDialog(false);
+                    setUserToDelete(null);
+                    setRelationMessage('');
+                }}
+                type="warning"
             />
         </AuthenticatedLayout>
     );

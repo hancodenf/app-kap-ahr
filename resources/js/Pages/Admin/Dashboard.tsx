@@ -2,344 +2,355 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 import { PageProps } from '@/types';
 
-interface AdminDashboardProps extends PageProps {
-    user: {
-        id: number;
-        name: string;
-        email: string;
-        role: {
-            id: number;
-            name: string;
-            display_name: string;
-            description: string;
-        };
-    };
-    statistics: {
-        users: {
-            total: number;
-            newThisMonth: number;
-            byRole: Record<string, number>;
-        };
-        audits: {
-            total: number;
-            thisMonth: number;
-            completed: number;
-            pending: number;
-        };
-        templates: {
-            total: number;
-            byWorkingStep: Record<string, number>;
-        };
-        system: {
-            working_steps: number;
-            tasks: number;
-            documents: number;
-        };
-    };
-    recentActivities: {
-        audits: Array<{
-            id: number;
-            working_step: { name: string };
-            task: { name: string };
-            status: string;
-            created_at: string;
-        }>;
-        users: Array<{
-            id: number;
-            name: string;
-            email: string;
-            role: { display_name: string };
-            created_at: string;
-        }>;
-    };
+interface DashboardStatistics {
+	users: {
+		total: number;
+		newThisMonth: number;
+		byRole: Record<string, number>;
+		growth: Array<{ month: string; count: number }>;
+	};
+	clients: {
+		total: number;
+		newThisMonth: number;
+	};
+	projects: {
+		total: number;
+		active: number;
+		closed: number;
+		newThisMonth: number;
+		byStatus: Record<string, number>;
+	};
+	tasks: {
+		total: number;
+		byStatus: Record<string, number>;
+		byApprovalStatus: Record<string, number>;
+	};
+	templates: {
+		total: number;
+	};
+	system: {
+		working_steps: number;
+		documents: number;
+		registered_aps: number;
+		active_aps: number;
+		expired_aps: number;
+	};
+	team: {
+		total: number;
+		byRole: Record<string, number>;
+	};
+	activities: {
+		total: number;
+		today: number;
+		thisWeek: number;
+		trend: Array<{ date: string; count: number }>;
+		byType: Record<string, number>;
+	};
 }
 
-export default function AdminDashboard({ user, statistics, recentActivities }: AdminDashboardProps) {
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('id-ID', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-        });
-    };
+interface RecentActivity {
+	id: number;
+	user_name: string;
+	action_type: string;
+	action: string;
+	target_name: string | null;
+	description: string | null;
+	created_at: string;
+}
 
-    return (
-        <AuthenticatedLayout
-            header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                    Admin Dashboard
-                </h2>
-            }
-        >
-            <Head title="Admin Dashboard" />
+interface RecentProject {
+	id: number;
+	name: string;
+	client_name: string;
+	status: string;
+	created_at: string;
+}
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
-                    {/* Welcome Section */}
-                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                        <div className="p-6 text-gray-900">
-                            <div className="mb-6">
-                                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                                    Welcome, {user.name}!
-                                </h3>
-                                <p className="text-sm text-gray-600">
-                                    Role: <span className="font-medium text-primary-600">{user.role.display_name}</span>
-                                </p>
-                                <p className="text-sm text-gray-500 mt-1">
-                                    {user.role.description}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+interface RecentUser {
+	id: number;
+	name: string;
+	email: string;
+	role: string;
+	created_at: string;
+}
 
-                    {/* Statistics Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {/* User Statistics */}
-                        <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h4 className="font-medium text-blue-900 mb-1">Total Users</h4>
-                                    <p className="text-2xl font-bold text-blue-800">{statistics.users.total}</p>
-                                    <p className="text-sm text-blue-600 mt-1">
-                                        +{statistics.users.newThisMonth} this month
-                                    </p>
-                                </div>
-                                <div className="bg-blue-100 p-3 rounded-full">
-                                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
+interface TopActiveUser {
+	user_id: number;
+	user_name: string;
+	activity_count: number;
+}
 
-                        {/* Audit Statistics */}
-                        <div className="bg-green-50 p-6 rounded-lg border border-green-200">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h4 className="font-medium text-green-900 mb-1">Total Audits</h4>
-                                    <p className="text-2xl font-bold text-green-800">{statistics.audits.total}</p>
-                                    <p className="text-sm text-green-600 mt-1">
-                                        {statistics.audits.completed} completed
-                                    </p>
-                                </div>
-                                <div className="bg-green-100 p-3 rounded-full">
-                                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
+interface TopActiveProject {
+	id: number;
+	name: string;
+	client_name: string;
+	tasks_count: number;
+	status: string;
+}
 
-                        {/* Template Statistics */}
-                        <div className="bg-purple-50 p-6 rounded-lg border border-purple-200">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h4 className="font-medium text-purple-900 mb-1">Templates</h4>
-                                    <p className="text-2xl font-bold text-purple-800">{statistics.templates.total}</p>
-                                    <p className="text-sm text-purple-600 mt-1">
-                                        {Object.keys(statistics.templates.byWorkingStep).length} working_steps
-                                    </p>
-                                </div>
-                                <div className="bg-purple-100 p-3 rounded-full">
-                                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
+interface AdminDashboardProps extends PageProps {
+	user: {
+		id: number;
+		name: string;
+		email: string;
+		role: {
+			name: string;
+			display_name: string;
+			description: string;
+		};
+	};
+	statistics: DashboardStatistics;
+	recentActivities: RecentActivity[];
+	recentProjects: RecentProject[];
+	recentUsers: RecentUser[];
+	topActiveUsers: TopActiveUser[];
+	topActiveProjects: TopActiveProject[];
+}
 
-                        {/* System Statistics */}
-                        <div className="bg-orange-50 p-6 rounded-lg border border-orange-200">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h4 className="font-medium text-orange-900 mb-1">Documents</h4>
-                                    <p className="text-2xl font-bold text-orange-800">{statistics.system.documents}</p>
-                                    <p className="text-sm text-orange-600 mt-1">
-                                        {statistics.system.working_steps} working_steps, {statistics.system.tasks} tasks
-                                    </p>
-                                </div>
-                                <div className="bg-orange-100 p-3 rounded-full">
-                                    <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+export default function AdminDashboard({
+	user,
+	statistics,
+	recentActivities,
+	recentProjects,
+	recentUsers,
+	topActiveUsers,
+	topActiveProjects,
+}: AdminDashboardProps) {
+	const formatDate = (dateString: string) => {
+		return new Date(dateString).toLocaleDateString('id-ID', {
+			day: 'numeric',
+			month: 'short',
+			year: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit',
+		});
+	};
 
-                    {/* Charts and Progress */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Audit Progress */}
-                        <div className="bg-white shadow-sm rounded-lg p-6">
-                            <h3 className="text-lg font-medium text-gray-900 mb-4">Audit Progress</h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <div className="flex justify-between text-sm font-medium mb-1">
-                                        <span className="text-gray-700">Completed</span>
-                                        <span className="text-green-600">{statistics.audits.completed}</span>
-                                    </div>
-                                    <div className="w-full bg-gray-200 rounded-full h-2">
-                                        <div 
-                                            className="bg-green-600 h-2 rounded-full" 
-                                            style={{ 
-                                                width: `${statistics.audits.total > 0 ? (statistics.audits.completed / statistics.audits.total) * 100 : 0}%` 
-                                            }}
-                                        ></div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="flex justify-between text-sm font-medium mb-1">
-                                        <span className="text-gray-700">Pending</span>
-                                        <span className="text-orange-600">{statistics.audits.pending}</span>
-                                    </div>
-                                    <div className="w-full bg-gray-200 rounded-full h-2">
-                                        <div 
-                                            className="bg-orange-600 h-2 rounded-full" 
-                                            style={{ 
-                                                width: `${statistics.audits.total > 0 ? (statistics.audits.pending / statistics.audits.total) * 100 : 0}%` 
-                                            }}
-                                        ></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+	const formatShortDate = (dateString: string) => {
+		return new Date(dateString).toLocaleDateString('id-ID', {
+			day: 'numeric',
+			month: 'short',
+		});
+	};
 
-                        {/* Users by Role */}
-                        <div className="bg-white shadow-sm rounded-lg p-6">
-                            <h3 className="text-lg font-medium text-gray-900 mb-4">Users by Role</h3>
-                            <div className="space-y-3">
-                                {Object.entries(statistics.users.byRole).map(([role, count]) => (
-                                    <div key={role} className="flex justify-between items-center">
-                                        <span className="text-sm font-medium text-gray-600 capitalize">{role}</span>
-                                        <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                                            {count}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+	const getActionIcon = (actionType: string) => {
+		const icons: Record<string, JSX.Element> = {
+			project: (
+				<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+				</svg>
+			),
+			task: (
+				<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+				</svg>
+			),
+			user: (
+				<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+				</svg>
+			),
+			client: (
+				<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+				</svg>
+			),
+		};
+		return icons[actionType] || icons.project;
+	};
 
-                    {/* Recent Activities */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Recent Audits */}
-                        <div className="bg-white shadow-sm rounded-lg p-6">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-medium text-gray-900">Recent Audits</h3>
-                                <Link 
-                                    href="/admin/audit" 
-                                    className="text-sm text-primary-600 hover:text-primary-800"
-                                >
-                                    View all
-                                </Link>
-                            </div>
-                            <div className="space-y-3">
-                                {recentActivities.audits.length > 0 ? (
-                                    recentActivities.audits.map((audit) => (
-                                        <div key={audit.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-900">
-                                                    {audit.working_step.name} - {audit.task.name}
-                                                </p>
-                                                <p className="text-xs text-gray-500">{audit.status}</p>
-                                            </div>
-                                            <span className="text-xs text-gray-400">
-                                                {formatDate(audit.created_at)}
-                                            </span>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-sm text-gray-500 text-center py-4">No recent audits</p>
-                                )}
-                            </div>
-                        </div>
+	const getStatusBadge = (status: string) => {
+		const config = {
+			open: { bg: 'bg-green-100', text: 'text-green-800', label: 'Open' },
+			closed: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Closed' },
+			pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
+			in_progress: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'In Progress' },
+			completed: { bg: 'bg-green-100', text: 'text-green-800', label: 'Completed' },
+		};
+		const statusConfig = config[status as keyof typeof config] || config.pending;
+		return (
+			<span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${statusConfig.bg} ${statusConfig.text}`}>
+				{statusConfig.label}
+			</span>
+		);
+	};
 
-                        {/* Recent Users */}
-                        <div className="bg-white shadow-sm rounded-lg p-6">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-medium text-gray-900">Recent Users</h3>
-                                <Link 
-                                    href="/admin/users" 
-                                    className="text-sm text-primary-600 hover:text-primary-800"
-                                >
-                                    View all
-                                </Link>
-                            </div>
-                            <div className="space-y-3">
-                                {recentActivities.users.length > 0 ? (
-                                    recentActivities.users.map((user) => (
-                                        <div key={user.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                                                <p className="text-xs text-gray-500">{user.role.display_name}</p>
-                                            </div>
-                                            <span className="text-xs text-gray-400">
-                                                {formatDate(user.created_at)}
-                                            </span>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-sm text-gray-500 text-center py-4">No recent users</p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+	// Calculate percentages
+	const taskCompletionRate =
+		statistics.tasks.total > 0
+			? Math.round((statistics.tasks.byStatus.completed / statistics.tasks.total) * 100)
+			: 0;
 
-                    {/* Quick Actions */}
-                    <div className="bg-white shadow-sm rounded-lg p-6">
-                        <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <Link 
-                                href="/admin/users"
-                                className="flex items-center p-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors"
-                            >
-                                <div className="bg-blue-100 p-2 rounded-lg mr-3">
-                                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                                    </svg>
-                                </div>
-                                <span className="text-sm font-medium text-blue-900">Manage Users</span>
-                            </Link>
+	const projectActiveRate =
+		statistics.projects.total > 0
+			? Math.round((statistics.projects.active / statistics.projects.total) * 100)
+			: 0;
 
-                            <Link 
-                                href="/admin/audit"
-                                className="flex items-center p-4 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors"
-                            >
-                                <div className="bg-green-100 p-2 rounded-lg mr-3">
-                                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                                <span className="text-sm font-medium text-green-900">View Audits</span>
-                            </Link>
+	const apActiveRate =
+		statistics.system.registered_aps > 0
+			? Math.round((statistics.system.active_aps / statistics.system.registered_aps) * 100)
+			: 0;
 
-                            <Link 
-                                href="/admin/templates"
-                                className="flex items-center p-4 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors"
-                            >
-                                <div className="bg-purple-100 p-2 rounded-lg mr-3">
-                                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                </div>
-                                <span className="text-sm font-medium text-purple-900">Manage Templates</span>
-                            </Link>
+	return (
+		<AuthenticatedLayout
+			header={
+				<div className="flex items-center justify-between">
+					<h2 className="text-xl font-semibold leading-tight text-gray-800">Admin Dashboard</h2>
+					<span className="text-sm text-gray-600">
+						{new Date().toLocaleDateString('id-ID', {
+							weekday: 'long',
+							year: 'numeric',
+							month: 'long',
+							day: 'numeric',
+						})}
+					</span>
+				</div>
+			}
+		>
+			<Head title="Admin Dashboard" />
 
-                            <Link 
-                                href="/admin/audit"
-                                className="flex items-center p-4 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors"
-                            >
-                                <div className="bg-orange-100 p-2 rounded-lg mr-3">
-                                    <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 00-2-2z" />
-                                    </svg>
-                                </div>
-                                <span className="text-sm font-medium text-orange-900">View Reports</span>
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </AuthenticatedLayout>
-    );
+			<div className="py-6">
+				<div className="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
+					{/* Welcome Section */}
+					<div className="overflow-hidden bg-gradient-to-r from-primary-600 to-primary-800 shadow-lg sm:rounded-lg">
+						<div className="p-6 text-white">
+							<div className="flex items-center justify-between">
+								<div>
+									<h3 className="text-2xl font-bold mb-2">Welcome back, {user.name}! 👋</h3>
+									<p className="text-primary-100 text-sm">{user.role.description}</p>
+								</div>
+								<div className="hidden md:block">
+									<div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+										<div className="text-center">
+											<p className="text-3xl font-bold">{statistics.activities.today}</p>
+											<p className="text-xs text-primary-100 mt-1">Activities Today</p>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					{/* Main Statistics Cards - Grid 1 */}
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+						{/* Users Card */}
+						<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
+							<div className="flex items-center justify-between mb-3">
+								<div className="p-2 bg-blue-100 rounded-lg">
+									<svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+									</svg>
+								</div>
+								<span className="text-xs text-green-600 font-medium">+{statistics.users.newThisMonth} this month</span>
+							</div>
+							<h4 className="text-2xl font-bold text-gray-900">{statistics.users.total}</h4>
+							<p className="text-sm text-gray-600 mt-1">Total Users</p>
+							<div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+								<span className="text-gray-500">Admin: {statistics.users.byRole.admin || 0}</span>
+								<span className="text-gray-500">Company: {statistics.users.byRole.company || 0}</span>
+								<span className="text-gray-500">Client: {statistics.users.byRole.client || 0}</span>
+							</div>
+						</div>
+
+						{/* Projects Card */}
+						<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
+							<div className="flex items-center justify-between mb-3">
+								<div className="p-2 bg-purple-100 rounded-lg">
+									<svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+									</svg>
+								</div>
+								<span className="text-xs text-green-600 font-medium">{projectActiveRate}% active</span>
+							</div>
+							<h4 className="text-2xl font-bold text-gray-900">{statistics.projects.total}</h4>
+							<p className="text-sm text-gray-600 mt-1">Total Projects</p>
+							<div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+								<span className="text-green-600 font-medium">Active: {statistics.projects.active}</span>
+								<span className="text-gray-500">Closed: {statistics.projects.closed}</span>
+							</div>
+						</div>
+
+						{/* Tasks Card */}
+						<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
+							<div className="flex items-center justify-between mb-3">
+								<div className="p-2 bg-orange-100 rounded-lg">
+									<svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+									</svg>
+								</div>
+								<span className="text-xs text-green-600 font-medium">{taskCompletionRate}% done</span>
+							</div>
+							<h4 className="text-2xl font-bold text-gray-900">{statistics.tasks.total}</h4>
+							<p className="text-sm text-gray-600 mt-1">Total Tasks</p>
+							<div className="mt-3 pt-3 border-t border-gray-100">
+								<div className="w-full bg-gray-200 rounded-full h-2">
+									<div className="bg-green-600 h-2 rounded-full" style={{ width: `${taskCompletionRate}%` }}></div>
+								</div>
+							</div>
+						</div>
+
+						{/* Clients Card */}
+						<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
+							<div className="flex items-center justify-between mb-3">
+								<div className="p-2 bg-green-100 rounded-lg">
+									<svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+									</svg>
+								</div>
+								<span className="text-xs text-green-600 font-medium">+{statistics.clients.newThisMonth} this month</span>
+							</div>
+							<h4 className="text-2xl font-bold text-gray-900">{statistics.clients.total}</h4>
+							<p className="text-sm text-gray-600 mt-1">Total Clients</p>
+							<div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+								<span className="text-gray-500">Templates: {statistics.templates.total}</span>
+								<span className="text-gray-500">Docs: {statistics.system.documents}</span>
+							</div>
+						</div>
+					</div>
+
+					{/* Quick Actions */}
+					<div className="bg-white shadow-sm rounded-lg p-6">
+						<h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+						<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+							<Link href={route('admin.users.index')} className="flex flex-col items-center p-4 bg-blue-50 rounded-lg border-2 border-blue-100 hover:border-blue-300 hover:bg-blue-100 transition-all group">
+								<div className="p-3 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors mb-2">
+									<svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+									</svg>
+								</div>
+								<span className="text-sm font-medium text-blue-900">Manage Users</span>
+							</Link>
+
+							<Link href={route('admin.clients.index')} className="flex flex-col items-center p-4 bg-green-50 rounded-lg border-2 border-green-100 hover:border-green-300 hover:bg-green-100 transition-all group">
+								<div className="p-3 bg-green-100 rounded-full group-hover:bg-green-200 transition-colors mb-2">
+									<svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+									</svg>
+								</div>
+								<span className="text-sm font-medium text-green-900">Manage Clients</span>
+							</Link>
+
+							<Link href={route('admin.projects.bundles.index')} className="flex flex-col items-center p-4 bg-purple-50 rounded-lg border-2 border-purple-100 hover:border-purple-300 hover:bg-purple-100 transition-all group">
+								<div className="p-3 bg-purple-100 rounded-full group-hover:bg-purple-200 transition-colors mb-2">
+									<svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+									</svg>
+								</div>
+								<span className="text-sm font-medium text-purple-900">View Projects</span>
+							</Link>
+
+							<Link href={route('admin.project-templates.template-bundles.index')} className="flex flex-col items-center p-4 bg-orange-50 rounded-lg border-2 border-orange-100 hover:border-orange-300 hover:bg-orange-100 transition-all group">
+								<div className="p-3 bg-orange-100 rounded-full group-hover:bg-orange-200 transition-colors mb-2">
+									<svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+									</svg>
+								</div>
+								<span className="text-sm font-medium text-orange-900">Templates</span>
+							</Link>
+						</div>
+					</div>
+				</div>
+			</div>
+		</AuthenticatedLayout>
+	);
 }

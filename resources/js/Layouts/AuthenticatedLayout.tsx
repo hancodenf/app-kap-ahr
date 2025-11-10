@@ -1,7 +1,7 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import Toast from '@/Components/Toast';
 import { Link, usePage } from '@inertiajs/react';
-import { PropsWithChildren, ReactNode, useState } from 'react';
+import { PropsWithChildren, ReactNode, useState, useEffect } from 'react';
 
 export default function Authenticated({
     header,
@@ -10,7 +10,20 @@ export default function Authenticated({
     const user = usePage().props.auth.user;
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+        // Load state from localStorage, default to false
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('sidebarCollapsed');
+            return saved === 'true';
+        }
+        return false;
+    });
+
+    // Save state to localStorage whenever it changes
+    useEffect(() => {
+        localStorage.setItem('sidebarCollapsed', String(sidebarCollapsed));
+    }, [sidebarCollapsed]);
 
     const getDashboardRoute = () => {
         const role = user.role;
@@ -121,50 +134,112 @@ export default function Authenticated({
     ];
 
     return (
-        <div className="min-h-screen bg-gray-100 flex">
+        <div className="h-screen bg-gray-100 flex flex-col overflow-hidden">
             {/* Toast Notifications */}
             <Toast />
 
+            {/* Top Navbar - Fixed for all screen sizes */}
+            <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 h-16 flex items-center px-4">
+                {/* Mobile menu button */}
+                <button
+                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                    className="lg:hidden p-2 -ml-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+
+                {/* Logo and App Name */}
+                <Link href="/" className="flex items-center space-x-3 ml-2 lg:ml-0">
+                    <ApplicationLogo className="h-8 w-8" />
+                    <div className="flex flex-col">
+                        <span className="text-lg font-bold text-primary-600">AURA</span>
+                        <span className="text-xs text-gray-500">Audit, Reporting & Analyze</span>
+                    </div>
+                </Link>
+
+                {/* Spacer */}
+                <div className="flex-1"></div>
+
+                {/* User info on desktop */}
+                <div className="hidden lg:flex items-center space-x-3 relative">
+                    <div className="text-right">
+                        <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                        <div className="text-xs text-gray-500">{user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User'}</div>
+                    </div>
+                    <button 
+                        onClick={() => setUserMenuOpen(!userMenuOpen)}
+                        className="flex items-center focus:outline-none"
+                    >
+                        {user.profile_photo ? (
+                            <img 
+                                src={`/storage/${user.profile_photo}`} 
+                                alt={user.name}
+                                className="w-10 h-10 rounded-full object-cover border-2 border-primary-300 hover:border-primary-400 transition-colors"
+                            />
+                        ) : (
+                            <div className="w-10 h-10 rounded-full bg-primary-100 hover:bg-primary-200 flex items-center justify-center transition-colors border-2 border-primary-300 hover:border-primary-400">
+                                <span className="text-base font-medium text-primary-600">
+                                    {user.name.charAt(0).toUpperCase()}
+                                </span>
+                            </div>
+                        )}
+                    </button>
+
+                    {/* Dropdown menu */}
+                    {userMenuOpen && (
+                        <>
+                            <div 
+                                className="fixed inset-0 z-40" 
+                                onClick={() => setUserMenuOpen(false)}
+                            ></div>
+                            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                                <Link
+                                    href={route('profile.edit')}
+                                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                    onClick={() => setUserMenuOpen(false)}
+                                >
+                                    <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                    Profile
+                                </Link>
+                                <Link
+                                    href={route('logout')}
+                                    method="post"
+                                    as="button"
+                                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                    onClick={() => setUserMenuOpen(false)}
+                                >
+                                    <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                    </svg>
+                                    Logout
+                                </Link>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </header>
+
             {/* Mobile sidebar overlay */}
             {sidebarOpen && (
-                <div className="fixed inset-0 z-40 lg:hidden">
+                <div className="fixed inset-0 z-40 lg:hidden" style={{ top: '64px' }}>
                     <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
                 </div>
             )}
 
-            {/* Sidebar */}
-            <div className={`fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-in-out lg:static lg:inset-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                } lg:translate-x-0 ${sidebarCollapsed ? 'w-16' : 'w-64'
-                } bg-white shadow-lg overflow-visible`}>
-                {/* Sidebar Header */}
-                <div className={`flex items-center px-4 py-4 border-b border-gray-200 ${sidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
-                    {!sidebarCollapsed && (
-                        <Link href="/" className="flex items-center space-x-3">
-                            <ApplicationLogo className="h-8 w-8" />
-                            <div className="flex flex-col">
-                                <span className="text-lg font-bold text-primary-600">AURA</span>
-                                <span className="text-xs text-gray-500">Audit, Reporting & Analyze</span>
-                            </div>
-                        </Link>
-                    )}
-                    {sidebarCollapsed && (
-                        <ApplicationLogo className="h-8 w-8" />
-                    )}
-
-                    {/* Toggle button for desktop */}
-                    <button
-                        onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                        className="hidden lg:block p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sidebarCollapsed ? "M13 7l5 5-5 5M6 12h12" : "M11 17l-5-5 5-5M18 12H6"} />
-                        </svg>
-                    </button>
-                </div>
-
-                {/* Navigation - with padding bottom to prevent overlap with user section */}
-                <nav className="flex-1 px-4 py-4 pb-40 space-y-2 overflow-y-auto">
-                    {menuItems.map((item, index) => (
+            {/* Main container below navbar */}
+            <div className="flex flex-1 pt-16 overflow-hidden">
+                {/* Sidebar */}
+                <div className={`fixed left-0 z-50 flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                    } lg:translate-x-0 ${sidebarCollapsed ? 'w-16' : 'w-64'
+                    } bg-white border-r border-gray-200`}
+                    style={{ top: '64px', bottom: 0 }}
+                >
+                    {/* Navigation */}
+                    <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">{menuItems.map((item, index) => (
                         <div 
                             key={item.name} 
                             className="relative group"
@@ -204,41 +279,11 @@ export default function Authenticated({
                         </div>
                     ))}
                 </nav>
-            </div>
 
-            {/* User section - Fixed at bottom left corner */}
-            <div className={`fixed bottom-0 left-0 z-50 transition-all duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                } lg:translate-x-0 ${sidebarCollapsed ? 'w-16' : 'w-64'
-                } bg-white border-t border-r border-gray-200 shadow-lg`}>
-                <div className="p-4">
-                    <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''}`}>
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                {user.profile_photo ? (
-                                    <img 
-                                        src={`/storage/${user.profile_photo}`} 
-                                        alt={user.name}
-                                        className={`${sidebarCollapsed ? 'w-10 h-10' : 'w-8 h-8'} rounded-full object-cover border-2 border-primary-300 transition-all duration-300`}
-                                    />
-                                ) : (
-                                    <div className={`${sidebarCollapsed ? 'w-10 h-10' : 'w-8 h-8'} rounded-full bg-primary-100 flex items-center justify-center transition-all duration-300`}>
-                                        <span className={`${sidebarCollapsed ? 'text-base' : 'text-sm'} font-medium text-primary-600`}>
-                                            {user.name.charAt(0).toUpperCase()}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                            {!sidebarCollapsed && (
-                                <div className="ml-3">
-                                    <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                                    <div className="text-xs text-gray-500">{user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User'}</div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
+                {/* User menu at bottom of sidebar */}
+                <div className="border-t border-gray-200 p-4">
                     {!sidebarCollapsed ? (
-                        <div className="mt-3 space-y-1">
+                        <div className="space-y-1">
                             <Link
                                 href={route('profile.edit')}
                                 className="flex items-center px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100"
@@ -261,7 +306,7 @@ export default function Authenticated({
                             </Link>
                         </div>
                     ) : (
-                        <div className="mt-3 space-y-1">
+                        <div className="space-y-1">
                             <div className="relative group">
                                 <Link
                                     href={route('profile.edit')}
@@ -298,43 +343,34 @@ export default function Authenticated({
             </div>
 
             {/* Main content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Top bar */}
-                <header className="bg-white shadow-sm border-b border-gray-200 lg:hidden">
-                    <div className="flex items-center justify-between px-4 py-3">
-                        <button
-                            onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className="p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-                        >
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
-                        </button>
-                        <div className="flex items-center space-x-3">
-                            <ApplicationLogo className="h-8 w-8" />
-                            <div className="flex flex-col">
-                                <span className="text-lg font-bold text-primary-600">AURA</span>
-                                <span className="text-xs text-gray-500">Audit, Reporting & Analyze</span>
-                            </div>
-                        </div>
-                        <div className="w-10"></div> {/* Spacer for centering */}
-                    </div>
-                </header>
-
+            <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
                 {/* Page header */}
                 {header && (
-                    <header className="bg-white shadow-sm border-b border-gray-200">
-                        <div className="px-4 py-4 sm:px-6 lg:px-8">
-                            {header}
+                    <header className="bg-white shadow-sm border-b border-gray-200 flex-shrink-0">
+                        <div className="px-4 py-4 sm:px-6 lg:px-8 flex items-center gap-3">
+                            {/* Toggle button - Next to page title */}
+                            <button
+                                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                                className="hidden lg:flex w-8 h-8 items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
+                                title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                            </button>
+                            <div className="flex-1 min-w-0">
+                                {header}
+                            </div>
                         </div>
                     </header>
                 )}
 
                 {/* Main content area */}
-                <main className="flex-1 overflow-y-auto">
+                <main className="flex-1 overflow-y-auto bg-gray-100">
                     {children}
                 </main>
             </div>
+        </div>
         </div>
     );
 }

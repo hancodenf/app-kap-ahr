@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { FormEventHandler, useState } from 'react';
+import Select from 'react-select';
 
 interface Role {
     id: number;
@@ -282,22 +283,61 @@ export default function Edit({ user, roles, positions, userTypes, clients }: Edi
                                         <label htmlFor="client_id" className="block text-sm font-medium text-gray-700 mb-2">
                                             Client <span className="text-red-500">*</span>
                                         </label>
-                                        <select
+                                        <Select
                                             id="client_id"
-                                            value={data.client_id}
-                                            onChange={(e) => setData('client_id', e.target.value)}
-                                            className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                                                errors.client_id ? 'border-red-500' : 'border-gray-300'
-                                            }`}
-                                            required
-                                        >
-                                            <option value="">Pilih Client</option>
-                                            {clients.map((client) => (
-                                                <option key={client.id} value={client.id}>
-                                                    {client.name}
-                                                </option>
-                                            ))}
-                                        </select>
+                                            options={clients.map(client => ({
+                                                value: client.id.toString(),
+                                                label: client.name
+                                            }))}
+                                            value={clients.find(client => client.id.toString() === data.client_id) ? {
+                                                value: data.client_id,
+                                                label: clients.find(client => client.id.toString() === data.client_id)!.name
+                                            } : null}
+                                            onChange={(option) => setData('client_id', option?.value || '')}
+                                            placeholder="Pilih Client..."
+                                            isClearable
+                                            isSearchable
+                                            noOptionsMessage={() => "Tidak ada data"}
+                                            styles={{
+                                                control: (base, state) => ({
+                                                    ...base,
+                                                    minHeight: '42px',
+                                                    borderRadius: '0.375rem',
+                                                    borderColor: errors.client_id ? '#ef4444' : state.isFocused ? '#3b82f6' : '#d1d5db',
+                                                    boxShadow: state.isFocused ? '0 0 0 2px rgba(59, 130, 246, 0.5)' : 'none',
+                                                    '&:hover': {
+                                                        borderColor: errors.client_id ? '#ef4444' : state.isFocused ? '#3b82f6' : '#9ca3af'
+                                                    }
+                                                }),
+                                                valueContainer: (base) => ({
+                                                    ...base,
+                                                    padding: '2px 12px'
+                                                }),
+                                                input: (base) => ({
+                                                    ...base,
+                                                    margin: 0,
+                                                    padding: 0
+                                                }),
+                                                indicatorSeparator: () => ({
+                                                    display: 'none'
+                                                }),
+                                                menu: (base) => ({
+                                                    ...base,
+                                                    zIndex: 50,
+                                                    borderRadius: '0.375rem',
+                                                    marginTop: '4px'
+                                                }),
+                                                option: (base, state) => ({
+                                                    ...base,
+                                                    backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#e0e7ff' : 'white',
+                                                    color: state.isSelected ? 'white' : '#1f2937',
+                                                    cursor: 'pointer',
+                                                    '&:active': {
+                                                        backgroundColor: '#3b82f6'
+                                                    }
+                                                })
+                                            }}
+                                        />
                                         {errors.client_id && (
                                             <p className="mt-1 text-sm text-red-600">{errors.client_id}</p>
                                         )}

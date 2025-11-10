@@ -26,6 +26,8 @@ class ProfileUpdateRequest extends FormRequest
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
             'position' => ['nullable', 'string', 'max:255'],
+            'user_type' => ['nullable', 'string', 'in:Tenaga Ahli,Staff'],
+            'profile_photo' => ['nullable', 'image', 'max:2048'], // 2MB max
         ];
     }
 }

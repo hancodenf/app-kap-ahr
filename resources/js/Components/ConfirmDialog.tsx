@@ -104,7 +104,7 @@ export default function ConfirmDialog({
                                             {title}
                                         </Dialog.Title>
                                         <div className="mt-2">
-                                            <p className="text-sm text-gray-500">
+                                            <p className="text-sm text-gray-500 whitespace-pre-line">
                                                 {message}
                                             </p>
                                         </div>
@@ -112,13 +112,15 @@ export default function ConfirmDialog({
                                 </div>
 
                                 <div className="mt-6 flex gap-3 justify-end">
-                                    <button
-                                        type="button"
-                                        className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-                                        onClick={onClose}
-                                    >
-                                        {cancelText}
-                                    </button>
+                                    {cancelText && (
+                                        <button
+                                            type="button"
+                                            className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                                            onClick={onClose}
+                                        >
+                                            {cancelText}
+                                        </button>
+                                    )}
                                     <button
                                         type="button"
                                         className={`inline-flex justify-center rounded-md border border-transparent ${buttonColors[type]} px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2`}

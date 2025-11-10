@@ -23,6 +23,7 @@ class UserController extends Controller
         $roleFilter = $request->role ?? 'admin';
         
         $users = User::with('belongsToClient:id,name')
+            ->withCount(['projectTeams', 'activityLogs', 'registeredAp'])
             ->when($request->search, function ($query, $search) {
                 $query->where('name', 'like', '%' . $search . '%')
                     ->orWhere('email', 'like', '%' . $search . '%')
@@ -52,6 +53,10 @@ class UserController extends Controller
                 'email_verified_at' => $user->email_verified_at,
                 'created_at' => $user->created_at,
                 'updated_at' => $user->updated_at,
+                // Add relation counts
+                'project_teams_count' => $user->project_teams_count ?? 0,
+                'activity_logs_count' => $user->activity_logs_count ?? 0,
+                'registered_ap_count' => $user->registered_ap_count ?? 0,
             ];
             
             return $data;
@@ -177,7 +182,7 @@ class UserController extends Controller
 
         User::create($userData);
 
-        return redirect()->route('admin.users.index')
+        return redirect()->route('admin.users.index', ['role' => $request->role_id])
             ->with('success', 'User berhasil dibuat.');
     }
 
@@ -186,6 +191,19 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
+        // Load all relations with their data
+        $user->load([
+            'projectTeams' => function($query) {
+                $query->orderBy('created_at', 'desc')->limit(10);
+            },
+            'projectTeams.project',
+            'activityLogs' => function($query) {
+                $query->orderBy('created_at', 'desc')->limit(20);
+            },
+            'registeredAp',
+            'belongsToClient'
+        ]);
+
         // Transform user data to match frontend expectations
         $userData = [
             'id' => $user->id,
@@ -194,6 +212,8 @@ class UserController extends Controller
             'profile_photo' => $user->profile_photo ?? null,
             'position' => $user->position ?? null,
             'user_type' => $user->user_type ?? null,
+            'client_id' => $user->client_id ?? null,
+            'client_name' => $user->belongsToClient?->name ?? null,
             'role' => [
                 'id' => $user->role,
                 'name' => $user->role,
@@ -202,6 +222,41 @@ class UserController extends Controller
             'email_verified_at' => $user->email_verified_at,
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
+            
+            // Relations data
+            'project_teams' => $user->projectTeams->map(function($team) {
+                return [
+                    'id' => $team->id,
+                    'project_id' => $team->project_id,
+                    'project_name' => $team->project_name,
+                    'project_client_name' => $team->project_client_name,
+                    'role' => $team->role,
+                    'user_position' => $team->user_position,
+                    'created_at' => $team->created_at,
+                ];
+            }),
+            'activity_logs' => $user->activityLogs->map(function($log) {
+                return [
+                    'id' => $log->id,
+                    'action_type' => $log->action_type,
+                    'action' => $log->action,
+                    'target_name' => $log->target_name,
+                    'description' => $log->description,
+                    'created_at' => $log->created_at,
+                ];
+            }),
+            'registered_ap' => $user->registeredAp ? [
+                'id' => $user->registeredAp->id,
+                'ap_number' => $user->registeredAp->ap_number,
+                'registration_date' => $user->registeredAp->registration_date,
+                'expiry_date' => $user->registeredAp->expiry_date,
+                'status' => $user->registeredAp->status,
+                'created_at' => $user->registeredAp->created_at,
+            ] : null,
+
+            // Counts
+            'project_teams_count' => $user->projectTeams->count(),
+            'activity_logs_count' => $user->activityLogs->count(),
         ];
 
         return Inertia::render('Admin/Users/Show', [
@@ -342,7 +397,7 @@ class UserController extends Controller
 
         $user->update($userData);
 
-        return redirect()->route('admin.users.index')
+        return redirect()->route('admin.users.index', ['role' => $request->role_id])
             ->with('success', 'User berhasil diupdate.');
     }
 
@@ -355,6 +410,36 @@ class UserController extends Controller
         if ($user->id === Auth::id()) {
             return redirect()->back()
                 ->with('error', 'Anda tidak bisa menghapus akun sendiri.');
+        }
+
+        // Load relationship counts
+        $user->loadCount(['projectTeams', 'activityLogs', 'registeredAp']);
+
+        // Check if user has related data
+        if ($user->project_teams_count > 0 || $user->activity_logs_count > 0 || $user->registered_ap_count > 0) {
+            $messages = [];
+            
+            if ($user->project_teams_count > 0) {
+                $messages[] = "{$user->project_teams_count} project team";
+            }
+            
+            if ($user->activity_logs_count > 0) {
+                $messages[] = "{$user->activity_logs_count} activity log";
+            }
+
+            if ($user->registered_ap_count > 0) {
+                $messages[] = "registrasi AP";
+            }
+            
+            $errorMessage = "User tidak dapat dihapus karena masih memiliki " . implode(', ', $messages) . " yang terkait.\n\nSilakan hapus atau pindahkan data terkait terlebih dahulu.";
+            
+            return redirect()->route('admin.users.index')
+                ->with('error', $errorMessage);
+        }
+
+        // Delete profile photo if exists
+        if ($user->profile_photo) {
+            Storage::disk('public')->delete($user->profile_photo);
         }
 
         $user->delete();
