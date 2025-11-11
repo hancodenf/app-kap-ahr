@@ -3,6 +3,18 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { useState } from 'react';
 
+interface TeamMember {
+    id: number;
+    user_name: string;
+    role: string;
+    user?: {
+        id: number;
+        name: string;
+        profile_photo: string | null;
+        position: string | null;
+    };
+}
+
 interface Project {
     id: number;
     name: string;
@@ -10,6 +22,11 @@ interface Project {
     client_id: number;
     working_steps_count: number;
     tasks_count: number;
+    completion_percentage: number;
+    completed_tasks: number;
+    total_tasks: number;
+    team_members: TeamMember[];
+    team_count: number;
     created_at: string;
     updated_at: string;
     client: {
@@ -199,6 +216,12 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                                                 Project Name
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Team
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Progress
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Status
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -224,6 +247,68 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                                                 <td className="px-6 py-4">
                                                     <div className="text-sm font-medium text-gray-900">
                                                         {project.name}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center gap-1">
+                                                        {project.team_members && project.team_members.length > 0 ? (
+                                                            <>
+                                                                {project.team_members.map((member) => (
+                                                                    member.user?.profile_photo ? (
+                                                                        <img
+                                                                            key={member.id}
+                                                                            src={`/storage/${member.user.profile_photo}`}
+                                                                            alt={member.user_name}
+                                                                            className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-sm"
+                                                                            title={`${member.user_name} - ${member.role}`}
+                                                                        />
+                                                                    ) : (
+                                                                        <div
+                                                                            key={member.id}
+                                                                            className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center border-2 border-white shadow-sm"
+                                                                            title={`${member.user_name} - ${member.role}`}
+                                                                        >
+                                                                            <span className="text-white font-semibold text-xs">
+                                                                                {member.user_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
+                                                                            </span>
+                                                                        </div>
+                                                                    )
+                                                                ))}
+                                                                {project.team_count > 5 && (
+                                                                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center border-2 border-white shadow-sm">
+                                                                        <span className="text-gray-600 font-semibold text-xs">
+                                                                            +{project.team_count - 5}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <span className="text-xs text-gray-400">No team</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-[100px]">
+                                                                <div
+                                                                    className={`h-2 rounded-full transition-all ${
+                                                                        project.completion_percentage === 100
+                                                                            ? 'bg-green-500'
+                                                                            : project.completion_percentage > 0
+                                                                            ? 'bg-yellow-500'
+                                                                            : 'bg-gray-300'
+                                                                    }`}
+                                                                    style={{ width: `${project.completion_percentage}%` }}
+                                                                ></div>
+                                                            </div>
+                                                            <span className="text-xs font-medium text-gray-700 min-w-[40px]">
+                                                                {project.completion_percentage}%
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-gray-500">
+                                                            {project.completed_tasks}/{project.total_tasks} tasks
+                                                        </p>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -284,6 +369,66 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {/* Progress Bar */}
+                                        <div className="mb-3 bg-gray-50 rounded-lg p-3">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-xs font-medium text-gray-700">Progress</span>
+                                                <span className="text-sm font-bold text-gray-900">{project.completion_percentage}%</span>
+                                            </div>
+                                            <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
+                                                <div
+                                                    className={`h-2 rounded-full transition-all ${
+                                                        project.completion_percentage === 100
+                                                            ? 'bg-green-500'
+                                                            : project.completion_percentage > 0
+                                                            ? 'bg-yellow-500'
+                                                            : 'bg-gray-300'
+                                                    }`}
+                                                    style={{ width: `${project.completion_percentage}%` }}
+                                                ></div>
+                                            </div>
+                                            <p className="text-xs text-gray-500">
+                                                {project.completed_tasks}/{project.total_tasks} tasks completed
+                                            </p>
+                                        </div>
+
+                                        {/* Team Members */}
+                                        {project.team_members && project.team_members.length > 0 && (
+                                            <div className="mb-3 bg-gray-50 rounded-lg p-3">
+                                                <p className="text-xs font-medium text-gray-700 mb-2">Team Members</p>
+                                                <div className="flex items-center gap-1">
+                                                    {project.team_members.map((member) => (
+                                                        member.user?.profile_photo ? (
+                                                            <img
+                                                                key={member.id}
+                                                                src={`/storage/${member.user.profile_photo}`}
+                                                                alt={member.user_name}
+                                                                className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-sm"
+                                                                title={`${member.user_name} - ${member.role}`}
+                                                            />
+                                                        ) : (
+                                                            <div
+                                                                key={member.id}
+                                                                className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center border-2 border-white shadow-sm"
+                                                                title={`${member.user_name} - ${member.role}`}
+                                                            >
+                                                                <span className="text-white font-semibold text-xs">
+                                                                    {member.user_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
+                                                                </span>
+                                                            </div>
+                                                        )
+                                                    ))}
+                                                    {project.team_count > 5 && (
+                                                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center border-2 border-white shadow-sm">
+                                                            <span className="text-gray-600 font-semibold text-xs">
+                                                                +{project.team_count - 5}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
 
                                         <div className="grid grid-cols-2 gap-2 mb-3">
                                             <div className="bg-blue-50 rounded-lg p-2">

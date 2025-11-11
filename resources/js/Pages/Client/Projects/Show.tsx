@@ -425,7 +425,7 @@ export default function Show({ project, workingSteps, projectTeams }: Props) {
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                            {workingSteps[activeTab].tasks.map((task) => {
+                                            {workingSteps[activeTab].tasks.map((task, taskIndex) => {
                                                 const isDisabled = task.completion_status === 'pending';
                                                 
                                                 return (
@@ -441,6 +441,13 @@ export default function Show({ project, workingSteps, projectTeams }: Props) {
                                                                 : 'border-gray-200 bg-white hover:shadow-lg hover:border-primary-300'
                                                         }`}
                                                     >
+                                                        {/* Task Number Badge */}
+                                                        <div className="absolute top-0 left-0 mt-4 ml-4">
+                                                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary-600 text-white font-bold text-sm shadow-md">
+                                                                {taskIndex + 1}
+                                                            </div>
+                                                        </div>
+
                                                         {/* Status Indicator */}
                                                         <div className="absolute top-0 right-0 mt-4 mr-4">
                                                             {task.completion_status === 'completed' && (
@@ -466,7 +473,7 @@ export default function Show({ project, workingSteps, projectTeams }: Props) {
                                                             )}
                                                         </div>
 
-                                                        <div className="pr-14">
+                                                        <div className="pl-12 pr-14">
                                                             <h4 className="text-lg font-semibold text-gray-900 mb-3">
                                                                 {task.name}
                                                             </h4>

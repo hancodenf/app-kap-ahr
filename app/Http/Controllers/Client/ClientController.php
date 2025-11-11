@@ -227,7 +227,7 @@ class ClientController extends Controller
         $query = Project::where('client_id', $user->client_id)
             ->where('status', $status)
             ->withCount(['workingSteps', 'tasks'])
-            ->with(['client']);
+            ->with(['client', 'projectTeams.user']);
 
         // Apply search filter
         if ($search) {
@@ -235,6 +235,38 @@ class ClientController extends Controller
         }
 
         $projects = $query->latest()->paginate(10)->withQueryString();
+        
+        // Calculate progress and format team data for each project
+        $projects->getCollection()->transform(function($project) {
+            // Calculate completion percentage
+            $allTasks = \App\Models\Task::where('project_id', $project->id)->get();
+            $completedTasks = $allTasks->where('completion_status', 'completed')->count();
+            $totalTasks = $allTasks->count();
+            $completionPercentage = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
+            
+            // Format team members
+            $teamMembers = $project->projectTeams->take(5)->map(function($team) {
+                return [
+                    'id' => $team->id,
+                    'user_name' => $team->user_name,
+                    'role' => $team->role,
+                    'user' => $team->user ? [
+                        'id' => $team->user->id,
+                        'name' => $team->user->name,
+                        'profile_photo' => $team->user->profile_photo,
+                        'position' => $team->user->position,
+                    ] : null
+                ];
+            });
+            
+            $project->completion_percentage = $completionPercentage;
+            $project->completed_tasks = $completedTasks;
+            $project->total_tasks = $totalTasks;
+            $project->team_members = $teamMembers;
+            $project->team_count = $project->projectTeams->count();
+            
+            return $project;
+        });
 
         return Inertia::render('Client/Projects/Index', [
             'projects' => $projects,
