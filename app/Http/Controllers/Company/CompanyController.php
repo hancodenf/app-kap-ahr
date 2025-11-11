@@ -462,10 +462,23 @@ class CompanyController extends Controller
             }
         }
         
-        // Update task status if needed
+        // Update task status - keep as "Submitted" until user clicks "Submit for Review"
         if ($task->status === 'Draft') {
-            $task->status = $uploadMode === 'upload' ? 'Submitted' : 'Submitted to Client';
+            // Draft → Submitted (masih editable)
+            if ($uploadMode === 'upload') {
+                $task->status = 'Submitted'; // Keep as Submitted, not auto-advance yet
+            } else {
+                $task->status = 'Submitted to Client'; // Client interaction path
+            }
             $task->save();
+        } elseif ($task->status === 'Client Reply') {
+            // If client replied, keep as submitted
+            $task->status = 'Submitted';
+            $task->save();
+        } elseif (str_contains($task->status, 'Returned for Revision')) {
+            // If resubmitting after rejection, create new assignment but keep status
+            // Status will change when user clicks "Submit for Review"
+            // Don't auto-advance here, let user review first
         }
         
         // Update completion_status to in_progress when first submission is made
@@ -474,7 +487,7 @@ class CompanyController extends Controller
             $task->save();
         }
         
-        return back()->with('success', 'Task assignment created successfully!');
+        return back()->with('success', 'Task saved successfully! Click "Submit for Review" when ready.');
     }
 
     /**
@@ -503,5 +516,272 @@ class CompanyController extends Controller
         $task->save();
         
         return back()->with('success', 'Comment added successfully!');
+    }
+
+    /**
+     * Submit task for review (move from Submitted → Under Review)
+     */
+    public function submitForReview(Request $request, Task $task)
+    {
+        $user = Auth::user();
+        
+        // Check if user is assigned to this task
+        $taskWorker = \App\Models\TaskWorker::where('task_id', $task->id)
+            ->whereHas('projectTeam', function($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->first();
+            
+        if (!$taskWorker) {
+            return back()->withErrors(['error' => 'You are not assigned to this task.']);
+        }
+
+        // Only allow submit if status is "Submitted" or "Returned for Revision"
+        $canSubmit = $task->status === 'Submitted' || str_contains($task->status, 'Returned for Revision');
+        
+        if (!$canSubmit) {
+            return back()->withErrors(['error' => 'Task cannot be submitted for review in its current status.']);
+        }
+
+        // Check if there's at least one assignment
+        $hasAssignment = $task->taskAssignments()->exists();
+        if (!$hasAssignment) {
+            return back()->withErrors(['error' => 'Please save your work before submitting for review.']);
+        }
+
+        // Determine which reviewer to send to
+        if (str_contains($task->status, 'Returned for Revision')) {
+            // If resubmitting after rejection, go back to the reviewer who rejected it
+            if (str_contains($task->status, 'Team Leader')) {
+                $task->status = 'Under Review by Team Leader';
+            } elseif (str_contains($task->status, 'Manager')) {
+                $task->status = 'Under Review by Manager';
+            } elseif (str_contains($task->status, 'Supervisor')) {
+                $task->status = 'Under Review by Supervisor';
+            } elseif (str_contains($task->status, 'Partner')) {
+                $task->status = 'Under Review by Partner';
+            }
+        } else {
+            // First submission, go to Team Leader
+            $task->status = 'Under Review by Team Leader';
+        }
+
+        $task->save();
+
+        return back()->with('success', 'Task submitted for review successfully!');
+    }
+
+    /**
+     * Get approval requests for current user based on their role
+     */
+    public function getApprovalRequests(Project $project)
+    {
+        $user = Auth::user();
+        
+        // Get team member record to find role
+        $teamMember = ProjectTeam::where('project_id', $project->id)
+            ->where('user_id', $user->id)
+            ->first();
+            
+        if (!$teamMember) {
+            abort(403, 'You are not a member of this project.');
+        }
+
+        $role = $teamMember->role;
+        
+        // Map role to status (case-insensitive)
+        $statusMap = [
+            'team leader' => 'Under Review by Team Leader',
+            'manager' => 'Under Review by Manager',
+            'supervisor' => 'Under Review by Supervisor',
+            'partner' => 'Under Review by Partner',
+        ];
+        
+        $roleLower = strtolower($role);
+        
+        if (!isset($statusMap[$roleLower])) {
+            return response()->json(['tasks' => []]);
+        }
+        
+        $targetStatus = $statusMap[$roleLower];
+        
+        // Get all tasks in this project with the target status
+        $tasks = Task::whereHas('workingStep', function($query) use ($project) {
+                $query->where('project_id', $project->id);
+            })
+            ->where('status', $targetStatus)
+            ->with([
+                'workingStep',
+                'taskAssignments' => function($q) {
+                    $q->with(['documents', 'clientDocuments'])
+                        ->orderBy('created_at', 'desc')
+                        ->limit(1); // Only get latest assignment
+                }
+            ])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function($task) {
+                $latestAssignment = $task->taskAssignments->first();
+                
+                return [
+                    'id' => $task->id,
+                    'name' => $task->name,
+                    'slug' => $task->slug,
+                    'status' => $task->status,
+                    'completion_status' => $task->completion_status,
+                    'working_step' => $task->workingStep ? [
+                        'id' => $task->workingStep->id,
+                        'name' => $task->workingStep->name,
+                    ] : null,
+                    'latest_assignment' => $latestAssignment ? [
+                        'id' => $latestAssignment->id,
+                        'time' => $latestAssignment->time,
+                        'notes' => $latestAssignment->notes,
+                        'created_at' => $latestAssignment->created_at,
+                        'documents' => $latestAssignment->documents->map(function($doc) {
+                            return [
+                                'id' => $doc->id,
+                                'name' => $doc->name,
+                                'file' => $doc->file,
+                            ];
+                        }),
+                        'client_documents' => $latestAssignment->clientDocuments->map(function($clientDoc) {
+                            return [
+                                'id' => $clientDoc->id,
+                                'name' => $clientDoc->name,
+                                'description' => $clientDoc->description,
+                            ];
+                        }),
+                    ] : null,
+                ];
+            });
+        
+        return response()->json(['tasks' => $tasks]);
+    }
+
+    /**
+     * Approve a task and advance to next status
+     */
+    public function approveTask(Request $request, Task $task)
+    {
+        $user = Auth::user();
+        
+        // Get team member to verify role
+        $teamMember = ProjectTeam::where('project_id', $task->workingStep->project_id)
+            ->where('user_id', $user->id)
+            ->first();
+            
+        if (!$teamMember) {
+            return response()->json(['error' => 'You are not a member of this project.'], 403);
+        }
+
+        $role = $teamMember->role;
+        
+        // Define approval workflow with auto-advance to next review (case-insensitive)
+        $approvalWorkflow = [
+            'team leader' => [
+                'current' => 'Under Review by Team Leader',
+                'approved' => 'Approved by Team Leader',
+                'next_review' => 'Under Review by Manager', // Auto-advance
+            ],
+            'manager' => [
+                'current' => 'Under Review by Manager',
+                'approved' => 'Approved by Manager',
+                'next_review' => 'Under Review by Supervisor', // Auto-advance
+            ],
+            'supervisor' => [
+                'current' => 'Under Review by Supervisor',
+                'approved' => 'Approved by Supervisor',
+                'next_review' => 'Under Review by Partner', // Auto-advance
+            ],
+            'partner' => [
+                'current' => 'Under Review by Partner',
+                'approved' => 'Approved by Partner',
+                'next_review' => null, // Final approval - no next review
+            ],
+        ];
+        
+        $roleLower = strtolower($role);
+        
+        if (!isset($approvalWorkflow[$roleLower]) || $task->status !== $approvalWorkflow[$roleLower]['current']) {
+            return response()->json(['error' => 'You cannot approve this task in its current status.'], 403);
+        }
+        
+        // Get workflow for current role
+        $workflow = $approvalWorkflow[$roleLower];
+        
+        // Update task status - auto-advance to next review or mark as approved
+        if ($workflow['next_review']) {
+            // Auto-advance to next reviewer in hierarchy
+            $task->status = $workflow['next_review'];
+            $message = "Task approved and forwarded to next reviewer!";
+        } else {
+            // Final approval by Partner
+            $task->status = $workflow['approved'];
+            $task->completion_status = 'completed';
+            $message = "Task approved and marked as completed!";
+        }
+        
+        $task->save();
+        
+        // Mark latest assignment as approved
+        $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
+        if ($latestAssignment) {
+            $latestAssignment->is_approved = true;
+            $latestAssignment->save();
+        }
+        
+        return response()->json(['success' => true, 'message' => $message]);
+    }
+
+    /**
+     * Reject a task and send back for revision
+     */
+    public function rejectTask(Request $request, Task $task)
+    {
+        $user = Auth::user();
+        
+        // Get team member to verify role
+        $teamMember = ProjectTeam::where('project_id', $task->workingStep->project_id)
+            ->where('user_id', $user->id)
+            ->first();
+            
+        if (!$teamMember) {
+            return response()->json(['error' => 'You are not a member of this project.'], 403);
+        }
+
+        $role = $teamMember->role;
+        
+        // Verify user has permission to reject this status (case-insensitive)
+        $rejectionMap = [
+            'team leader' => ['current' => 'Under Review by Team Leader', 'rejected' => 'Returned for Revision by Team Leader'],
+            'manager' => ['current' => 'Under Review by Manager', 'rejected' => 'Returned for Revision by Manager'],
+            'supervisor' => ['current' => 'Under Review by Supervisor', 'rejected' => 'Returned for Revision by Supervisor'],
+            'partner' => ['current' => 'Under Review by Partner', 'rejected' => 'Returned for Revision by Partner'],
+        ];
+        
+        $roleLower = strtolower($role);
+        
+        if (!isset($rejectionMap[$roleLower]) || $task->status !== $rejectionMap[$roleLower]['current']) {
+            return response()->json(['error' => 'You cannot reject this task in its current status.'], 403);
+        }
+        
+        $request->validate([
+            'comment' => 'required|string',
+        ]);
+        
+        // Update task status
+        $task->status = $rejectionMap[$roleLower]['rejected'];
+        $task->save();
+        
+        // Add rejection comment to latest assignment
+        $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
+        if ($latestAssignment) {
+            $latestAssignment->comment = $request->comment;
+            $latestAssignment->is_approved = false;
+            $latestAssignment->save();
+        }
+        
+        return response()->json(['success' => true, 'message' => 'Task rejected and returned for revision.']);
     }
 }
