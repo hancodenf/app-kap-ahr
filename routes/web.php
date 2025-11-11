@@ -204,7 +204,9 @@ Route::middleware(['auth', 'verified', 'role:klien'])->prefix('klien')->name('kl
     Route::get('/dashboard', [ClientController::class, 'dashboard'])->name('dashboard');
     Route::get('/projects', [ClientController::class, 'myProjects'])->name('projects.index');
     Route::get('/projects/{project}', [ClientController::class, 'showProject'])->name('projects.show');
-    Route::get('/tasks/{task}', [ClientController::class, 'viewTask'])->name('tasks.view');
+    Route::get('/tasks/{task}', [ClientController::class, 'viewTask'])->name('tasks.show');
+    Route::post('/tasks/{task}/submit-reply', [ClientController::class, 'submitTaskReply'])->name('tasks.submit-reply');
+    Route::post('/tasks/{task}/upload-client-documents', [ClientController::class, 'uploadClientDocuments'])->name('client-documents.upload');
 });
 
 require __DIR__ . '/auth.php';

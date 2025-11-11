@@ -256,20 +256,104 @@ class ClientController extends Controller
             abort(403, 'Unauthorized access to this project.');
         }
 
-        $project->load([
-            'client',
-            'workingSteps' => function ($query) {
-                $query->orderBy('order');
-            },
-            'workingSteps.tasks' => function ($query) {
-                $query->orderBy('order');
-            },
-            'workingSteps.tasks.assignedUsers',
-            'teamMembers.user',
-        ]);
+        // Get working steps with tasks and assignments
+        $workingSteps = \App\Models\WorkingStep::where('project_id', $project->id)
+            ->with(['tasks' => function($query) {
+                $query->with([
+                    'taskWorkers',
+                    'taskAssignments' => function($q) {
+                        $q->with(['documents', 'clientDocuments'])->orderBy('created_at', 'desc');
+                    }
+                ])->orderBy('order');
+            }])
+            ->orderBy('order')
+            ->get()
+            ->map(function($step) {
+                // No need to check is_locked for clients
+                // Client access is determined solely by task's client_interact flag
+                
+                return [
+                    'id' => $step->id,
+                    'name' => $step->name,
+                    'slug' => $step->slug,
+                    'order' => $step->order,
+                    'is_locked' => false, // Always false for clients - not used
+                    'can_access' => true, // Always true - access controlled by client_interact on tasks
+                    'required_progress' => null,
+                    'tasks' => $step->tasks->map(function($task) {
+                        // Get latest assignment for display
+                        $latestAssignment = $task->taskAssignments->first();
+                        
+                        return [
+                            'id' => $task->id,
+                            'name' => $task->name,
+                            'slug' => $task->slug,
+                            'order' => $task->order,
+                            'is_required' => $task->is_required,
+                            'completion_status' => $task->completion_status,
+                            'status' => $task->status,
+                            'client_interact' => $task->client_interact,
+                            'multiple_files' => $task->multiple_files,
+                            'is_assigned_to_me' => $task->client_interact, // Client can only interact with tasks marked client_interact
+                            'my_assignment_id' => null,
+                            // Latest assignment info for display
+                            'latest_assignment' => $latestAssignment ? [
+                                'id' => $latestAssignment->id,
+                                'time' => $latestAssignment->time,
+                                'notes' => $latestAssignment->notes,
+                                'comment' => $latestAssignment->comment,
+                                'client_comment' => $latestAssignment->client_comment,
+                                'is_approved' => $latestAssignment->is_approved,
+                                'created_at' => $latestAssignment->created_at,
+                            ] : null,
+                            // All assignments with documents
+                            'assignments' => $task->taskAssignments->map(function($assignment) {
+                                return [
+                                    'id' => $assignment->id,
+                                    'time' => $assignment->time,
+                                    'notes' => $assignment->notes,
+                                    'comment' => $assignment->comment,
+                                    'client_comment' => $assignment->client_comment,
+                                    'is_approved' => $assignment->is_approved,
+                                    'created_at' => $assignment->created_at,
+                                    'documents' => $assignment->documents->map(function($doc) {
+                                        return [
+                                            'id' => $doc->id,
+                                            'name' => $doc->name,
+                                            'file' => $doc->file,
+                                            'uploaded_at' => $doc->uploaded_at,
+                                        ];
+                                    }),
+                                    'client_documents' => $assignment->clientDocuments->map(function($clientDoc) {
+                                        return [
+                                            'id' => $clientDoc->id,
+                                            'name' => $clientDoc->name,
+                                            'description' => $clientDoc->description,
+                                            'file' => $clientDoc->file,
+                                            'uploaded_at' => $clientDoc->uploaded_at,
+                                        ];
+                                    }),
+                                ];
+                            }),
+                        ];
+                    }),
+                ];
+            });
 
         return Inertia::render('Client/Projects/Show', [
-            'project' => $project,
+            'project' => [
+                'id' => $project->id,
+                'name' => $project->name,
+                'slug' => $project->slug,
+                'status' => $project->status,
+                'client_name' => $project->client_name,
+                'client_alamat' => $project->client_alamat,
+                'client_kementrian' => $project->client_kementrian,
+                'client_kode_satker' => $project->client_kode_satker,
+                'created_at' => $project->created_at,
+                'updated_at' => $project->updated_at,
+            ],
+            'workingSteps' => $workingSteps,
         ]);
     }
 
@@ -283,15 +367,264 @@ class ClientController extends Controller
             abort(403, 'Unauthorized access to this task.');
         }
 
+        // Load task with all necessary relationships
         $task->load([
             'workingStep',
             'project',
-            'assignedUsers',
-            'files',
+            'taskAssignments' => function ($query) {
+                $query->latest()
+                      ->with([
+                          'documents',
+                          'clientDocuments',
+                          'user.role' // Load user who worked on the assignment
+                      ]);
+            }
         ]);
 
-        return Inertia::render('Client/Tasks/View', [
-            'task' => $task,
+        // Find ALL pending client documents across ALL assignments
+        $pendingClientDocs = [];
+        foreach ($task->taskAssignments as $assignment) {
+            if ($assignment->clientDocuments) {
+                $pending = $assignment->clientDocuments->filter(function ($doc) {
+                    return !$doc->file; // Only docs without uploaded files
+                });
+                $pendingClientDocs = array_merge($pendingClientDocs, $pending->toArray());
+            }
+        }
+
+        // Format task data for React component
+        $taskData = [
+            'id' => $task->id,
+            'name' => $task->name,
+            'slug' => $task->slug,
+            'order' => $task->order,
+            'is_required' => $task->is_required,
+            'completion_status' => $task->completion_status,
+            'status' => $task->status,
+            'client_interact' => $task->client_interact,
+            'multiple_files' => $task->multiple_files,
+            'project_name' => $task->project->name,
+            'working_step_name' => $task->workingStep->name,
+            'latest_assignment' => $task->taskAssignments->first(),
+            'assignments' => $task->taskAssignments->map(function ($assignment) {
+                return [
+                    'id' => $assignment->id,
+                    'time' => $assignment->time,
+                    'notes' => $assignment->notes,
+                    'comment' => $assignment->comment,
+                    'client_comment' => $assignment->client_comment,
+                    'is_approved' => $assignment->is_approved,
+                    'created_at' => $assignment->created_at,
+                    'documents' => $assignment->documents,
+                    'client_documents' => $assignment->clientDocuments,
+                    'user' => $assignment->user ? [
+                        'id' => $assignment->user->id,
+                        'name' => $assignment->user->name,
+                        'email' => $assignment->user->email,
+                        'role' => $assignment->user->role ? [
+                            'name' => $assignment->user->role->name
+                        ] : null
+                    ] : null
+                ];
+            })
+        ];
+
+        return Inertia::render('Client/Projects/TaskDetail', [
+            'task' => $taskData,
+            'project' => [
+                'id' => $task->project->id,
+                'name' => $task->project->name,
+                'slug' => $task->project->slug,
+            ],
+            'pendingClientDocs' => $pendingClientDocs,
         ]);
+    }
+
+    /**
+     * Upload client documents for a task.
+     */
+    public function uploadClientDocuments(Request $request, Task $task)
+    {
+        // Make sure client can only upload to their own projects
+        if ($task->project->client_id !== Auth::user()->client_id) {
+            abort(403, 'Unauthorized access to this task.');
+        }
+
+        // Validate that this task allows client interaction
+        if (!$task->client_interact) {
+            return back()->with('error', 'Task ini tidak memerlukan input dari client.');
+        }
+
+        $request->validate([
+            'client_comment' => 'nullable|string|max:1000',
+            'client_document_files' => 'nullable|array',
+            'client_document_files.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:10240', // 10MB max
+        ]);
+
+        // Get latest assignment
+        $latestAssignment = $task->taskAssignments()->latest()->first();
+
+        if (!$latestAssignment) {
+            return back()->with('error', 'Tidak ada assignment untuk task ini.');
+        }
+
+        // Update client comment if provided
+        if ($request->client_comment) {
+            $latestAssignment->update([
+                'client_comment' => $request->client_comment,
+            ]);
+        }
+
+        // Upload files for client documents
+        if ($request->hasFile('client_document_files')) {
+            foreach ($request->file('client_document_files') as $docId => $file) {
+                // Find the client document
+                $clientDoc = \App\Models\ClientDocument::find($docId);
+                
+                if ($clientDoc && $clientDoc->task_assignment_id === $latestAssignment->id && !$clientDoc->file) {
+                    // Store the file
+                    $fileName = time() . '_' . $file->getClientOriginalName();
+                    $filePath = $file->storeAs('client_documents', $fileName, 'public');
+                    
+                    // Update client document
+                    $clientDoc->update([
+                        'file' => $filePath,
+                        'uploaded_at' => now(),
+                    ]);
+
+                    // Log activity
+                    \App\Models\ActivityLog::create([
+                        'user_id' => Auth::id(),
+                        'user_name' => Auth::user()->name,
+                        'action_type' => 'client_document',
+                        'action' => 'uploaded',
+                        'target_name' => $clientDoc->name,
+                        'description' => "Client uploaded document: {$clientDoc->name} for task: {$task->name}",
+                        'meta' => json_encode([
+                            'task_id' => $task->id,
+                            'task_name' => $task->name,
+                            'assignment_id' => $latestAssignment->id,
+                            'document_id' => $clientDoc->id,
+                        ]),
+                    ]);
+                }
+            }
+        }
+
+        // Check if all client documents have been uploaded
+        $allClientDocs = \App\Models\ClientDocument::where('task_assignment_id', $latestAssignment->id)->get();
+        $allUploaded = $allClientDocs->every(function($doc) {
+            return $doc->file !== null;
+        });
+
+        if ($allUploaded && $task->status === 'Submitted to Client') {
+            // Update task status to Client Reply
+            $task->update([
+                'status' => 'Client Reply',
+                'completion_status' => 'in_progress',
+            ]);
+
+            // Log activity
+            \App\Models\ActivityLog::create([
+                'user_id' => Auth::id(),
+                'user_name' => Auth::user()->name,
+                'action_type' => 'task',
+                'action' => 'client_reply',
+                'target_name' => $task->name,
+                'description' => "Client completed all document uploads for task: {$task->name}",
+                'meta' => json_encode([
+                    'task_id' => $task->id,
+                    'project_id' => $task->project_id,
+                    'assignment_id' => $latestAssignment->id,
+                ]),
+            ]);
+        }
+
+        return back()->with('success', 'Dokumen berhasil diupload!');
+    }
+
+    /**
+     * Submit task reply with direct file upload.
+     */
+    public function submitTaskReply(Request $request, Task $task)
+    {
+        // Make sure client can only upload to their own projects
+        if ($task->project->client_id !== Auth::user()->client_id) {
+            abort(403, 'Unauthorized access to this task.');
+        }
+
+        // Validate that this task allows client interaction
+        if (!$task->client_interact) {
+            return back()->with('error', 'Task ini tidak memerlukan input dari client.');
+        }
+
+        $request->validate([
+            'client_comment' => 'nullable|string|max:1000',
+            'files' => 'nullable|array',
+            'files.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:10240', // 10MB max
+            'file_labels' => 'nullable|array',
+            'file_labels.*' => 'nullable|string|max:255',
+        ]);
+
+        // Create new task assignment for client reply
+        $assignment = \App\Models\TaskAssignment::create([
+            'task_id' => $task->id,
+            'task_name' => $task->name,
+            'working_step_name' => $task->working_step_name,
+            'project_name' => $task->project_name,
+            'project_client_name' => $task->project_client_name,
+            'time' => now(),
+            'notes' => null, // Client doesn't use notes field
+            'client_comment' => $request->client_comment,
+            'comment' => null,
+            'is_approved' => false,
+        ]);
+
+        // Upload files
+        if ($request->hasFile('files')) {
+            $files = $request->file('files');
+            $labels = $request->file_labels ?? [];
+
+            foreach ($files as $index => $file) {
+                $label = $labels[$index] ?? $file->getClientOriginalName();
+                
+                // Store the file
+                $fileName = time() . '_' . $index . '_' . $file->getClientOriginalName();
+                $filePath = $file->storeAs('documents', $fileName, 'public');
+                
+                // Create document record
+                \App\Models\Document::create([
+                    'task_assignment_id' => $assignment->id,
+                    'name' => $label,
+                    'slug' => \Illuminate\Support\Str::slug($label . '-' . time() . '-' . $index),
+                    'file' => $filePath,
+                    'uploaded_at' => now(),
+                ]);
+            }
+        }
+
+        // Update task status
+        $task->update([
+            'status' => 'Client Reply',
+            'completion_status' => 'in_progress',
+        ]);
+
+        // Log activity
+        \App\Models\ActivityLog::create([
+            'user_id' => Auth::id(),
+            'user_name' => Auth::user()->name,
+            'action_type' => 'task',
+            'action' => 'client_reply',
+            'target_name' => $task->name,
+            'description' => "Client submitted reply for task: {$task->name}",
+            'meta' => json_encode([
+                'task_id' => $task->id,
+                'project_id' => $task->project_id,
+                'assignment_id' => $assignment->id,
+                'files_count' => count($request->file('files') ?? []),
+            ]),
+        ]);
+
+        return back()->with('success', 'Balasan berhasil dikirim!');
     }
 }

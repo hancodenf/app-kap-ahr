@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('task_assignment_id')->nullable();
             $table->foreign('task_assignment_id')->references('id')->on('task_assignments')->onDelete('set null');
-            
             $table->string('name');
             $table->string('slug')->unique();
             $table->string('file')->nullable();

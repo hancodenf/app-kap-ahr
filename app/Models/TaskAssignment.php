@@ -18,6 +18,7 @@ class TaskAssignment extends Model
      */
     protected $fillable = [
         'task_id',
+        'user_id',
         'task_name',
         'working_step_name',
         'project_name',
@@ -48,6 +49,14 @@ class TaskAssignment extends Model
     public function task(): BelongsTo
     {
         return $this->belongsTo(Task::class);
+    }
+
+    /**
+     * Get the user who created/worked on this assignment.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     /**
