@@ -74,7 +74,43 @@ interface Props extends PageProps {
     myRole: string;
 }
 
+interface ApprovalTask {
+    id: number;
+    name: string;
+    slug: string;
+    status: string;
+    completion_status: string;
+    working_step: {
+        id: number;
+        name: string;
+    } | null;
+    latest_assignment: {
+        id: number;
+        time: string;
+        notes: string;
+        created_at: string;
+        documents: Array<{
+            id: number;
+            name: string;
+            file: string;
+        }>;
+        client_documents: Array<{
+            id: number;
+            name: string;
+            description: string;
+        }>;
+    } | null;
+}
+
 export default function ShowProject({ auth, project, workingSteps, myRole }: Props) {
+    const [activeTab, setActiveTab] = useState<'my-tasks' | 'approval-requests'>('my-tasks');
+    const [approvalTasks, setApprovalTasks] = useState<ApprovalTask[]>([]);
+    const [loadingApprovals, setLoadingApprovals] = useState(false);
+    const [selectedApprovalTask, setSelectedApprovalTask] = useState<ApprovalTask | null>(null);
+    const [showApprovalModal, setShowApprovalModal] = useState(false);
+    const [approvalAction, setApprovalAction] = useState<'approve' | 'reject'>('approve');
+    const [rejectComment, setRejectComment] = useState('');
+    const [processingApproval, setProcessingApproval] = useState(false);
     const [expandedSteps, setExpandedSteps] = useState<number[]>([]);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [showTaskModal, setShowTaskModal] = useState(false);
@@ -85,6 +121,92 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
     const [clientDocInputs, setClientDocInputs] = useState<Array<{ id: number; name: string; description: string }>>([{ id: 0, name: '', description: '' }]);
     const [nextFileId, setNextFileId] = useState(1);
     const [nextClientDocId, setNextClientDocId] = useState(1);
+    
+    // Check if user role needs approval tab (not Member)
+    // Use lowercase comparison to handle case-insensitive role names
+    const roleLower = myRole.toLowerCase();
+    const needsApprovalTab = ['team leader', 'manager', 'supervisor', 'partner'].includes(roleLower);
+
+    // Fetch approval requests when switching to approval tab
+    useEffect(() => {
+        if (activeTab === 'approval-requests' && needsApprovalTab) {
+            fetchApprovalRequests();
+        }
+    }, [activeTab]);
+
+    const fetchApprovalRequests = async () => {
+        setLoadingApprovals(true);
+        try {
+            const response = await fetch(route('company.projects.approval-requests', project.id));
+            const data = await response.json();
+            setApprovalTasks(data.tasks || []);
+        } catch (error) {
+            console.error('Error fetching approval requests:', error);
+        } finally {
+            setLoadingApprovals(false);
+        }
+    };
+
+    const handleApprove = (task: ApprovalTask) => {
+        setSelectedApprovalTask(task);
+        setApprovalAction('approve');
+        setRejectComment('');
+        setShowApprovalModal(true);
+    };
+
+    const handleReject = (task: ApprovalTask) => {
+        setSelectedApprovalTask(task);
+        setApprovalAction('reject');
+        setRejectComment('');
+        setShowApprovalModal(true);
+    };
+
+    const submitApproval = async () => {
+        if (!selectedApprovalTask) return;
+
+        if (approvalAction === 'reject' && !rejectComment.trim()) {
+            alert('Please provide a reason for rejection.');
+            return;
+        }
+
+        setProcessingApproval(true);
+        try {
+            const url = approvalAction === 'approve' 
+                ? route('company.tasks.approve', selectedApprovalTask.id)
+                : route('company.tasks.reject', selectedApprovalTask.id);
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+                body: JSON.stringify({
+                    comment: rejectComment,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setShowApprovalModal(false);
+                setSelectedApprovalTask(null);
+                setRejectComment('');
+                // Refresh approval requests
+                fetchApprovalRequests();
+                // Show success message
+                alert(data.message);
+            } else {
+                alert(data.error || 'An error occurred');
+            }
+        } catch (error) {
+            console.error('Error processing approval:', error);
+            alert('An error occurred');
+        } finally {
+            setProcessingApproval(false);
+        }
+    };
+
 
     // Disable body scroll when modal is open
     useEffect(() => {
@@ -135,10 +257,13 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
 
         setSelectedTask(task);
         
-        // If task has no assignments, show form directly
-        // If task has assignments, show list first (form hidden)
+        // Determine if we should show form based on status
+        // Show form directly for: Draft, Submitted (editable statuses)
+        // Show history for: Under Review, Returned for Revision, Approved
+        const isEditable = task.status === 'Draft' || task.status === 'Submitted';
         const hasNoAssignments = !task.assignments || task.assignments.length === 0;
-        setShowForm(hasNoAssignments);
+        
+        setShowForm(isEditable || hasNoAssignments);
         
         // Expand latest submission by default
         if (task.assignments && task.assignments.length > 0) {
@@ -343,6 +468,39 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
         });
     };
 
+    const handleSubmitForReview = async () => {
+        if (!selectedTask) return;
+
+        if (!confirm('Submit this task for review? You will not be able to edit it after submission.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(route('company.tasks.submit-for-review', selectedTask.id), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert('Task submitted for review successfully!');
+                setShowTaskModal(false);
+                setSelectedTask(null);
+                setShowForm(false);
+                router.reload({ only: ['workingSteps'] });
+            } else {
+                alert(data.error || 'Failed to submit task for review');
+            }
+        } catch (error) {
+            console.error('Error submitting for review:', error);
+            alert('An error occurred while submitting for review');
+        }
+    };
+
     const getStatusBadgeClass = (status: string) => {
         switch (status) {
             case 'completed':
@@ -429,8 +587,41 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+                    {/* Tab Navigation - Only for Team Leader, Manager, Supervisor, Partner */}
+                    {needsApprovalTab && (
+                        <div className="mb-6">
+                            <div className="border-b border-gray-200 bg-white rounded-t-lg shadow-sm">
+                                <nav className="-mb-px flex" aria-label="Tabs">
+                                    <button
+                                        onClick={() => setActiveTab('my-tasks')}
+                                        className={`${
+                                            activeTab === 'my-tasks'
+                                                ? 'border-primary-500 text-primary-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        } flex-1 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                                    >
+                                        📋 My Tasks
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('approval-requests')}
+                                        className={`${
+                                            activeTab === 'approval-requests'
+                                                ? 'border-primary-500 text-primary-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        } flex-1 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                                    >
+                                        ✅ Approval Requests
+                                    </button>
+                                </nav>
+                            </div>
+                        </div>
+                    )}
+                    
                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <div className="p-6">
+                            {/* My Tasks Tab */}
+                            {activeTab === 'my-tasks' && (
+                            <>
                             {workingSteps.length === 0 ? (
                                 <div className="text-center py-12">
                                     <p className="text-gray-500">No working steps in this project yet.</p>
@@ -588,7 +779,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                                                         </span>
                                                                     </div>
                                                                 </div>
-                                                            ))}
+                                                                ))}
                                                         </div>
                                                     )}
                                                 </div>
@@ -597,12 +788,216 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                     ))}
                                 </div>
                             )}
+                            </>
+                            )}
+
+                            {/* Approval Requests Tab */}
+                            {needsApprovalTab && activeTab === 'approval-requests' && (
+                                <>
+                                {loadingApprovals ? (
+                                    <div className="text-center py-12">
+                                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                                        <p className="text-gray-500 mt-2">Loading approval requests...</p>
+                                    </div>
+                                ) : approvalTasks.length === 0 ? (
+                                    <div className="text-center py-12">
+                                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <p className="text-gray-500 mt-4">No tasks awaiting your approval</p>
+                                        <p className="text-sm text-gray-400 mt-2">Tasks will appear here when team members submit work for review</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h3 className="text-lg font-semibold text-gray-900">
+                                                Tasks Awaiting Approval ({approvalTasks.length})
+                                            </h3>
+                                            <button
+                                                onClick={fetchApprovalRequests}
+                                                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                                            >
+                                                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                </svg>
+                                                Refresh
+                                            </button>
+                                        </div>
+                                        
+                                        {approvalTasks.map((task) => (
+                                            <div key={task.id} className="border border-gray-200 rounded-lg p-5 bg-white hover:shadow-md transition-shadow">
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <h4 className="text-lg font-semibold text-gray-900">{task.name}</h4>
+                                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTaskStatusBadgeClass(task.status)}`}>
+                                                                {task.status}
+                                                            </span>
+                                                        </div>
+                                                        {task.working_step && (
+                                                            <p className="text-sm text-gray-600">
+                                                                📁 Step: {task.working_step.name}
+                                                            </p>
+                                                        )}
+                                                        {task.latest_assignment?.created_at && (
+                                                            <p className="text-sm text-gray-500 mt-1">
+                                                                🕐 {new Date(task.latest_assignment.created_at).toLocaleDateString('id-ID', {
+                                                                    year: 'numeric',
+                                                                    month: 'long',
+                                                                    day: 'numeric',
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit'
+                                                                })}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {task.latest_assignment && (
+                                                    <div className="mt-4 space-y-3">
+                                                        {task.latest_assignment.notes && (
+                                                            <div className="p-3 bg-gray-50 rounded-lg">
+                                                                <p className="text-xs font-medium text-gray-700 mb-1">📝 Notes:</p>
+                                                                <p className="text-sm text-gray-900">{task.latest_assignment.notes}</p>
+                                                            </div>
+                                                        )}
+
+                                                        {task.latest_assignment.documents.length > 0 && (
+                                                            <div>
+                                                                <p className="text-xs font-medium text-gray-700 mb-2">📁 Uploaded Documents ({task.latest_assignment.documents.length}):</p>
+                                                                <div className="space-y-2">
+                                                                    {task.latest_assignment.documents.map((doc) => (
+                                                                        <div key={doc.id} className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded">
+                                                                            <div className="flex items-center space-x-2">
+                                                                                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                                </svg>
+                                                                                <span className="text-sm font-medium text-gray-900">{doc.name}</span>
+                                                                            </div>
+                                                                            <a
+                                                                                href={`/storage/${doc.file}`}
+                                                                                download
+                                                                                className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800"
+                                                                            >
+                                                                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                                                </svg>
+                                                                                Download
+                                                                            </a>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {task.latest_assignment.client_documents.length > 0 && (
+                                                            <div>
+                                                                <p className="text-xs font-medium text-gray-700 mb-2">📋 Requested Documents ({task.latest_assignment.client_documents.length}):</p>
+                                                                <div className="space-y-2">
+                                                                    {task.latest_assignment.client_documents.map((clientDoc) => (
+                                                                        <div key={clientDoc.id} className="p-2 bg-purple-50 border border-purple-200 rounded">
+                                                                            <p className="text-sm font-medium text-gray-900">{clientDoc.name}</p>
+                                                                            {clientDoc.description && (
+                                                                                <p className="text-xs text-gray-600 mt-1">{clientDoc.description}</p>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                <div className="mt-4 flex gap-3">
+                                                    <button
+                                                        onClick={() => handleApprove(task)}
+                                                        className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                                    >
+                                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        Approve
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleReject(task)}
+                                                        className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                                    >
+                                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        Reject
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Task Update Modal */}
+            {/* Approval Modal */}
+            {showApprovalModal && selectedApprovalTask && (
+                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-lg max-w-md w-full p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                            {approvalAction === 'approve' ? '✅ Approve Task' : '❌ Reject Task'}
+                        </h3>
+                        
+                        <p className="text-sm text-gray-700 mb-4">
+                            Task: <span className="font-semibold">{selectedApprovalTask.name}</span>
+                        </p>
+
+                        {approvalAction === 'approve' ? (
+                            <p className="text-sm text-gray-600 mb-6">
+                                Are you sure you want to approve this task? It will move to the next stage in the approval workflow.
+                            </p>
+                        ) : (
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Reason for Rejection *
+                                </label>
+                                <textarea
+                                    value={rejectComment}
+                                    onChange={(e) => setRejectComment(e.target.value)}
+                                    rows={4}
+                                    placeholder="Please explain why you're rejecting this task..."
+                                    className="w-full border-gray-300 rounded-md shadow-sm focus:border-red-500 focus:ring-red-500"
+                                    required
+                                />
+                            </div>
+                        )}
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowApprovalModal(false);
+                                    setSelectedApprovalTask(null);
+                                    setRejectComment('');
+                                }}
+                                disabled={processingApproval}
+                                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={submitApproval}
+                                disabled={processingApproval || (approvalAction === 'reject' && !rejectComment.trim())}
+                                className={`flex-1 px-4 py-2 text-sm font-medium text-white rounded-md disabled:opacity-50 ${
+                                    approvalAction === 'approve'
+                                        ? 'bg-green-600 hover:bg-green-700'
+                                        : 'bg-red-600 hover:bg-red-700'
+                                }`}
+                            >
+                                {processingApproval ? 'Processing...' : approvalAction === 'approve' ? 'Approve' : 'Reject'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}            {/* Task Update Modal */}
             {showTaskModal && selectedTask && (
                 <div className="fixed inset-0 bg-gray-500 bg-opacity-75 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-lg max-w-2xl w-full my-8 max-h-[90vh] overflow-y-auto">
@@ -1033,10 +1428,21 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                     <button
                                         type="submit"
                                         disabled={processing}
-                                        className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50"
+                                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
                                     >
                                         {processing ? 'Saving...' : 'Save Changes'}
                                     </button>
+                                    {/* Submit for Review button - only show for Draft/Submitted status */}
+                                    {selectedTask && (selectedTask.status === 'Draft' || selectedTask.status === 'Submitted' || selectedTask.status.includes('Returned for Revision')) && selectedTask.assignments && selectedTask.assignments.length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={handleSubmitForReview}
+                                            disabled={processing}
+                                            className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50"
+                                        >
+                                            📤 Submit for Review
+                                        </button>
+                                    )}
                                 </div>
                             </form>
                             ) : (

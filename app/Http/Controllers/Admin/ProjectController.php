@@ -709,6 +709,7 @@ class ProjectController extends Controller
         $request->validate([
             'notes' => 'nullable|string',
             'upload_mode' => 'required|in:upload,request',
+            'task_status' => 'required|string', // Admin can set status manually
             'files.*' => 'nullable|file|max:10240', // Max 10MB per file
             'file_labels' => 'nullable|array',
             'file_labels.*' => 'nullable|string|max:255',
@@ -717,23 +718,38 @@ class ProjectController extends Controller
             'client_documents.*.description' => 'nullable|string',
         ]);
         
-        // Create new TaskAssignment
-        $taskAssignment = \App\Models\TaskAssignment::create([
-            'task_id' => $task->id,
-            'task_name' => $task->name,
-            'working_step_name' => $task->working_step_name,
-            'project_name' => $task->project_name,
-            'project_client_name' => $task->project_client_name,
-            'time' => now(),
-            'notes' => $request->notes,
-            'comment' => null, // Will be filled by reviewer if rejected
-            'is_approved' => false,
-        ]);
+        // Get or create TaskAssignment
+        // Admin can edit existing assignment (not always create new)
+        $taskAssignment = $task->taskAssignments()->latest()->first();
+        
+        if ($taskAssignment) {
+            // UPDATE existing assignment (admin edit mode)
+            $taskAssignment->update([
+                'notes' => $request->notes,
+                'time' => now(),
+            ]);
+        } else {
+            // CREATE new assignment (first time)
+            $taskAssignment = \App\Models\TaskAssignment::create([
+                'task_id' => $task->id,
+                'task_name' => $task->name,
+                'working_step_name' => $task->working_step_name,
+                'project_name' => $task->project_name,
+                'project_client_name' => $task->project_client_name,
+                'time' => now(),
+                'notes' => $request->notes,
+                'comment' => null,
+                'is_approved' => false,
+            ]);
+        }
         
         // Handle based on upload mode
         if ($request->upload_mode === 'upload') {
             // Upload Files Mode - Store actual files
             if ($request->hasFile('files')) {
+                // If admin uploads new files, delete old ones from this assignment
+                $taskAssignment->documents()->delete();
+                
                 $files = $request->file('files');
                 $fileLabels = $request->input('file_labels', []);
                 
@@ -763,6 +779,9 @@ class ProjectController extends Controller
         } elseif ($request->upload_mode === 'request') {
             // Request from Client Mode - Create document requests
             if ($request->has('client_documents') && is_array($request->client_documents)) {
+                // If admin updates client document requests, delete old ones
+                $taskAssignment->clientDocuments()->delete();
+                
                 foreach ($request->client_documents as $clientDoc) {
                     if (!empty($clientDoc['name'])) {
                         \App\Models\ClientDocument::create([
@@ -778,11 +797,9 @@ class ProjectController extends Controller
             }
         }
         
-        // Update task status and completion_status if needed
-        if ($task->status === 'Draft') {
-            $task->status = 'Submitted';
-            $task->save();
-        }
+        // Admin can manually set task status (including "Submitted to Client")
+        $task->status = $request->task_status;
+        $task->save();
         
         // Update completion_status to in_progress when first submission is made
         if ($task->completion_status === 'pending') {
@@ -790,6 +807,6 @@ class ProjectController extends Controller
             $task->save();
         }
         
-        return back()->with('success', 'Task assignment created successfully!');
+        return back()->with('success', 'Task updated successfully with status: ' . $request->task_status);
     }
 }

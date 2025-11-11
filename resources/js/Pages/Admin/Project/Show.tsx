@@ -107,12 +107,14 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
         file_labels: string[];
         upload_mode: 'upload' | 'request';
         client_documents: Array<{ name: string; description: string }>;
+        task_status: string;
     }>({
         notes: '',
         files: [],
         file_labels: [],
         upload_mode: 'upload',
         client_documents: [],
+        task_status: 'Draft',
     });
 
     const toggleStep = (stepId: number) => {
@@ -134,10 +136,9 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
 
         setSelectedTask(task);
         
-        // If task has no assignments, show form directly
-        // If task has assignments, show list first (form hidden)
-        const hasNoAssignments = !task.assignments || task.assignments.length === 0;
-        setShowForm(hasNoAssignments);
+        // ADMIN ALWAYS SHOW FORM (editable regardless of status)
+        // Admin has full control over all tasks
+        setShowForm(true);
         
         // Expand latest submission by default
         if (task.assignments && task.assignments.length > 0) {
@@ -156,6 +157,7 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
             files: [],
             upload_mode: 'upload',
             client_documents: [],
+            task_status: task.status, // Set current task status
         });
         setShowTaskModal(true);
     };
@@ -356,9 +358,8 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                 );
             case 'in_progress':
                 return (
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                     </svg>
                 );
             default:
@@ -613,14 +614,37 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                             {showForm ? (
                             <form onSubmit={handleSubmitTaskUpdate}>
                                 <div className="space-y-4">
-                                    {/* Task Status Badge (Read-only) */}
-                                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm font-medium text-gray-700">Task Status:</span>
-                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getTaskStatusBadgeClass(selectedTask.status)}`}>
-                                                {selectedTask.status}
-                                            </span>
-                                        </div>
+                                    {/* Task Status Dropdown (Editable for Admin) */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Task Status
+                                            <span className="ml-2 text-xs text-gray-500">(Admin can change status)</span>
+                                        </label>
+                                        <select
+                                            value={data.task_status}
+                                            onChange={(e) => setData('task_status', e.target.value)}
+                                            className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                        >
+                                            <option value="Draft">Draft</option>
+                                            <option value="Submitted">Submitted</option>
+                                            <option value="Submitted to Client">Submitted to Client</option>
+                                            <option value="Client Reply">Client Reply</option>
+                                            <option value="Under Review by Team Leader">Under Review by Team Leader</option>
+                                            <option value="Approved by Team Leader">Approved by Team Leader</option>
+                                            <option value="Returned for Revision (by Team Leader)">Returned for Revision (by Team Leader)</option>
+                                            <option value="Under Review by Manager">Under Review by Manager</option>
+                                            <option value="Approved by Manager">Approved by Manager</option>
+                                            <option value="Returned for Revision (by Manager)">Returned for Revision (by Manager)</option>
+                                            <option value="Under Review by Supervisor">Under Review by Supervisor</option>
+                                            <option value="Approved by Supervisor">Approved by Supervisor</option>
+                                            <option value="Returned for Revision (by Supervisor)">Returned for Revision (by Supervisor)</option>
+                                            <option value="Under Review by Partner">Under Review by Partner</option>
+                                            <option value="Approved by Partner">Approved by Partner</option>
+                                            <option value="Returned for Revision (by Partner)">Returned for Revision (by Partner)</option>
+                                        </select>
+                                        {errors.task_status && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.task_status}</p>
+                                        )}
                                     </div>
 
                                     <div>
