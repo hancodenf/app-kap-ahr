@@ -256,6 +256,30 @@ class ClientController extends Controller
             abort(403, 'Unauthorized access to this project.');
         }
 
+        // Get project team members
+        $projectTeams = \App\Models\ProjectTeam::where('project_id', $project->id)
+            ->with('user') // Only load user, no role relationship
+            ->orderBy('role')
+            ->orderBy('user_name')
+            ->get()
+            ->map(function($team) {
+                return [
+                    'id' => $team->id,
+                    'user_name' => $team->user_name,
+                    'user_email' => $team->user_email,
+                    'user_position' => $team->user_position,
+                    'role' => $team->role,
+                    'user' => $team->user ? [
+                        'id' => $team->user->id,
+                        'name' => $team->user->name,
+                        'email' => $team->user->email,
+                        'position' => $team->user->position, // position is an enum field
+                        'user_type' => $team->user->user_type, // user_type is an enum field
+                        'profile_photo' => $team->user->profile_photo, // profile photo path
+                    ] : null
+                ];
+            });
+
         // Get working steps with tasks and assignments
         $workingSteps = \App\Models\WorkingStep::where('project_id', $project->id)
             ->with(['tasks' => function($query) {
@@ -354,6 +378,7 @@ class ClientController extends Controller
                 'updated_at' => $project->updated_at,
             ],
             'workingSteps' => $workingSteps,
+            'projectTeams' => $projectTeams,
         ]);
     }
 

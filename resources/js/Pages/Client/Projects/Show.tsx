@@ -91,12 +91,28 @@ interface Project {
     updated_at: string;
 }
 
+interface ProjectTeam {
+    id: number;
+    user_name: string;
+    user_email: string;
+    user_position: string | null;
+    role: 'partner' | 'manager' | 'supervisor' | 'team leader' | 'member';
+    user?: {
+        id: number;
+        name: string;
+        email: string;
+        position: string | null; // enum field from users table
+        user_type: string | null; // enum field from users table
+    };
+}
+
 interface Props extends PageProps {
     project: Project;
     workingSteps: WorkingStep[];
+    projectTeams: ProjectTeam[];
 }
 
-export default function Show({ project, workingSteps }: Props) {
+export default function Show({ project, workingSteps, projectTeams }: Props) {
     const [activeTab, setActiveTab] = useState<number>(0);
 
     // Calculate overall project statistics
@@ -227,6 +243,100 @@ export default function Show({ project, workingSteps }: Props) {
                             </div>
                         </div>
                     </div>
+
+                    {/* Project Team Members */}
+                    {projectTeams && projectTeams.length > 0 && (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+                            <div className="mb-4">
+                                <h3 className="text-lg font-semibold text-gray-900">Tim Proyek</h3>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    Anggota tim yang bekerja di proyek ini ({projectTeams.length} orang)
+                                </p>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {projectTeams.map((team) => {
+                                    // Get role badge color
+                                    const getRoleBadge = (role: string) => {
+                                        switch (role) {
+                                            case 'partner':
+                                                return 'bg-purple-100 text-purple-800 border-purple-200';
+                                            case 'manager':
+                                                return 'bg-blue-100 text-blue-800 border-blue-200';
+                                            case 'supervisor':
+                                                return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+                                            case 'team leader':
+                                                return 'bg-green-100 text-green-800 border-green-200';
+                                            default:
+                                                return 'bg-gray-100 text-gray-800 border-gray-200';
+                                        }
+                                    };
+
+                                    // Get initials for avatar
+                                    const getInitials = (name: string) => {
+                                        return name
+                                            .split(' ')
+                                            .map(word => word.charAt(0))
+                                            .join('')
+                                            .toUpperCase()
+                                            .substring(0, 2);
+                                    };
+
+                                    return (
+                                        <div
+                                            key={team.id}
+                                            className="border-2 border-gray-200 rounded-lg p-4 hover:border-primary-300 hover:shadow-md transition-all"
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                {/* Avatar */}
+                                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center flex-shrink-0 shadow-md">
+                                                    <span className="text-white font-bold text-sm">
+                                                        {getInitials(team.user_name)}
+                                                    </span>
+                                                </div>
+
+                                                {/* Info */}
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="text-sm font-semibold text-gray-900 truncate">
+                                                        {team.user_name}
+                                                    </h4>
+                                                    <p className="text-xs text-gray-500 truncate mt-0.5">
+                                                        {team.user_email}
+                                                    </p>
+                                                    
+                                                    {/* Role Badge */}
+                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border mt-2 ${getRoleBadge(team.role)}`}>
+                                                        {team.role.charAt(0).toUpperCase() + team.role.slice(1)}
+                                                    </span>
+                                                    
+                                                    {/* User Position if available */}
+                                                    {team.user_position && (
+                                                        <p className="text-xs text-gray-600 mt-1.5 truncate">
+                                                            📋 {team.user_position}
+                                                        </p>
+                                                    )}
+                                                    
+                                                    {/* System Position if available */}
+                                                    {team.user?.position && (
+                                                        <p className="text-xs text-gray-500 mt-0.5">
+                                                            Position: {team.user.position}
+                                                        </p>
+                                                    )}
+                                                    
+                                                    {/* User Type if available */}
+                                                    {team.user?.user_type && (
+                                                        <p className="text-xs text-gray-500">
+                                                            Type: {team.user.user_type}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Steps Navigation Tabs */}
                     {workingSteps.length > 0 ? (
@@ -372,9 +482,20 @@ export default function Show({ project, workingSteps }: Props) {
                                                                         Required
                                                                     </span>
                                                                 )}
-                                                                {task.client_interact && (
+                                                                {task.client_interact && task.status === 'Submitted to Client' && (
                                                                     <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                                                                        <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                                                        </svg>
                                                                         Perlu Input
+                                                                    </span>
+                                                                )}
+                                                                {task.client_interact && task.status === 'Client Reply' && (
+                                                                    <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                                                                        <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                                        </svg>
+                                                                        Sudah Dibalas
                                                                     </span>
                                                                 )}
                                                             </div>
