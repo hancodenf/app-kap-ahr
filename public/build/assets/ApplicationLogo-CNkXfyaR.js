@@ -1,1 +1,0 @@
-import{j as a}from"./app-B3iphcej.js";function i({className:o="",...t}){return a.jsx("img",{...t,src:"/logo1x1.png",alt:"AURA - Audit, Reporting and Analyze",className:`block h-auto w-12 ${o}`})}export{i as A};

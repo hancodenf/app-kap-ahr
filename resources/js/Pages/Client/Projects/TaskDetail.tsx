@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { PageProps } from '@/types';
-import { FormEventHandler } from 'react';
+import { FormEventHandler, useState } from 'react';
 
 interface ClientDocument {
     id: number;
@@ -39,6 +39,20 @@ interface TaskAssignment {
     };
 }
 
+interface TaskWorker {
+    id: number;
+    worker_name: string;
+    worker_email: string;
+    worker_role: string;
+    user?: {
+        id: number;
+        name: string;
+        email: string;
+        profile_photo: string | null;
+        position: string | null;
+    };
+}
+
 interface Task {
     id: number;
     name: string;
@@ -51,6 +65,7 @@ interface Task {
     multiple_files: boolean;
     project_name: string;
     working_step_name: string;
+    workers: TaskWorker[];
     latest_assignment: TaskAssignment | null;
     assignments: TaskAssignment[];
 }
@@ -66,6 +81,8 @@ interface Props extends PageProps {
 }
 
 export default function TaskDetail({ task, project, pendingClientDocs }: Props) {
+    const [hoveredWorker, setHoveredWorker] = useState<string | null>(null);
+    
     const { data, setData, post, processing, errors, reset } = useForm<{
         client_comment: string;
         client_document_files: { [key: number]: File | null };
@@ -126,7 +143,7 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
             header={
                 <div>
                     <Link
-                        href={route('klien.projects.show', project.slug)}
+                        href={route('klien.projects.show', project.id)}
                         className="text-sm text-primary-600 hover:text-primary-700 mb-2 inline-flex items-center"
                     >
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -152,7 +169,7 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex-1">
                                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Informasi Task</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <p className="text-xs text-gray-500 mb-1">Status Completion</p>
                                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusBadgeClass(task.completion_status)}`}>
@@ -165,22 +182,70 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                             {task.status}
                                         </span>
                                     </div>
-                                    <div>
-                                        <p className="text-xs text-gray-500 mb-1">Tipe</p>
-                                        <div className="flex gap-2">
-                                            {task.is_required && (
-                                                <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800">
-                                                    Required
-                                                </span>
-                                            )}
-                                            {task.client_interact && (
-                                                <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                                                    Perlu Input Client
-                                                </span>
+                                </div>
+
+                                {/* Team Workers */}
+                                {task.workers && task.workers.length > 0 && (
+                                    <div className="mt-4 pt-4 border-t border-gray-200">
+                                        <p className="text-xs text-gray-500 mb-2">Tim yang Mengerjakan:</p>
+                                        <div className="flex items-center gap-1">
+                                            {task.workers.slice(0, 5).map((worker) => {
+                                                const workerId = `task-${task.id}-worker-${worker.id}`;
+                                                const isHovered = hoveredWorker === workerId;
+                                                
+                                                return (
+                                                    <div 
+                                                        key={worker.id}
+                                                        className="relative"
+                                                        onMouseEnter={() => setHoveredWorker(workerId)}
+                                                        onMouseLeave={() => setHoveredWorker(null)}
+                                                    >
+                                                        {/* Avatar */}
+                                                        {worker.user?.profile_photo ? (
+                                                            <img 
+                                                                src={`/storage/${worker.user.profile_photo}`} 
+                                                                alt={worker.worker_name}
+                                                                className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm hover:scale-110 hover:z-[60] transition-transform cursor-pointer"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center border-2 border-white shadow-sm hover:scale-110 hover:z-[60] transition-transform cursor-pointer">
+                                                                <span className="text-white font-semibold text-sm">
+                                                                    {worker.worker_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        
+                                                        {/* Tooltip */}
+                                                        {isHovered && (
+                                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none z-[100] animate-in fade-in duration-200">
+                                                                <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap shadow-xl">
+                                                                    <p className="font-semibold">{worker.worker_name}</p>
+                                                                    <p className="text-gray-300 text-[10px]">{worker.worker_role}</p>
+                                                                    {worker.user?.position && (
+                                                                        <p className="text-gray-400 text-[10px] mt-0.5">{worker.user.position}</p>
+                                                                    )}
+                                                                    {/* Arrow */}
+                                                                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1">
+                                                                        <div className="w-2 h-2 bg-gray-900 rotate-45"></div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                            
+                                            {/* Show count if more than 5 */}
+                                            {task.workers.length > 5 && (
+                                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center border-2 border-white shadow-sm">
+                                                    <span className="text-gray-600 font-semibold text-sm">
+                                                        +{task.workers.length - 5}
+                                                    </span>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         </div>
                     </div>

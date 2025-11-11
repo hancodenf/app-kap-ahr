@@ -284,7 +284,7 @@ class ClientController extends Controller
         $workingSteps = \App\Models\WorkingStep::where('project_id', $project->id)
             ->with(['tasks' => function($query) {
                 $query->with([
-                    'taskWorkers',
+                    'taskWorkers.projectTeam.user', // Load workers with user information
                     'taskAssignments' => function($q) {
                         $q->with(['documents', 'clientDocuments'])->orderBy('created_at', 'desc');
                     }
@@ -308,6 +308,24 @@ class ClientController extends Controller
                         // Get latest assignment for display
                         $latestAssignment = $task->taskAssignments->first();
                         
+                        // Get task workers with user information
+                        $taskWorkers = $task->taskWorkers->map(function($worker) {
+                            $user = $worker->projectTeam?->user;
+                            return [
+                                'id' => $worker->id,
+                                'worker_name' => $worker->worker_name,
+                                'worker_email' => $worker->worker_email,
+                                'worker_role' => $worker->worker_role,
+                                'user' => $user ? [
+                                    'id' => $user->id,
+                                    'name' => $user->name,
+                                    'email' => $user->email,
+                                    'profile_photo' => $user->profile_photo,
+                                    'position' => $user->position,
+                                ] : null
+                            ];
+                        });
+                        
                         return [
                             'id' => $task->id,
                             'name' => $task->name,
@@ -320,6 +338,7 @@ class ClientController extends Controller
                             'multiple_files' => $task->multiple_files,
                             'is_assigned_to_me' => $task->client_interact, // Client can only interact with tasks marked client_interact
                             'my_assignment_id' => null,
+                            'workers' => $taskWorkers, // Add workers data
                             // Latest assignment info for display
                             'latest_assignment' => $latestAssignment ? [
                                 'id' => $latestAssignment->id,
@@ -403,7 +422,8 @@ class ClientController extends Controller
                           'clientDocuments',
                           'user.role' // Load user who worked on the assignment
                       ]);
-            }
+            },
+            'taskWorkers.projectTeam.user' // Load task workers
         ]);
 
         // Find ALL pending client documents across ALL assignments
@@ -416,6 +436,25 @@ class ClientController extends Controller
                 $pendingClientDocs = array_merge($pendingClientDocs, $pending->toArray());
             }
         }
+
+        // Format workers data
+        $workers = $task->taskWorkers->map(function ($taskWorker) {
+            $user = $taskWorker->projectTeam->user ?? null;
+            
+            return [
+                'id' => $taskWorker->id,
+                'worker_name' => $taskWorker->worker_name,
+                'worker_email' => $taskWorker->worker_email,
+                'worker_role' => $taskWorker->worker_role,
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'profile_photo' => $user->profile_photo,
+                    'position' => $user->position,
+                ] : null
+            ];
+        });
 
         // Format task data for React component
         $taskData = [
@@ -430,6 +469,7 @@ class ClientController extends Controller
             'multiple_files' => $task->multiple_files,
             'project_name' => $task->project->name,
             'working_step_name' => $task->workingStep->name,
+            'workers' => $workers,
             'latest_assignment' => $task->taskAssignments->first(),
             'assignments' => $task->taskAssignments->map(function ($assignment) {
                 return [

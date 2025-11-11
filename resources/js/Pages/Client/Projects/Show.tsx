@@ -39,6 +39,20 @@ interface TaskAssignment {
     };
 }
 
+interface TaskWorker {
+    id: number;
+    worker_name: string;
+    worker_email: string;
+    worker_role: string;
+    user?: {
+        id: number;
+        name: string;
+        email: string;
+        profile_photo: string | null;
+        position: string | null;
+    };
+}
+
 interface Task {
     id: number;
     name: string;
@@ -51,6 +65,7 @@ interface Task {
     multiple_files: boolean;
     is_assigned_to_me: boolean;
     my_assignment_id: number | null;
+    workers: TaskWorker[]; // Add workers array
     latest_assignment: {
         id: number;
         time: string | null;
@@ -103,6 +118,7 @@ interface ProjectTeam {
         email: string;
         position: string | null; // enum field from users table
         user_type: string | null; // enum field from users table
+        profile_photo: string | null; // profile photo path
     };
 }
 
@@ -114,6 +130,7 @@ interface Props extends PageProps {
 
 export default function Show({ project, workingSteps, projectTeams }: Props) {
     const [activeTab, setActiveTab] = useState<number>(0);
+    const [hoveredWorker, setHoveredWorker] = useState<string | null>(null);
 
     // Calculate overall project statistics
     const allTasks = workingSteps.flatMap(step => step.tasks);
@@ -289,11 +306,19 @@ export default function Show({ project, workingSteps, projectTeams }: Props) {
                                         >
                                             <div className="flex items-start gap-3">
                                                 {/* Avatar */}
-                                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center flex-shrink-0 shadow-md">
-                                                    <span className="text-white font-bold text-sm">
-                                                        {getInitials(team.user_name)}
-                                                    </span>
-                                                </div>
+                                                {team.user?.profile_photo ? (
+                                                    <img 
+                                                        src={`/storage/${team.user.profile_photo}`} 
+                                                        alt={team.user_name}
+                                                        className="w-12 h-12 rounded-full object-cover border-2 border-primary-200 shadow-md flex-shrink-0"
+                                                    />
+                                                ) : (
+                                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center flex-shrink-0 shadow-md">
+                                                        <span className="text-white font-bold text-sm">
+                                                            {getInitials(team.user_name)}
+                                                        </span>
+                                                    </div>
+                                                )}
 
                                                 {/* Info */}
                                                 <div className="flex-1 min-w-0">
@@ -307,28 +332,7 @@ export default function Show({ project, workingSteps, projectTeams }: Props) {
                                                     {/* Role Badge */}
                                                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border mt-2 ${getRoleBadge(team.role)}`}>
                                                         {team.role.charAt(0).toUpperCase() + team.role.slice(1)}
-                                                    </span>
-                                                    
-                                                    {/* User Position if available */}
-                                                    {team.user_position && (
-                                                        <p className="text-xs text-gray-600 mt-1.5 truncate">
-                                                            📋 {team.user_position}
-                                                        </p>
-                                                    )}
-                                                    
-                                                    {/* System Position if available */}
-                                                    {team.user?.position && (
-                                                        <p className="text-xs text-gray-500 mt-0.5">
-                                                            Position: {team.user.position}
-                                                        </p>
-                                                    )}
-                                                    
-                                                    {/* User Type if available */}
-                                                    {team.user?.user_type && (
-                                                        <p className="text-xs text-gray-500">
-                                                            Type: {team.user.user_type}
-                                                        </p>
-                                                    )}
+                                                    </span> 
                                                 </div>
                                             </div>
                                         </div>
@@ -507,26 +511,65 @@ export default function Show({ project, workingSteps, projectTeams }: Props) {
                                                                 </p>
                                                             )}
 
-                                                            {/* Team Info - Show who's working on it */}
-                                                            {task.assignments && task.assignments.length > 0 && task.assignments[0].user && (
-                                                                <div className="mb-3 p-2 bg-white border border-gray-200 rounded-lg">
-                                                                    <p className="text-xs text-gray-500 mb-1">Tim yang mengerjakan:</p>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
-                                                                            <span className="text-xs font-medium text-primary-700">
-                                                                                {task.assignments[0].user.name.charAt(0)}
-                                                                            </span>
-                                                                        </div>
-                                                                        <div className="min-w-0">
-                                                                            <p className="text-xs font-medium text-gray-900 truncate">
-                                                                                {task.assignments[0].user.name}
-                                                                            </p>
-                                                                            {task.assignments[0].user.role && (
-                                                                                <p className="text-xs text-gray-500 truncate">
-                                                                                    {task.assignments[0].user.role.name}
-                                                                                </p>
-                                                                            )}
-                                                                        </div>
+                                                            {/* Team Workers - Show profile photos with tooltip */}
+                                                            {task.workers && task.workers.length > 0 && (
+                                                                <div className="mb-3">
+                                                                    <p className="text-xs text-gray-500 mb-2">Tim yang mengerjakan:</p>
+                                                                    <div className="flex items-center gap-1">
+                                                                        {task.workers.slice(0, 5).map((worker, index) => {
+                                                                            const workerId = `${task.id}-${worker.id}`;
+                                                                            const isHovered = hoveredWorker === workerId;
+                                                                            
+                                                                            return (
+                                                                                <div 
+                                                                                    key={worker.id}
+                                                                                    className="relative"
+                                                                                    onMouseEnter={() => setHoveredWorker(workerId)}
+                                                                                    onMouseLeave={() => setHoveredWorker(null)}
+                                                                                >
+                                                                                    {/* Avatar */}
+                                                                                    {worker.user?.profile_photo ? (
+                                                                                        <img 
+                                                                                            src={`/storage/${worker.user.profile_photo}`} 
+                                                                                            alt={worker.worker_name}
+                                                                                            className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-sm hover:scale-110 hover:z-[60] transition-transform cursor-pointer"
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center border-2 border-white shadow-sm hover:scale-110 hover:z-[60] transition-transform cursor-pointer">
+                                                                                            <span className="text-white font-semibold text-xs">
+                                                                                                {worker.worker_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    )}
+                                                                                    
+                                                                                    {/* Tooltip - only shows for hovered worker */}
+                                                                                    {isHovered && (
+                                                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none z-[100] animate-in fade-in duration-200">
+                                                                                            <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap shadow-xl">
+                                                                                                <p className="font-semibold">{worker.worker_name}</p>
+                                                                                                <p className="text-gray-300 text-[10px]">{worker.worker_role}</p>
+                                                                                                {worker.user?.position && (
+                                                                                                    <p className="text-gray-400 text-[10px] mt-0.5">{worker.user.position}</p>
+                                                                                                )}
+                                                                                                {/* Arrow */}
+                                                                                                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1">
+                                                                                                    <div className="w-2 h-2 bg-gray-900 rotate-45"></div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                        
+                                                                        {/* Show count if more than 5 */}
+                                                                        {task.workers.length > 5 && (
+                                                                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center border-2 border-white shadow-sm">
+                                                                                <span className="text-gray-600 font-semibold text-xs">
+                                                                                    +{task.workers.length - 5}
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             )}
