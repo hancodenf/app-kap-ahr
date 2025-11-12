@@ -9,6 +9,7 @@ use App\Models\WorkingStep;
 use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class CompanyController extends Controller
@@ -39,7 +40,7 @@ class CompanyController extends Controller
                 ->count(),
             'by_role' => $hasProjects 
                 ? ProjectTeam::where('user_id', $user->id)
-                    ->select('role', \DB::raw('count(*) as count'))
+                    ->select('role', DB::raw('count(*) as count'))
                     ->groupBy('role')
                     ->pluck('count', 'role')
                     ->toArray()
@@ -144,7 +145,7 @@ class CompanyController extends Controller
             ? Project::whereHas('projectTeams', function($query) use ($user) {
                 $query->where('user_id', $user->id);
             })
-            ->select('status', \DB::raw('count(*) as count'))
+            ->select('status', DB::raw('count(*) as count'))
             ->groupBy('status')
             ->pluck('count', 'status')
             ->toArray()
@@ -317,6 +318,21 @@ class CompanyController extends Controller
                                 'client_comment' => $latestAssignment->client_comment,
                                 'is_approved' => $latestAssignment->is_approved,
                                 'created_at' => $latestAssignment->created_at,
+                                'documents' => $latestAssignment->documents->map(function($doc) {
+                                    return [
+                                        'id' => $doc->id,
+                                        'name' => $doc->name,
+                                        'file' => $doc->file,
+                                        'uploaded_at' => $doc->uploaded_at,
+                                    ];
+                                }),
+                                'client_documents' => $latestAssignment->clientDocuments->map(function($clientDoc) {
+                                    return [
+                                        'id' => $clientDoc->id,
+                                        'name' => $clientDoc->name,
+                                        'description' => $clientDoc->description,
+                                    ];
+                                }),
                             ] : null,
                             // All assignments with documents
                             'assignments' => $task->taskAssignments->map(function($assignment) {
@@ -386,23 +402,23 @@ class CompanyController extends Controller
             return back()->withErrors(['error' => 'This step is locked. Complete required tasks in the previous step first.']);
         }
         
-        // Validate based on upload mode
-        $uploadMode = $request->input('upload_mode', 'upload');
+        // Validate input - at least one of files or client_documents must be provided
+        $request->validate([
+            'notes' => 'nullable|string',
+            'files.*' => 'nullable|file|max:10240', // Max 10MB per file
+            'file_labels' => 'nullable|array',
+            'file_labels.*' => 'nullable|string|max:255',
+            'client_documents' => 'nullable|array',
+            'client_documents.*.name' => 'required_with:client_documents|string',
+            'client_documents.*.description' => 'nullable|string',
+        ]);
+
+        // Custom validation: at least one of files or client_documents must be provided
+        $hasFiles = $request->hasFile('files');
+        $hasClientDocs = $request->has('client_documents') && is_array($request->client_documents) && count($request->client_documents) > 0;
         
-        if ($uploadMode === 'upload') {
-            $request->validate([
-                'notes' => 'nullable|string',
-                'files.*' => 'nullable|file|max:10240', // Max 10MB per file
-                'file_labels' => 'nullable|array',
-                'file_labels.*' => 'nullable|string|max:255',
-            ]);
-        } else {
-            $request->validate([
-                'notes' => 'nullable|string',
-                'client_documents' => 'nullable|array',
-                'client_documents.*.name' => 'required|string',
-                'client_documents.*.description' => 'nullable|string',
-            ]);
+        if (!$hasFiles && !$hasClientDocs) {
+            return back()->withErrors(['error' => 'Please upload at least one file or request at least one document from client.']);
         }
         
         // Create new TaskAssignment
@@ -418,40 +434,39 @@ class CompanyController extends Controller
             'is_approved' => false,
         ]);
         
-        // Handle based on upload mode
-        if ($uploadMode === 'upload') {
-            // Handle file uploads
-            if ($request->hasFile('files')) {
-                $files = $request->file('files');
-                $fileLabels = $request->input('file_labels', []);
+        // Handle file uploads (if provided)
+        if ($request->hasFile('files')) {
+            $files = $request->file('files');
+            $fileLabels = $request->input('file_labels', []);
+            
+            // Get task storage path: clients/{client_slug}/{project_slug}/{task_slug}
+            $taskStoragePath = $task->getStoragePath();
+            
+            foreach ($files as $index => $file) {
+                $originalName = $file->getClientOriginalName();
+                $filename = time() . '_' . uniqid() . '_' . $originalName;
                 
-                // Get task storage path: clients/{client_slug}/{project_slug}/{task_slug}
-                $taskStoragePath = $task->getStoragePath();
+                // Store in task-specific directory
+                $path = $file->storeAs($taskStoragePath, $filename, 'public');
                 
-                foreach ($files as $index => $file) {
-                    $originalName = $file->getClientOriginalName();
-                    $filename = time() . '_' . uniqid() . '_' . $originalName;
-                    
-                    // Store in task-specific directory
-                    $path = $file->storeAs($taskStoragePath, $filename, 'public');
-                    
-                    // Get label for this file (use label if provided, otherwise use original filename)
-                    $documentName = !empty($fileLabels[$index]) ? $fileLabels[$index] : $originalName;
-                    
-                    // Create document record linked to this assignment
-                    \App\Models\Document::create([
-                        'task_assignment_id' => $taskAssignment->id,
-                        'name' => $documentName,
-                        'slug' => \Illuminate\Support\Str::slug($documentName . '-' . time() . '-' . uniqid()),
-                        'file' => $path,
-                        'uploaded_at' => now(),
-                    ]);
-                }
+                // Get label for this file (use label if provided, otherwise use original filename)
+                $documentName = !empty($fileLabels[$index]) ? $fileLabels[$index] : $originalName;
+                
+                // Create document record linked to this assignment
+                \App\Models\Document::create([
+                    'task_assignment_id' => $taskAssignment->id,
+                    'name' => $documentName,
+                    'slug' => \Illuminate\Support\Str::slug($documentName . '-' . time() . '-' . uniqid()),
+                    'file' => $path,
+                    'uploaded_at' => now(),
+                ]);
             }
-        } else {
-            // Handle client document requests
-            if ($request->has('client_documents') && is_array($request->client_documents)) {
-                foreach ($request->client_documents as $clientDoc) {
+        }
+        
+        // Handle client document requests (if provided)
+        if ($request->has('client_documents') && is_array($request->client_documents)) {
+            foreach ($request->client_documents as $clientDoc) {
+                if (!empty($clientDoc['name'])) {
                     \App\Models\ClientDocument::create([
                         'task_assignment_id' => $taskAssignment->id,
                         'name' => $clientDoc['name'],
@@ -462,13 +477,16 @@ class CompanyController extends Controller
             }
         }
         
+        // Determine status based on what was submitted
+        $hasClientDocs = $request->has('client_documents') && is_array($request->client_documents) && count($request->client_documents) > 0;
+        
         // Update task status - keep as "Submitted" until user clicks "Submit for Review"
         if ($task->status === 'Draft') {
             // Draft → Submitted (masih editable)
-            if ($uploadMode === 'upload') {
-                $task->status = 'Submitted'; // Keep as Submitted, not auto-advance yet
-            } else {
+            if ($hasClientDocs) {
                 $task->status = 'Submitted to Client'; // Client interaction path
+            } else {
+                $task->status = 'Submitted'; // Keep as Submitted, not auto-advance yet
             }
             $task->save();
         } elseif ($task->status === 'Client Reply') {

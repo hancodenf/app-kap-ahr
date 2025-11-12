@@ -128,10 +128,25 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
     const needsApprovalTab = ['team leader', 'manager', 'supervisor', 'partner'].includes(roleLower);
 
     // Fetch approval requests when switching to approval tab
+    // AND reset modal/form state when switching tabs
     useEffect(() => {
         if (activeTab === 'approval-requests' && needsApprovalTab) {
             fetchApprovalRequests();
         }
+        
+        // Reset all modal and form states when switching tabs
+        setShowTaskModal(false);
+        setSelectedTask(null);
+        setShowForm(false);
+        setUploadMode('upload');
+        setFileInputs([{ id: 0, label: '', file: null }]);
+        setClientDocInputs([{ id: 0, name: '', description: '' }]);
+        setNextFileId(1);
+        setNextClientDocId(1);
+        setShowApprovalModal(false);
+        setSelectedApprovalTask(null);
+        setRejectComment('');
+        reset();
     }, [activeTab]);
 
     const fetchApprovalRequests = async () => {
@@ -273,14 +288,52 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
         }
         
         setUploadMode('upload');
-        setFileInputs([{ id: 0, label: '', file: null }]);
-        setClientDocInputs([{ id: 0, name: '', description: '' }]);
-        setNextFileId(1);
-        setNextClientDocId(1);
+        
+        // Initialize form inputs - loop from database records (assignments array)
+        let initialFileInputs: Array<{ id: number; label: string; file: File | null }> = [{ id: 0, label: '', file: null }];
+        let initialClientDocInputs: Array<{ id: number; name: string; description: string }> = [{ id: 0, name: '', description: '' }];
+        let nextFileCounter = 1;
+        let nextClientDocCounter = 1;
+        
+        // Get latest assignment from assignments array (index 0 is latest)
+        const latestAssignment = task.assignments && task.assignments.length > 0 ? task.assignments[0] : null;
+        
+        if (latestAssignment) {
+            // Loop file inputs from existing documents in database
+            if (latestAssignment.documents && latestAssignment.documents.length > 0) {
+                initialFileInputs = latestAssignment.documents.map((doc, index) => ({
+                    id: index,
+                    label: doc.name,
+                    file: null, // Existing file from DB, no File object yet
+                }));
+                nextFileCounter = latestAssignment.documents.length;
+            }
+            
+            // Loop client document inputs from existing client_documents in database
+            if (latestAssignment.client_documents && latestAssignment.client_documents.length > 0) {
+                initialClientDocInputs = latestAssignment.client_documents.map((clientDoc, index) => ({
+                    id: index,
+                    name: clientDoc.name,
+                    description: clientDoc.description || '',
+                }));
+                nextClientDocCounter = latestAssignment.client_documents.length;
+            }
+        }
+        
+        setFileInputs(initialFileInputs);
+        setClientDocInputs(initialClientDocInputs);
+        setNextFileId(nextFileCounter);
+        setNextClientDocId(nextClientDocCounter);
+        
         setData({
             notes: task.latest_assignment?.notes || '',
             files: [],
-            client_documents: [],
+            client_documents: initialClientDocInputs
+                .filter(input => input.name.trim() !== '')
+                .map(input => ({
+                    name: input.name,
+                    description: input.description
+                })),
             upload_mode: 'upload',
         });
         setShowTaskModal(true);
@@ -424,27 +477,15 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
         e.preventDefault();
         if (!selectedTask) return;
 
-        // Set upload_mode to current active tab
-        const currentMode = uploadMode;
+        // Validate: at least one of files or client_documents must be provided
+        const hasFiles = data.files && data.files.length > 0;
+        const hasClientDocs = data.client_documents && data.client_documents.length > 0;
         
-        // Prepare data based on current mode
-        if (currentMode === 'upload') {
-            // In upload mode: clear client_documents, keep files
-            data.client_documents = [];
-        } else {
-            // In request mode: clear files, keep client_documents
-            data.files = [];
-            data.file_labels = [];
-            // Ensure client_documents is populated from clientDocInputs
-            const validClientDocs = clientDocInputs
-                .filter(input => input.name.trim() !== '')
-                .map(input => ({
-                    name: input.name,
-                    description: input.description
-                }));
-            data.client_documents = validClientDocs;
+        if (!hasFiles && !hasClientDocs) {
+            alert('Please upload at least one file or request at least one document from client.');
+            return;
         }
-        data.upload_mode = currentMode;
+
         data._method = 'PUT';
 
         // Use post with _method spoofing for PUT with file uploads
@@ -1059,8 +1100,11 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                         )}
                                     </div>
 
-                                    {/* Previous Assignments History */}
+                                    {/* Previous Assignments History - Only show if more than 1 submission OR status is not editable */}
                                     {selectedTask.assignments && selectedTask.assignments.length > 0 && (
+                                        selectedTask.assignments.length > 1 || 
+                                        (selectedTask.status !== 'Draft' && selectedTask.status !== 'Submitted')
+                                    ) && (
                                         <div className="mb-6">
                                             <label className="block text-sm font-medium text-gray-700 mb-3">
                                                 Submission History ({selectedTask.assignments.length} submission{selectedTask.assignments.length > 1 ? 's' : ''})
@@ -1167,14 +1211,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                                 <nav className="-mb-px flex space-x-8" aria-label="Tabs">
                                                     <button
                                                         type="button"
-                                                        onClick={() => {
-                                                            setUploadMode('upload');
-                                                            // Reset client document inputs when switching to upload
-                                                            setClientDocInputs([{ id: nextClientDocId, name: '', description: '' }]);
-                                                            setNextClientDocId(nextClientDocId + 1);
-                                                            setData('client_documents', []);
-                                                            setData('upload_mode', 'upload');
-                                                        }}
+                                                        onClick={() => setUploadMode('upload')}
                                                         className={`${
                                                             uploadMode === 'upload'
                                                                 ? 'border-primary-500 text-primary-600'
@@ -1185,14 +1222,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        onClick={() => {
-                                                            setUploadMode('request');
-                                                            // Reset file inputs when switching to request
-                                                            setFileInputs([{ id: nextFileId, label: '', file: null }]);
-                                                            setNextFileId(nextFileId + 1);
-                                                            setData('files', []);
-                                                            setData('upload_mode', 'request');
-                                                        }}
+                                                        onClick={() => setUploadMode('request')}
                                                         className={`${
                                                             uploadMode === 'request'
                                                                 ? 'border-primary-500 text-primary-600'
@@ -1361,7 +1391,6 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                                                     onChange={(e) => handleClientDocNameChange(input.id, e.target.value)}
                                                                     placeholder="e.g., Financial Report 2024"
                                                                     className="block w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                                                                    required
                                                                 />
                                                             </div>
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Client;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -17,6 +18,8 @@ class ClientController extends Controller
     public function dashboard()
     {
         $user = Auth::user();
+
+        $user = User::findOrFail($user->id);
         
         // Eager load client relationship
         $user->load('belongsToClient');
