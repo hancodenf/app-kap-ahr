@@ -34,7 +34,7 @@ class UserSeeder extends Seeder
 
         // Company users from provided data
         $companyUsers = [   
-            ["name" => "Abdul Hamid", "position" => "Founder - Partner", "user_type" => "Staff"],
+            ["name" => "Abdul Hamid Cebba", "position" => "Founder - Partner", "user_type" => "Staff"],
             ["name" => "Wilda Farah", "position" => "Managing Partner", "user_type" => "Staff"],
             ["name" => "Syamsul Bahri", "position" => "Partner", "user_type" => "Staff"],
             ["name" => "Fachriza Fayyad Fauzan", "position" => "Associates Manager", "user_type" => "Staff"],

@@ -46,6 +46,7 @@ class UserController extends Controller
                 'user_type' => $user->user_type ?? null,
                 'client_id' => $user->client_id ?? null,
                 'client_name' => $user->belongsToClient?->name ?? null,
+                'whatsapp' => $user->whatsapp ?? null,
                 'is_active' => $user->is_active,
                 'role' => [
                     'name' => $user->role,
@@ -137,6 +138,7 @@ class UserController extends Controller
             'password' => 'required|string|min:8|confirmed',
             'role_id' => 'required|in:admin,client,company',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'whatsapp' => ['nullable', 'string', 'max:20', 'unique:users,whatsapp'],
         ];
 
         // Add position and user_type validation only for company role
@@ -158,6 +160,7 @@ class UserController extends Controller
             'password' => Hash::make($request->password),
             'role' => $request->role_id,
             'email_verified_at' => now(), // Auto verify untuk admin created users
+            'whatsapp' => $request->whatsapp,
         ];
 
         // Handle profile photo upload
@@ -215,6 +218,7 @@ class UserController extends Controller
             'user_type' => $user->user_type ?? null,
             'client_id' => $user->client_id ?? null,
             'client_name' => $user->belongsToClient?->name ?? null,
+            'whatsapp' => $user->whatsapp ?? null,
             'role' => [
                 'id' => $user->role,
                 'name' => $user->role,
@@ -312,6 +316,7 @@ class UserController extends Controller
             'position' => $user->position ?? null,
             'user_type' => $user->user_type ?? null,
             'client_id' => $user->client_id ?? null,
+            'whatsapp' => $user->whatsapp ?? null,
             'role' => [
                 'id' => $user->role,
                 'name' => $user->role,
@@ -342,6 +347,7 @@ class UserController extends Controller
             'password' => 'nullable|string|min:8|confirmed',
             'role_id' => 'required|in:admin,client,company',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'whatsapp' => ['nullable', 'string', 'max:20', Rule::unique('users', 'whatsapp')->ignore($user->id)],
         ];
 
         // Add position and user_type validation only for company role
@@ -361,6 +367,7 @@ class UserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'role' => $request->role_id,
+            'whatsapp' => $request->whatsapp,
         ];
 
         // Handle profile photo upload

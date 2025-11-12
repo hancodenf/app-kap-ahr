@@ -612,6 +612,9 @@ export default function Welcome({
                     </div>
                 </main>
 
+                        {/* About Section - Premium Design */}
+                </main>
+
                 {/* Footer */}
                 <footer id="contact" className="relative bg-gradient-to-br from-gray-900 via-gray-850 to-gray-900 text-white overflow-hidden">
                     {/* Pattern Background */}

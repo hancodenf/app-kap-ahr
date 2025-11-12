@@ -32,6 +32,7 @@ class User extends Authenticatable
         'user_type',
         'client_id',
         'is_active',
+        'whatsapp',
     ];
 
     protected $hidden = [

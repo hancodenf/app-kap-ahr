@@ -89,7 +89,7 @@ export default function Index({ projects, filters, statusCounts }: Props) {
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('id-ID', {
             year: 'numeric',
-            month: 'long',
+            month: 'numeric',
             day: 'numeric',
         });
     };
@@ -222,9 +222,6 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                                                 Progress
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Status
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Working Steps
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -250,7 +247,7 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                                                     </Link>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <div className="flex flex-wrap items-center gap-1 max-w-[120px]">
+                                                    <div className="flex items-center -space-x-2">
                                                         {project.team_members && project.team_members.length > 0 ? (
                                                             <>
                                                                 {project.team_members.map((member) => (
@@ -259,13 +256,13 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                                                                             key={member.id}
                                                                             src={`/storage/${member.user.profile_photo}`}
                                                                             alt={member.user_name}
-                                                                            className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-sm"
+                                                                            className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-sm hover:scale-110 hover:z-10 transition-transform"
                                                                             title={`${member.user_name} - ${member.role}`}
                                                                         />
                                                                     ) : (
                                                                         <div
                                                                             key={member.id}
-                                                                            className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center border-2 border-white shadow-sm"
+                                                                            className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center border-2 border-white shadow-sm hover:scale-110 hover:z-10 transition-transform"
                                                                             title={`${member.user_name} - ${member.role}`}
                                                                         >
                                                                             <span className="text-white font-semibold text-xs">
@@ -275,7 +272,7 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                                                                     )
                                                                 ))}
                                                                 {project.team_count > 5 && (
-                                                                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center border-2 border-white shadow-sm">
+                                                                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center border-2 border-white shadow-sm hover:scale-110 hover:z-10 transition-transform">
                                                                         <span className="text-gray-600 font-semibold text-xs">
                                                                             +{project.team_count - 5}
                                                                         </span>
@@ -310,16 +307,13 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                                                             {project.completed_tasks}/{project.total_tasks} tasks
                                                         </p>
                                                     </div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    {getStatusBadge(project.status)}
-                                                </td>
+                                                </td> 
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                                         </svg>
-                                                        {project.working_steps_count} steps
+                                                        {project.working_steps_count} 
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -327,7 +321,7 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                                                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                                                         </svg>
-                                                        {project.tasks_count} tasks
+                                                        {project.tasks_count} 
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -384,20 +378,20 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                                         {project.team_members && project.team_members.length > 0 && (
                                             <div className="mb-3 bg-gray-50 rounded-lg p-3">
                                                 <p className="text-xs font-medium text-gray-700 mb-2">Team Members</p>
-                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                <div className="flex items-center -space-x-2">
                                                     {project.team_members.map((member) => (
                                                         member.user?.profile_photo ? (
                                                             <img
                                                                 key={member.id}
                                                                 src={`/storage/${member.user.profile_photo}`}
                                                                 alt={member.user_name}
-                                                                className="w-9 h-9 rounded-full object-cover border-2 border-white shadow-sm"
+                                                                className="w-9 h-9 rounded-full object-cover border-2 border-white shadow-sm hover:scale-110 hover:z-10 transition-transform"
                                                                 title={`${member.user_name} - ${member.role}`}
                                                             />
                                                         ) : (
                                                             <div
                                                                 key={member.id}
-                                                                className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center border-2 border-white shadow-sm"
+                                                                className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center border-2 border-white shadow-sm hover:scale-110 hover:z-10 transition-transform"
                                                                 title={`${member.user_name} - ${member.role}`}
                                                             >
                                                                 <span className="text-white font-semibold text-xs">
@@ -407,7 +401,7 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                                                         )
                                                     ))}
                                                     {project.team_count > 5 && (
-                                                        <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center border-2 border-white shadow-sm">
+                                                        <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center border-2 border-white shadow-sm hover:scale-110 hover:z-10 transition-transform">
                                                             <span className="text-gray-600 font-semibold text-xs">
                                                                 +{project.team_count - 5}
                                                             </span>

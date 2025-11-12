@@ -311,6 +311,7 @@ class ClientController extends Controller
                         'position' => $team->user->position, // position is an enum field
                         'user_type' => $team->user->user_type, // user_type is an enum field
                         'profile_photo' => $team->user->profile_photo, // profile photo path
+                        'whatsapp' => $team->user->whatsapp ?? null, // WhatsApp number
                     ] : null
                 ];
             });
@@ -487,6 +488,7 @@ class ClientController extends Controller
                     'email' => $user->email,
                     'profile_photo' => $user->profile_photo,
                     'position' => $user->position,
+                    'whatsapp' => $user->whatsapp ?? null,
                 ] : null
             ];
         });

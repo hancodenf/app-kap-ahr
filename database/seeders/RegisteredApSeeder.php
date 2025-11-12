@@ -14,53 +14,39 @@ class RegisteredApSeeder extends Seeder
      * Run the database seeds.
      */
     public function run(): void
-    {
-        // Get company users to assign AP registration
-        $companyUsers = User::where('role', 'company')->get();
+    { 
 
         $apData = [
             [
-                'ap_number' => 'AP-001-2024',
-                'registration_date' => Carbon::parse('2024-01-15'),
-                'expiry_date' => Carbon::parse('2027-01-15'),
+                'ap_number' => 'AP. 0818',
+                'user_id' => 1,
+                'registration_date' => Carbon::parse('2021-11-12'),
+                'expiry_date' => Carbon::parse('2026-11-12'),
                 'status' => 'active',
             ],
             [
-                'ap_number' => 'AP-002-2024',
-                'registration_date' => Carbon::parse('2024-02-20'),
-                'expiry_date' => Carbon::parse('2027-02-20'),
+                'ap_number' => 'AP.1271',
+                'user_id' => 2,
+                'registration_date' => Carbon::parse('2021-07-21'),
+                'expiry_date' => Carbon::parse('2026-07-21'),
                 'status' => 'active',
             ],
             [
-                'ap_number' => 'AP-003-2024',
-                'registration_date' => Carbon::parse('2024-03-10'),
-                'expiry_date' => Carbon::parse('2027-03-10'),
+                'ap_number' => 'AP.1760',
+                'user_id' => 3,
+                'registration_date' => Carbon::parse('2021-07-14'),
+                'expiry_date' => Carbon::parse('2026-07-14'),
                 'status' => 'active',
-            ],
-            [
-                'ap_number' => 'AP-004-2024',
-                'registration_date' => Carbon::parse('2024-04-05'),
-                'expiry_date' => Carbon::parse('2027-04-05'),
-                'status' => 'active',
-            ],
-            [
-                'ap_number' => 'AP-005-2024',
-                'registration_date' => Carbon::parse('2024-05-12'),
-                'expiry_date' => Carbon::parse('2027-05-12'),
-                'status' => 'active',
-            ],
+            ], 
         ];
-
-        foreach ($companyUsers->take(5) as $index => $user) {
-            if (isset($apData[$index])) {
+         foreach ($apData as $index => $data) {
                 RegisteredAp::create([
-                    'user_id' => $user->id,
-                    'ap_number' => $apData[$index]['ap_number'],
-                    'registration_date' => $apData[$index]['registration_date'],
-                    'expiry_date' => $apData[$index]['expiry_date'],
-                    'status' => $apData[$index]['status'],
+                    'user_id' => $data['user_id'],
+                    'ap_number' => $data['ap_number'],
+                    'registration_date' => $data['registration_date'],
+                    'expiry_date' => $data['expiry_date'],
+                    'status' => $data['status'],
                 ]);
-            }
-        }
+            } 
     }
 }

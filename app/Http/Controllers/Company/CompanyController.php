@@ -75,7 +75,7 @@ class CompanyController extends Controller
                 : 0,
         ];
         
-        // 3. Recent Projects (last 5)
+        // 3. Recent Projects (last 10)
         $recentProjects = Project::whereHas('projectTeams', function($query) use ($user) {
             $query->where('user_id', $user->id);
         })
@@ -83,7 +83,7 @@ class CompanyController extends Controller
             $query->where('user_id', $user->id);
         }])
         ->orderBy('created_at', 'desc')
-        ->limit(5)
+        ->limit(10)
         ->get()
         ->map(function($project) {
             return [
@@ -111,6 +111,7 @@ class CompanyController extends Controller
                     return [
                         'id' => $taskWorker->task->id,
                         'name' => $taskWorker->task->name,
+                        'project_id' => $taskWorker->task->workingStep->project_id,
                         'project_name' => $taskWorker->task->project_name,
                         'working_step_name' => $taskWorker->task->working_step_name,
                         'completion_status' => $taskWorker->task->completion_status,
@@ -205,32 +206,65 @@ class CompanyController extends Controller
     /**
      * Show list of projects for this company user
      */
-    public function myProjects()
+    public function myProjects(Request $request)
     {
         $user = Auth::user();
         
+        // Get filters from request
+        $status = $request->input('status', 'open'); // Default to 'open'
+        $search = $request->input('search', '');
+        
         // Get projects where user is a team member
-        $projects = Project::whereHas('projectTeams', function($query) use ($user) {
-            $query->where('user_id', $user->id);
+        $query = Project::whereHas('projectTeams', function($q) use ($user) {
+            $q->where('user_id', $user->id);
         })
-        ->with(['client', 'projectTeams' => function($query) use ($user) {
+        ->with(['projectTeams' => function($query) use ($user) {
             $query->where('user_id', $user->id);
-        }])
-        ->orderBy('name')
-        ->get()
-        ->map(function($project) {
-            return [
-                'id' => $project->id,
-                'name' => $project->name,
-                'client_name' => $project->client_name,
-                'status' => $project->status,
-                'my_role' => $project->projectTeams->first()->role ?? 'member',
-                'created_at' => $project->created_at,
-            ];
-        });
+        }]);
+        
+        // Apply status filter
+        if ($status) {
+            $query->where('status', $status);
+        }
+        
+        // Apply search filter
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('client_name', 'like', '%' . $search . '%');
+            });
+        }
+        
+        $projects = $query->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function($project) {
+                return [
+                    'id' => $project->id,
+                    'name' => $project->name,
+                    'client_name' => $project->client_name,
+                    'status' => $project->status,
+                    'my_role' => $project->projectTeams->first()->role ?? 'member',
+                    'created_at' => $project->created_at->format('Y-m-d H:i:s'),
+                ];
+            });
+        
+        // Get status counts
+        $statusCounts = [
+            'open' => Project::whereHas('projectTeams', function($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })->where('status', 'open')->count(),
+            'closed' => Project::whereHas('projectTeams', function($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })->where('status', 'closed')->count(),
+        ];
 
         return Inertia::render('Company/Projects/Index', [
             'projects' => $projects,
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+            ],
+            'statusCounts' => $statusCounts,
         ]);
     }
 

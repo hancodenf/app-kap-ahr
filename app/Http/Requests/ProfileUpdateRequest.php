@@ -27,6 +27,12 @@ class ProfileUpdateRequest extends FormRequest
             ],
             'position' => ['nullable', 'string', 'max:255'],
             'user_type' => ['nullable', 'string', 'in:Tenaga Ahli,Staff'],
+            'whatsapp' => [
+                'nullable',
+                'string',
+                'max:20',
+                Rule::unique('users', 'whatsapp')->ignore($this->user()->id),
+            ],
             'profile_photo' => ['nullable', 'image', 'max:2048'], // 2MB max
         ];
     }

@@ -1,8 +1,21 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { PageProps } from '@/types';
-import { FormEventHandler, useState } from 'react';
+import { FormEventHandler, useState, useCallback } from 'react';
 import Select from 'react-select';
+import Cropper from 'react-easy-crop';
+
+interface Point {
+    x: number;
+    y: number;
+}
+
+interface Area {
+    width: number;
+    height: number;
+    x: number;
+    y: number;
+}
 
 interface Role {
     id: number;
@@ -33,21 +46,160 @@ export default function Create({ roles, positions, userTypes, clients }: CreateU
         user_type: '',
         client_id: '',
         profile_photo: null as File | null,
+        whatsapp: '',
     });
 
     const [showPassword, setShowPassword] = useState(false);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [selectedCountryCode, setSelectedCountryCode] = useState('+62');
+    const [whatsappInput, setWhatsappInput] = useState('');
+
+    // Crop Image States
+    const [showCropModal, setShowCropModal] = useState(false);
+    const [imageSrc, setImageSrc] = useState<string | null>(null);
+    const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+    const [rotation, setRotation] = useState(0);
+
+    // Daftar kode negara populer
+    const countryCodes = [
+        { value: '+62', label: '+62 (Indonesia)', flag: '🇮🇩' },
+        { value: '+60', label: '+60 (Malaysia)', flag: '🇲🇾' },
+        { value: '+65', label: '+65 (Singapore)', flag: '🇸🇬' },
+        { value: '+1', label: '+1 (USA/Canada)', flag: '🇺🇸' },
+        { value: '+44', label: '+44 (UK)', flag: '🇬🇧' },
+        { value: '+61', label: '+61 (Australia)', flag: '🇦🇺' },
+        { value: '+81', label: '+81 (Japan)', flag: '🇯🇵' },
+        { value: '+82', label: '+82 (South Korea)', flag: '🇰🇷' },
+        { value: '+86', label: '+86 (China)', flag: '🇨🇳' },
+        { value: '+91', label: '+91 (India)', flag: '🇮🇳' },
+        { value: '+66', label: '+66 (Thailand)', flag: '🇹🇭' },
+        { value: '+84', label: '+84 (Vietnam)', flag: '🇻🇳' },
+        { value: '+63', label: '+63 (Philippines)', flag: '🇵🇭' },
+    ];
+
+    const handleWhatsappChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let value = e.target.value;
+        // Hanya terima angka
+        value = value.replace(/\D/g, '');
+        // Hapus angka 0 di depan jika ada
+        value = value.replace(/^0+/, '');
+        // Batasi maksimal 15 digit
+        if (value.length > 15) {
+            value = value.substring(0, 15);
+        }
+        setWhatsappInput(value);
+        // Gabungkan dengan country code
+        if (value) {
+            setData('whatsapp', selectedCountryCode + value);
+        } else {
+            setData('whatsapp', '');
+        }
+    };
+
+    const onCropComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
+        setCroppedAreaPixels(croppedAreaPixels);
+    }, []);
+
+    const createImage = (url: string): Promise<HTMLImageElement> => {
+        return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.addEventListener('load', () => resolve(image));
+            image.addEventListener('error', (error) => reject(error));
+            image.setAttribute('crossOrigin', 'anonymous');
+            image.src = url;
+        });
+    };
+
+    const getCroppedImg = async (imageSrc: string, pixelCrop: Area, rotation = 0): Promise<Blob> => {
+        const image = await createImage(imageSrc);
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) {
+            throw new Error('No 2d context');
+        }
+
+        const maxSize = Math.max(image.width, image.height);
+        const safeArea = 2 * ((maxSize / 2) * Math.sqrt(2));
+
+        canvas.width = safeArea;
+        canvas.height = safeArea;
+
+        ctx.translate(safeArea / 2, safeArea / 2);
+        ctx.rotate((rotation * Math.PI) / 180);
+        ctx.translate(-safeArea / 2, -safeArea / 2);
+
+        ctx.drawImage(
+            image,
+            safeArea / 2 - image.width * 0.5,
+            safeArea / 2 - image.height * 0.5
+        );
+
+        const data = ctx.getImageData(0, 0, safeArea, safeArea);
+
+        canvas.width = pixelCrop.width;
+        canvas.height = pixelCrop.height;
+
+        ctx.putImageData(
+            data,
+            Math.round(0 - safeArea / 2 + image.width * 0.5 - pixelCrop.x),
+            Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
+        );
+
+        return new Promise((resolve) => {
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    resolve(blob);
+                }
+            }, 'image/jpeg', 0.95);
+        });
+    };
 
     const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            setData('profile_photo', file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImageSrc(reader.result as string);
+                setShowCropModal(true);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleCropSave = async () => {
+        if (!imageSrc || !croppedAreaPixels) return;
+
+        try {
+            const croppedImageBlob = await getCroppedImg(imageSrc, croppedAreaPixels, rotation);
+            const croppedFile = new File([croppedImageBlob], 'profile.jpg', { type: 'image/jpeg' });
+            
+            setData('profile_photo', croppedFile);
+            
             const reader = new FileReader();
             reader.onloadend = () => {
                 setPhotoPreview(reader.result as string);
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(croppedFile);
+            
+            setShowCropModal(false);
+            setImageSrc(null);
+            setCrop({ x: 0, y: 0 });
+            setZoom(1);
+            setRotation(0);
+        } catch (error) {
+            console.error('Error cropping image:', error);
         }
+    };
+
+    const handleCropCancel = () => {
+        setShowCropModal(false);
+        setImageSrc(null);
+        setCrop({ x: 0, y: 0 });
+        setZoom(1);
+        setRotation(0);
     };
 
     const generatePassword = () => {
@@ -95,6 +247,85 @@ export default function Create({ roles, positions, userTypes, clients }: CreateU
 
             <div className="py-6">
                 <div className="max-w-2xl mx-auto sm:px-6 lg:px-8">
+                    {/* Crop Modal */}
+                    {showCropModal && imageSrc && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
+                            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
+                                <div className="p-4 border-b border-gray-200">
+                                    <h3 className="text-lg font-semibold text-gray-900">Crop Foto Profil</h3>
+                                    <p className="text-sm text-gray-500 mt-1">Sesuaikan posisi dan ukuran foto (Rasio 1:1)</p>
+                                </div>
+                                
+                                <div className="p-4">
+                                    <div className="relative w-full h-96 bg-gray-100 rounded-lg overflow-hidden">
+                                        <Cropper
+                                            image={imageSrc}
+                                            crop={crop}
+                                            zoom={zoom}
+                                            rotation={rotation}
+                                            aspect={1}
+                                            onCropChange={setCrop}
+                                            onZoomChange={setZoom}
+                                            onRotationChange={setRotation}
+                                            onCropComplete={onCropComplete}
+                                        />
+                                    </div>
+                                    
+                                    <div className="mt-4 space-y-4">
+                                        {/* Zoom Control */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Zoom: {zoom.toFixed(1)}x
+                                            </label>
+                                            <input
+                                                type="range"
+                                                min={1}
+                                                max={3}
+                                                step={0.1}
+                                                value={zoom}
+                                                onChange={(e) => setZoom(Number(e.target.value))}
+                                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
+                                            />
+                                        </div>
+                                        
+                                        {/* Rotation Control */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Rotasi: {rotation}°
+                                            </label>
+                                            <input
+                                                type="range"
+                                                min={0}
+                                                max={360}
+                                                step={1}
+                                                value={rotation}
+                                                onChange={(e) => setRotation(Number(e.target.value))}
+                                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={handleCropCancel}
+                                        className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                                    >
+                                        Batal
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleCropSave}
+                                        className="px-4 py-2 bg-primary-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                                    >
+                                        Simpan & Gunakan
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-6">
                             <form onSubmit={submit} className="space-y-6">
@@ -180,6 +411,54 @@ export default function Create({ roles, positions, userTypes, clients }: CreateU
                                     />
                                     {errors.email && (
                                         <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                                    )}
+                                </div>
+
+                                {/* WhatsApp */}
+                                <div>
+                                    <label htmlFor="whatsapp" className="block text-sm font-medium text-gray-700 mb-2">
+                                        WhatsApp <span className="text-gray-500 font-normal">(Opsional)</span>
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <select
+                                            value={selectedCountryCode}
+                                            onChange={(e) => {
+                                                setSelectedCountryCode(e.target.value);
+                                                if (whatsappInput) {
+                                                    setData('whatsapp', e.target.value + whatsappInput);
+                                                }
+                                            }}
+                                            className="w-32 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                                        >
+                                            {countryCodes.map((country) => (
+                                                <option key={country.value} value={country.value}>
+                                                    {country.flag} {country.value}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <div className="flex-1 relative">
+                                            <input
+                                                id="whatsapp"
+                                                type="text"
+                                                value={whatsappInput}
+                                                onChange={handleWhatsappChange}
+                                                maxLength={15}
+                                                className={`w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                                                    errors.whatsapp ? 'border-red-500' : 'border-gray-300'
+                                                }`}
+                                                placeholder="8123456789 (tanpa 0 di depan)"
+                                            /> 
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-1"> 
+                                        {whatsappInput && (
+                                            <p className={`text-xs ${whatsappInput.length >= 15 ? 'text-red-500' : 'text-gray-400'}`}>
+                                                {whatsappInput.length}/15
+                                            </p>
+                                        )}
+                                    </div> 
+                                    {errors.whatsapp && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.whatsapp}</p>
                                     )}
                                 </div>
 

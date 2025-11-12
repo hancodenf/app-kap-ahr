@@ -304,10 +304,7 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Status
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Bergabung
-                                            </th>
+                                            </th> 
                                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Aksi
                                             </th>
@@ -393,10 +390,7 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                                             }`}
                                                         />
                                                     </button>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                    {formatDate(user.created_at)}
-                                                </td>
+                                                </td> 
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                     <div className="flex justify-end gap-1">
                                                         <Link

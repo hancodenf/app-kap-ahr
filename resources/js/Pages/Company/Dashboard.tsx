@@ -28,6 +28,7 @@ interface RecentProject {
 interface ActiveTask {
 	id: number;
 	name: string;
+	project_id: number;
 	project_name: string;
 	working_step_name: string;
 	completion_status: string;
@@ -300,10 +301,14 @@ export default function CompanyDashboard({
 									View all →
 								</Link>
 							</div>
-							<div className="space-y-3">
+							<div className="space-y-3 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
 								{recentProjects.length > 0 ? (
 									recentProjects.map((project) => (
-										<div key={project.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-primary-50 hover:border-primary-300 transition-colors">
+										<Link 
+											key={project.id} 
+											href={route('company.projects.show', project.id)}
+											className="block p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-primary-50 hover:border-primary-300 transition-colors cursor-pointer"
+										>
 											<div className="flex justify-between items-start mb-2">
 												<div className="flex-1">
 													<h4 className="font-medium text-gray-900">{project.name}</h4>
@@ -315,7 +320,7 @@ export default function CompanyDashboard({
 												{getRoleBadge(project.my_role)}
 												<span className="text-gray-500">{formatDate(project.created_at)}</span>
 											</div>
-										</div>
+										</Link>
 									))
 								) : (
 									<p className="text-sm text-gray-500 text-center py-8">No recent projects</p>
@@ -329,10 +334,14 @@ export default function CompanyDashboard({
 								<h3 className="text-lg font-semibold text-gray-900">My Active Tasks</h3>
 								<span className="text-sm text-gray-500">{myActiveTasks.length} tasks</span>
 							</div>
-							<div className="space-y-3 max-h-96 overflow-y-auto">
+							<div className="space-y-3 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
 								{myActiveTasks.length > 0 ? (
 									myActiveTasks.map((task: any) => (
-										<div key={task.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-primary-50 hover:border-primary-300 transition-colors">
+										<Link
+											key={task.id}
+											href={route('company.projects.show', task.project_id)}
+											className="block p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-primary-50 hover:border-primary-300 transition-colors cursor-pointer"
+										>
 											<div className="flex items-start justify-between mb-2">
 												<div className="flex-1">
 													<h4 className="text-sm font-medium text-gray-900">{task.name}</h4>
@@ -349,7 +358,7 @@ export default function CompanyDashboard({
 												{getStatusBadge(task.completion_status)}
 												{getStatusBadge(task.status)}
 											</div>
-										</div>
+										</Link>
 									))
 								) : (
 									<p className="text-sm text-gray-500 text-center py-8">No active tasks</p>

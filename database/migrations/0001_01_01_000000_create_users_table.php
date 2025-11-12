@@ -33,6 +33,7 @@ return new class extends Migration
                 'Internship HR'
             ])->nullable();
             $table->enum('user_type', ['Tenaga Ahli', 'Staff'])->nullable();
+            $table->string('whatsapp')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
