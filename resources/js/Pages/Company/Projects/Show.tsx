@@ -14,6 +14,8 @@ interface ClientDocument {
     id: number;
     name: string;
     description: string;
+    file: string | null;
+    uploaded_at: string | null;
 }
 
 interface TaskAssignment {
@@ -117,7 +119,15 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
     const [showForm, setShowForm] = useState(false);
     const [expandedSubmissions, setExpandedSubmissions] = useState<number[]>([]);
     const [uploadMode, setUploadMode] = useState<'upload' | 'request'>('upload');
-    const [fileInputs, setFileInputs] = useState<Array<{ id: number; label: string; file: File | null }>>([{ id: 0, label: '', file: null }]);
+    const [showReuploadModal, setShowReuploadModal] = useState(false);
+    const [reuploadComment, setReuploadComment] = useState('');
+    const [fileInputs, setFileInputs] = useState<Array<{ 
+        id: number; 
+        label: string; 
+        file: File | null; 
+        existingDocId?: number; 
+        existingFilePath?: string;
+    }>>([{ id: 0, label: '', file: null }]);
     const [clientDocInputs, setClientDocInputs] = useState<Array<{ id: number; name: string; description: string }>>([{ id: 0, name: '', description: '' }]);
     const [nextFileId, setNextFileId] = useState(1);
     const [nextClientDocId, setNextClientDocId] = useState(1);
@@ -146,6 +156,8 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
         setShowApprovalModal(false);
         setSelectedApprovalTask(null);
         setRejectComment('');
+        setShowReuploadModal(false);
+        setReuploadComment('');
         reset();
     }, [activeTab]);
 
@@ -243,6 +255,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
         file_labels: string[];
         upload_mode: 'upload' | 'request';
         client_documents: Array<{ name: string; description: string }>;
+        existing_document_labels: Array<{ doc_id: number; label: string }>; // For updating labels without uploading new files
         _method?: string;
     }>({
         notes: '',
@@ -250,6 +263,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
         file_labels: [],
         upload_mode: 'upload',
         client_documents: [],
+        existing_document_labels: [],
         _method: 'PUT',
     });
 
@@ -275,7 +289,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
         // Determine if we should show form based on status
         // Show form directly for: Draft, Submitted (editable statuses)
         // Show history for: Under Review, Returned for Revision, Approved
-        const isEditable = task.status === 'Draft' || task.status === 'Submitted';
+        const isEditable = task.status === 'Draft' || task.status === 'Submitted' || task.status === 'Submitted to Client';
         const hasNoAssignments = !task.assignments || task.assignments.length === 0;
         
         setShowForm(isEditable || hasNoAssignments);
@@ -290,7 +304,13 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
         setUploadMode('upload');
         
         // Initialize form inputs - loop from database records (assignments array)
-        let initialFileInputs: Array<{ id: number; label: string; file: File | null }> = [{ id: 0, label: '', file: null }];
+        let initialFileInputs: Array<{ 
+            id: number; 
+            label: string; 
+            file: File | null; 
+            existingDocId?: number; 
+            existingFilePath?: string;
+        }> = [{ id: 0, label: '', file: null }];
         let initialClientDocInputs: Array<{ id: number; name: string; description: string }> = [{ id: 0, name: '', description: '' }];
         let nextFileCounter = 1;
         let nextClientDocCounter = 1;
@@ -305,6 +325,8 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                     id: index,
                     label: doc.name,
                     file: null, // Existing file from DB, no File object yet
+                    existingDocId: doc.id,
+                    existingFilePath: doc.file,
                 }));
                 nextFileCounter = latestAssignment.documents.length;
             }
@@ -478,14 +500,26 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
         if (!selectedTask) return;
 
         // Validate: at least one of files or client_documents must be provided
-        const hasFiles = data.files && data.files.length > 0;
+        // UNLESS there are existing files (editing mode)
+        const hasNewFiles = data.files && data.files.length > 0;
         const hasClientDocs = data.client_documents && data.client_documents.length > 0;
+        const hasExistingFiles = fileInputs.some(input => input.existingFilePath);
+        const hasExistingClientDocs = clientDocInputs.some(input => input.name.trim() !== '');
         
-        if (!hasFiles && !hasClientDocs) {
+        if (!hasNewFiles && !hasClientDocs && !hasExistingFiles && !hasExistingClientDocs) {
             alert('Please upload at least one file or request at least one document from client.');
             return;
         }
 
+        // Collect existing document labels (for updating without uploading new files)
+        const existingDocLabels = fileInputs
+            .filter(input => input.existingDocId && !input.file) // Has existing doc and no new file uploaded
+            .map(input => ({
+                doc_id: input.existingDocId!,
+                label: input.label
+            }));
+        
+        data.existing_document_labels = existingDocLabels;
         data._method = 'PUT';
 
         // Use post with _method spoofing for PUT with file uploads
@@ -540,6 +574,55 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
             console.error('Error submitting for review:', error);
             alert('An error occurred while submitting for review');
         }
+    };
+
+    const handleAcceptClientDocuments = async () => {
+        if (!selectedTask) return;
+
+        if (!confirm('Accept all client documents and mark task as completed?')) {
+            return;
+        }
+
+        router.post(route('company.tasks.accept-client-documents', selectedTask.id), {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                alert('Client documents accepted! Task marked as completed.');
+                setShowTaskModal(false);
+                setSelectedTask(null);
+                setShowForm(false);
+            },
+            onError: (errors) => {
+                console.error('Server errors:', errors);
+                const errorMessage = errors.error || Object.values(errors).join(', ') || 'Failed to accept client documents';
+                alert(`Error: ${errorMessage}`);
+            }
+        });
+    };
+
+    const handleRequestReupload = async () => {
+        if (!selectedTask || !reuploadComment.trim()) {
+            alert('Please provide a reason for requesting re-upload');
+            return;
+        }
+
+        router.post(route('company.tasks.request-reupload', selectedTask.id), {
+            comment: reuploadComment,
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                alert('Re-upload request sent to client!');
+                setShowReuploadModal(false);
+                setReuploadComment('');
+                setShowTaskModal(false);
+                setSelectedTask(null);
+                setShowForm(false);
+            },
+            onError: (errors) => {
+                console.error('Server errors:', errors);
+                const errorMessage = errors.error || Object.values(errors).join(', ') || 'Failed to request re-upload';
+                alert(`Error: ${errorMessage}`);
+            }
+        });
     };
 
     const getStatusBadgeClass = (status: string) => {
@@ -1103,7 +1186,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                     {/* Previous Assignments History - Only show if more than 1 submission OR status is not editable */}
                                     {selectedTask.assignments && selectedTask.assignments.length > 0 && (
                                         selectedTask.assignments.length > 1 || 
-                                        (selectedTask.status !== 'Draft' && selectedTask.status !== 'Submitted')
+                                        (selectedTask.status !== 'Draft' && selectedTask.status !== 'Submitted' && selectedTask.status !== 'Submitted to Client')
                                     ) && (
                                         <div className="mb-6">
                                             <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -1183,16 +1266,40 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                                                 <p className="text-xs font-medium text-gray-700">📋 Requested Documents ({assignment.client_documents.length}):</p>
                                                                 {assignment.client_documents.map((clientDoc) => (
                                                                     <div key={clientDoc.id} className="p-2 bg-purple-50 border border-purple-200 rounded">
-                                                                        <div className="flex items-start space-x-2">
-                                                                            <svg className="w-5 h-5 text-purple-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                                            </svg>
-                                                                            <div className="flex-1">
-                                                                                <p className="text-sm font-medium text-gray-900">{clientDoc.name}</p>
-                                                                                {clientDoc.description && (
-                                                                                    <p className="text-xs text-gray-600 mt-1">{clientDoc.description}</p>
-                                                                                )}
+                                                                        <div className="flex items-start justify-between">
+                                                                            <div className="flex items-start space-x-2 flex-1">
+                                                                                <svg className="w-5 h-5 text-purple-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                                </svg>
+                                                                                <div className="flex-1">
+                                                                                    <p className="text-sm font-medium text-gray-900">{clientDoc.name}</p>
+                                                                                    {clientDoc.description && (
+                                                                                        <p className="text-xs text-gray-600 mt-1">{clientDoc.description}</p>
+                                                                                    )}
+                                                                                    {clientDoc.file && clientDoc.uploaded_at && (
+                                                                                        <p className="text-xs text-green-600 mt-1">
+                                                                                            ✅ Uploaded by client on {new Date(clientDoc.uploaded_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                                                        </p>
+                                                                                    )}
+                                                                                    {!clientDoc.file && (
+                                                                                        <p className="text-xs text-orange-600 mt-1">
+                                                                                            ⏳ Waiting for client upload
+                                                                                        </p>
+                                                                                    )}
+                                                                                </div>
                                                                             </div>
+                                                                            {clientDoc.file && (
+                                                                                <a
+                                                                                    href={`/storage/${clientDoc.file}`}
+                                                                                    download
+                                                                                    className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 ml-2"
+                                                                                >
+                                                                                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                                                    </svg>
+                                                                                    Download
+                                                                                </a>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 ))}
@@ -1200,6 +1307,48 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                                         )}
                                                     </div>
                                                 ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Client Document Review Actions - Show when status is "Client Reply" */}
+                                    {selectedTask.status === 'Client Reply' && selectedTask.is_assigned_to_me && (
+                                        <div className="mb-6 p-4 bg-yellow-50 border-2 border-yellow-300 rounded-lg">
+                                            <div className="flex items-start space-x-3 mb-4">
+                                                <svg className="w-6 h-6 text-yellow-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                                <div className="flex-1">
+                                                    <h4 className="text-sm font-semibold text-yellow-900 mb-1">
+                                                        Client has uploaded documents
+                                                    </h4>
+                                                    <p className="text-sm text-yellow-800">
+                                                        Please review the documents uploaded by the client. You can accept them to complete the task or request re-upload if they need corrections.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex gap-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleAcceptClientDocuments}
+                                                    className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+                                                >
+                                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                    Accept & Mark Complete
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowReuploadModal(true)}
+                                                    className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors"
+                                                >
+                                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                    </svg>
+                                                    Request Re-upload
+                                                </button>
                                             </div>
                                         </div>
                                     )}
@@ -1292,6 +1441,30 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                                             </svg>
                                                         </button>
                                                     </div>
+
+                                                    {/* Show existing file link if available */}
+                                                    {input.existingFilePath && !input.file && (
+                                                        <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center space-x-2">
+                                                                    <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                                                                    </svg>
+                                                                    <span className="text-xs text-blue-800">📎 Current file: {input.label}</span>
+                                                                </div>
+                                                                <a
+                                                                    href={`/storage/${input.existingFilePath}`}
+                                                                    download
+                                                                    className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded"
+                                                                >
+                                                                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                                    </svg>
+                                                                    Download
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    )}
 
                                                     {/* Drag & Drop File Upload Area */}
                                                     <div className="mt-3">
@@ -1585,16 +1758,40 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                                                 <p className="text-xs font-medium text-gray-700">📋 Requested Documents ({assignment.client_documents.length}):</p>
                                                                 {assignment.client_documents.map((clientDoc) => (
                                                                     <div key={clientDoc.id} className="p-2 bg-purple-50 border border-purple-200 rounded">
-                                                                        <div className="flex items-start space-x-2">
-                                                                            <svg className="w-5 h-5 text-purple-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                                            </svg>
-                                                                            <div className="flex-1">
-                                                                                <p className="text-sm font-medium text-gray-900">{clientDoc.name}</p>
-                                                                                {clientDoc.description && (
-                                                                                    <p className="text-xs text-gray-600 mt-1">{clientDoc.description}</p>
-                                                                                )}
+                                                                        <div className="flex items-start justify-between">
+                                                                            <div className="flex items-start space-x-2 flex-1">
+                                                                                <svg className="w-5 h-5 text-purple-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                                </svg>
+                                                                                <div className="flex-1">
+                                                                                    <p className="text-sm font-medium text-gray-900">{clientDoc.name}</p>
+                                                                                    {clientDoc.description && (
+                                                                                        <p className="text-xs text-gray-600 mt-1">{clientDoc.description}</p>
+                                                                                    )}
+                                                                                    {clientDoc.file && clientDoc.uploaded_at && (
+                                                                                        <p className="text-xs text-green-600 mt-1">
+                                                                                            ✅ Uploaded by client on {new Date(clientDoc.uploaded_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                                                        </p>
+                                                                                    )}
+                                                                                    {!clientDoc.file && (
+                                                                                        <p className="text-xs text-orange-600 mt-1">
+                                                                                            ⏳ Waiting for client upload
+                                                                                        </p>
+                                                                                    )}
+                                                                                </div>
                                                                             </div>
+                                                                            {clientDoc.file && (
+                                                                                <a
+                                                                                    href={`/storage/${clientDoc.file}`}
+                                                                                    download
+                                                                                    className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 ml-2"
+                                                                                >
+                                                                                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                                                    </svg>
+                                                                                    Download
+                                                                                </a>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 ))}
@@ -1605,6 +1802,48 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                                 </div>
                                             ))}
                                         </div>
+
+                                        {/* Client Document Review Actions - Show when status is "Client Reply" (in view-only mode) */}
+                                        {selectedTask.status === 'Client Reply' && selectedTask.is_assigned_to_me && (
+                                            <div className="mt-6 p-4 bg-yellow-50 border-2 border-yellow-300 rounded-lg">
+                                                <div className="flex items-start space-x-3 mb-4">
+                                                    <svg className="w-6 h-6 text-yellow-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                    </svg>
+                                                    <div className="flex-1">
+                                                        <h4 className="text-sm font-semibold text-yellow-900 mb-1">
+                                                            Client has uploaded documents
+                                                        </h4>
+                                                        <p className="text-sm text-yellow-800">
+                                                            Please review the documents uploaded by the client. You can accept them to complete the task or request re-upload if they need corrections.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="flex gap-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleAcceptClientDocuments}
+                                                        className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+                                                    >
+                                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                        Accept & Mark Complete
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowReuploadModal(true)}
+                                                        className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors"
+                                                    >
+                                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                        </svg>
+                                                        Request Re-upload
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         {/* Add New Submission button - only show if latest assignment is rejected */}
                                         {selectedTask.assignments.length > 0 && selectedTask.assignments[0].comment && !selectedTask.assignments[0].is_approved && (
@@ -1628,6 +1867,63 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                             </div>
                         </div>
                     </div>
+            )}
+
+            {/* Re-upload Request Modal */}
+            {showReuploadModal && (
+                <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                    <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setShowReuploadModal(false)}></div>
+                        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                        <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                            <div className="sm:flex sm:items-start">
+                                <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 sm:mx-0 sm:h-10 sm:w-10">
+                                    <svg className="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </div>
+                                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+                                    <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                        Request Re-upload from Client
+                                    </h3>
+                                    <div className="mt-4">
+                                        <p className="text-sm text-gray-500 mb-3">
+                                            The previous submission will be kept in history. Please provide a reason for requesting re-upload:
+                                        </p>
+                                        <textarea
+                                            value={reuploadComment}
+                                            onChange={(e) => setReuploadComment(e.target.value)}
+                                            rows={4}
+                                            placeholder="Example: The documents need to be in PDF format, not images..."
+                                            className="w-full border-gray-300 rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                                <button
+                                    type="button"
+                                    onClick={handleRequestReupload}
+                                    disabled={!reuploadComment.trim()}
+                                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-orange-600 text-base font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Send Request
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowReuploadModal(false);
+                                        setReuploadComment('');
+                                    }}
+                                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:w-auto sm:text-sm"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
         </AuthenticatedLayout>
     );

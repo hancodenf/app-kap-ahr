@@ -456,7 +456,7 @@ class ClientController extends Controller
                       ->with([
                           'documents',
                           'clientDocuments',
-                          'user.role' // Load user who worked on the assignment
+                          'user' // Load user who worked on the assignment (role is a column, not relation)
                       ]);
             },
             'taskWorkers.projectTeam.user' // Load task workers
@@ -523,9 +523,7 @@ class ClientController extends Controller
                         'id' => $assignment->user->id,
                         'name' => $assignment->user->name,
                         'email' => $assignment->user->email,
-                        'role' => $assignment->user->role ? [
-                            'name' => $assignment->user->role->name
-                        ] : null
+                        'role' => $assignment->user->role
                     ] : null
                 ];
             })
@@ -619,7 +617,9 @@ class ClientController extends Controller
             return $doc->file !== null;
         });
 
-        if ($allUploaded && $task->status === 'Submitted to Client') {
+        // Update task status to Client Reply if all documents uploaded
+        // Allow status update from both "Submitted to Client" and "Submitted"
+        if ($allUploaded && ($task->status === 'Submitted to Client' || $task->status === 'Submitted')) {
             // Update task status to Client Reply
             $task->update([
                 'status' => 'Client Reply',

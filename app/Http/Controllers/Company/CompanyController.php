@@ -365,6 +365,8 @@ class CompanyController extends Controller
                                         'id' => $clientDoc->id,
                                         'name' => $clientDoc->name,
                                         'description' => $clientDoc->description,
+                                        'file' => $clientDoc->file,
+                                        'uploaded_at' => $clientDoc->uploaded_at,
                                     ];
                                 }),
                             ] : null,
@@ -391,6 +393,8 @@ class CompanyController extends Controller
                                             'id' => $clientDoc->id,
                                             'name' => $clientDoc->name,
                                             'description' => $clientDoc->description,
+                                            'file' => $clientDoc->file,
+                                            'uploaded_at' => $clientDoc->uploaded_at,
                                         ];
                                     }),
                                 ];
@@ -447,26 +451,68 @@ class CompanyController extends Controller
             'client_documents.*.description' => 'nullable|string',
         ]);
 
+        // Get or create TaskAssignment
+        // For editable statuses (Draft, Submitted), update existing assignment
+        // For rejected/revision statuses, create new assignment
+        $taskAssignment = $task->taskAssignments()->latest()->first();
+        
+        $isEditable = $task->status === 'Draft' || $task->status === 'Submitted' || $task->status === 'Submitted to Client';
+        
         // Custom validation: at least one of files or client_documents must be provided
+        // UNLESS editing existing assignment (which already has files)
         $hasFiles = $request->hasFile('files');
         $hasClientDocs = $request->has('client_documents') && is_array($request->client_documents) && count($request->client_documents) > 0;
+        $hasExistingData = $taskAssignment && ($taskAssignment->documents()->count() > 0 || $taskAssignment->clientDocuments()->count() > 0);
         
-        if (!$hasFiles && !$hasClientDocs) {
+        if (!$hasFiles && !$hasClientDocs && !$hasExistingData) {
             return back()->withErrors(['error' => 'Please upload at least one file or request at least one document from client.']);
         }
         
-        // Create new TaskAssignment
-        $taskAssignment = \App\Models\TaskAssignment::create([
-            'task_id' => $task->id,
-            'task_name' => $task->name,
-            'working_step_name' => $task->working_step_name,
-            'project_name' => $task->project_name,
-            'project_client_name' => $task->project_client_name,
-            'time' => now(),
-            'notes' => $request->notes,
-            'comment' => null, // Will be filled by reviewer if rejected
-            'is_approved' => false,
-        ]);
+        if ($taskAssignment && $isEditable) {
+            // UPDATE existing assignment (edit mode for Draft/Submitted)
+            $taskAssignment->update([
+                'notes' => $request->notes,
+                'time' => now(),
+            ]);
+            
+            // Update existing document labels if provided (without uploading new files)
+            if ($request->has('existing_document_labels') && is_array($request->existing_document_labels)) {
+                foreach ($request->existing_document_labels as $docLabel) {
+                    if (isset($docLabel['doc_id']) && isset($docLabel['label'])) {
+                        $document = \App\Models\Document::find($docLabel['doc_id']);
+                        if ($document && $document->task_assignment_id == $taskAssignment->id) {
+                            $document->update([
+                                'name' => $docLabel['label'],
+                                'slug' => \Illuminate\Support\Str::slug($docLabel['label'] . '-' . time() . '-' . uniqid()),
+                            ]);
+                        }
+                    }
+                }
+            }
+            
+            // Only delete old documents if new files are being uploaded
+            if ($hasFiles) {
+                $taskAssignment->documents()->delete();
+            }
+            
+            // Only delete old client documents if new requests are being made
+            if ($hasClientDocs) {
+                $taskAssignment->clientDocuments()->delete();
+            }
+        } else {
+            // CREATE new assignment (first time or after rejection)
+            $taskAssignment = \App\Models\TaskAssignment::create([
+                'task_id' => $task->id,
+                'task_name' => $task->name,
+                'working_step_name' => $task->working_step_name,
+                'project_name' => $task->project_name,
+                'project_client_name' => $task->project_client_name,
+                'time' => now(),
+                'notes' => $request->notes,
+                'comment' => null, // Will be filled by reviewer if rejected
+                'is_approved' => false,
+            ]);
+        }
         
         // Handle file uploads (if provided)
         if ($request->hasFile('files')) {
@@ -835,5 +881,151 @@ class CompanyController extends Controller
         }
         
         return response()->json(['success' => true, 'message' => 'Task rejected and returned for revision.']);
+    }
+
+    /**
+     * Accept client documents and mark task as ready for review
+     */
+    public function acceptClientDocuments(Request $request, Task $task)
+    {
+        $user = Auth::user();
+        
+        // Check if user is assigned to this task
+        $taskWorker = \App\Models\TaskWorker::where('task_id', $task->id)
+            ->whereHas('projectTeam', function($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->first();
+            
+        if (!$taskWorker) {
+            return back()->with('error', 'You are not assigned to this task.');
+        }
+
+        // Verify task status is "Client Reply"
+        if ($task->status !== 'Client Reply') {
+            return back()->with('error', 'Task is not in Client Reply status.');
+        }
+
+        // Get latest assignment
+        $latestAssignment = $task->taskAssignments()->latest()->first();
+        
+        if (!$latestAssignment) {
+            return back()->with('error', 'No assignment found for this task.');
+        }
+
+        // Verify all client documents have been uploaded
+        $clientDocuments = $latestAssignment->clientDocuments;
+        $allUploaded = $clientDocuments->every(function($doc) {
+            return $doc->file !== null;
+        });
+
+        if (!$allUploaded) {
+            return back()->with('error', 'Not all client documents have been uploaded yet.');
+        }
+
+        // Update task status to "Submitted" (ready for approval workflow)
+        $task->status = 'Submitted';
+        $task->completion_status = 'completed';
+        $task->save();
+
+        // Log activity
+        \App\Models\ActivityLog::create([
+            'user_id' => Auth::id(),
+            'user_name' => Auth::user()->name,
+            'action_type' => 'task_status',
+            'action' => 'accepted_client_documents',
+            'target_name' => $task->name,
+            'description' => "Accepted client documents for task: {$task->name}",
+            'meta' => json_encode([
+                'task_id' => $task->id,
+                'previous_status' => 'Client Reply',
+                'new_status' => 'Submitted',
+            ]),
+        ]);
+
+        return back()->with('success', 'Client documents accepted. Task marked as completed and ready for review.');
+    }
+
+    /**
+     * Request client to re-upload documents (creates new assignment)
+     */
+    public function requestReupload(Request $request, Task $task)
+    {
+        $user = Auth::user();
+        
+        // Check if user is assigned to this task
+        $taskWorker = \App\Models\TaskWorker::where('task_id', $task->id)
+            ->whereHas('projectTeam', function($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->first();
+            
+        if (!$taskWorker) {
+            return back()->with('error', 'You are not assigned to this task.');
+        }
+
+        // Verify task status is "Client Reply"
+        if ($task->status !== 'Client Reply') {
+            return back()->with('error', 'Task is not in Client Reply status.');
+        }
+
+        $request->validate([
+            'comment' => 'required|string|max:1000',
+        ]);
+
+        // Get latest assignment (to copy client document requests)
+        $latestAssignment = $task->taskAssignments()->latest()->first();
+        
+        if (!$latestAssignment) {
+            return back()->with('error', 'No assignment found for this task.');
+        }
+
+        // Create NEW task assignment (old one remains for history)
+        $newAssignment = \App\Models\TaskAssignment::create([
+            'task_id' => $task->id,
+            'user_id' => $user->id,
+            'task_name' => $task->name,
+            'working_step_name' => $task->working_step_name,
+            'project_name' => $task->project_name,
+            'project_client_name' => $task->project_client_name,
+            'time' => now(),
+            'notes' => 'Re-upload requested <br> Comment: <br>' . $request->comment,
+            'is_approved' => false,
+        ]);
+
+        // Copy client document requests to new assignment (WITHOUT files - client needs to re-upload)
+        $oldClientDocuments = $latestAssignment->clientDocuments;
+        foreach ($oldClientDocuments as $oldDoc) {
+            \App\Models\ClientDocument::create([
+                'task_assignment_id' => $newAssignment->id,
+                'name' => $oldDoc->name,
+                'slug' => \Illuminate\Support\Str::slug($oldDoc->name . '-' . time() . '-' . uniqid()),
+                'description' => $oldDoc->description,
+                'file' => null, // No file - client needs to upload again
+                'uploaded_at' => null,
+            ]);
+        }
+
+        // Update task status back to "Submitted to Client"
+        $task->status = 'Submitted to Client';
+        $task->save();
+
+        // Log activity
+        \App\Models\ActivityLog::create([
+            'user_id' => Auth::id(),
+            'user_name' => Auth::user()->name,
+            'action_type' => 'task_status',
+            'action' => 'requested_reupload',
+            'target_name' => $task->name,
+            'description' => "Requested client to re-upload documents for task: {$task->name}",
+            'meta' => json_encode([
+                'task_id' => $task->id,
+                'comment' => $request->comment,
+                'previous_assignment_id' => $latestAssignment->id,
+                'new_assignment_id' => $newAssignment->id,
+            ]),
+        ]);
+
+        return back()->with('success', 'Re-upload request sent to client. Previous submission kept in history.');
     }
 }

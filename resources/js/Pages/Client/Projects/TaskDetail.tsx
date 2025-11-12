@@ -349,7 +349,7 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                     {assignment.notes && (
                                                         <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
                                                             <p className="text-xs font-medium text-blue-900 mb-1">📝 Notes dari Tim:</p>
-                                                            <p className="text-sm text-blue-800">{assignment.notes}</p>
+                                                            <p className="text-sm text-blue-800">{assignment.notes.replace(/<br\s*\/?>/gi, '\n')}</p>
                                                         </div>
                                                     )}
 

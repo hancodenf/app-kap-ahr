@@ -43,16 +43,20 @@ return new class extends Migration
                 'Under Review by Team Leader',
                 'Approved by Team Leader',
                 'Returned for Revision (by Team Leader)',
+                'Waiting for Manager review',
                 'Under Review by Manager',
                 'Approved by Manager',
                 'Returned for Revision (by Manager)',
+                'Waiting for Supervisor review',
                 'Under Review by Supervisor',
                 'Approved by Supervisor',
                 'Returned for Revision (by Supervisor)',
+                'Waiting for Partner review',
                 'Under Review by Partner',
                 'Approved by Partner',
                 'Returned for Revision (by Partner)',
                 'Submitted to Client',
+                'Under Review by Client',
                 'Client Reply'
             ])->default('Draft');
             $table->timestamps();
