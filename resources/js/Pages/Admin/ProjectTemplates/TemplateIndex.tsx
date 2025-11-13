@@ -87,7 +87,7 @@ export default function Index({ bundles, filters }: Props) {
                         href={route('admin.project-templates.template-bundles.create')}
                         className="w-full sm:w-auto bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors text-center"
                     >
-                        + Tambah Template
+                        + Add Template
                     </Link>
                 </div>
             }
@@ -115,7 +115,7 @@ export default function Index({ bundles, filters }: Props) {
                             <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2">
                                 <input
                                     type="text"
-                                    placeholder="Cari template..."
+                                    placeholder="Search template..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -126,7 +126,7 @@ export default function Index({ bundles, filters }: Props) {
                                         onClick={handleSearch}
                                         className="flex-1 sm:flex-none bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md transition-colors text-sm font-medium"
                                     >
-                                        Cari
+                                        Search
                                     </button>
                                     {filters.search && (
                                         <button
@@ -148,7 +148,7 @@ export default function Index({ bundles, filters }: Props) {
                                                 No
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Nama Template
+                                                Template Name
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Working Steps
@@ -157,10 +157,10 @@ export default function Index({ bundles, filters }: Props) {
                                                 Total Tasks
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Dibuat
+                                                Created
                                             </th>
                                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Aksi
+                                                Actions
                                             </th>
                                         </tr>
                                     </thead>
@@ -276,7 +276,7 @@ export default function Index({ bundles, filters }: Props) {
                                         </div>
 
                                         <div className="text-xs text-gray-500 mb-3">
-                                            <span className="font-medium">Dibuat:</span> {formatDate(bundle.created_at)}
+                                            <span className="font-medium">Created:</span> {formatDate(bundle.created_at)}
                                         </div>
 
                                         <div className="flex gap-2">
@@ -316,7 +316,7 @@ export default function Index({ bundles, filters }: Props) {
                             {bundles.data.length === 0 && (
                                 <div className="text-center py-8">
                                     <div className="text-gray-500">
-                                        {filters.search ? 'Tidak ada template yang ditemukan.' : 'Belum ada template.'}
+                                        {filters.search ? 'No templates found.' : 'No templates yet.'}
                                     </div>
                                 </div>
                             )}

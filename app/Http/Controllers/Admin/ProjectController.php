@@ -67,7 +67,7 @@ class ProjectController extends Controller
     {
         // Get all clients with their used years
         $clients = \App\Models\Client::orderBy('name')
-            ->get(['id', 'name', 'alamat', 'kementrian'])
+            ->get(['id', 'name', 'alamat', 'kementrian', 'kode_satker'])
             ->map(function ($client) {
                 $usedYears = Project::where('client_id', $client->id)
                     ->pluck('year')
@@ -121,6 +121,7 @@ class ProjectController extends Controller
         // Create project with denormalized client data
         $project = Project::create([
             'name' => $request->name,
+            'slug' => \Str::slug($request->name . '-' . now()->timestamp),
             'client_id' => $request->client_id,
             'year' => $request->year,
             'client_name' => $client->name,

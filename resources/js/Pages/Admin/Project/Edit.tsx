@@ -423,19 +423,20 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         status: 'closed' as 'open' | 'closed',
     });
 
-    // Get available years for selected client in edit form
-    const availableYears = useMemo(() => {
+    // Get year options with disabled status for used years
+    const yearOptions = useMemo(() => {
         const currentYear = new Date().getFullYear();
-        
-        if (!editTemplateData.client_id) {
-            return Array.from({ length: currentYear - 1999 }, (_, i) => currentYear - i);
-        }
-
         const selectedClient = clients.find(c => c.id === editTemplateData.client_id);
-        const usedYears = selectedClient?.used_years || [];
+        const usedYears = (selectedClient?.used_years || []).map(y => Number(y)); // Convert to numbers
         
-        return Array.from({ length: currentYear - 1999 }, (_, i) => currentYear - i)
-            .filter(year => !usedYears.includes(year));
+        return Array.from({ length: currentYear - 1999 }, (_, i) => {
+            const year = currentYear - i;
+            return {
+                value: year,
+                label: year.toString(),
+                isDisabled: usedYears.includes(year)
+            };
+        });
     }, [editTemplateData.client_id, clients]);
 
     const { data: editTaskData, setData: setEditTaskData, put: putTask, reset: resetEditTask } = useForm({
@@ -1388,10 +1389,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     Project Year
                                 </label>
                                 <SearchableSelect
-                                    options={availableYears.map(year => ({
-                                        value: year,
-                                        label: year.toString(),
-                                    }))}
+                                    options={yearOptions}
                                     value={editTemplateData.year}
                                     onChange={(value) => setEditTemplateData('year', value as number)}
                                     placeholder="Select project year..."

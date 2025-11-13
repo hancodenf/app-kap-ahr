@@ -102,7 +102,7 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
             }
             
             setUserToDelete(user);
-            setRelationMessage(`User "${user.name}" tidak dapat dihapus karena masih memiliki ${messages.join(', ')} yang terkait.\n\nSilakan hapus atau pindahkan data terkait terlebih dahulu.`);
+            setRelationMessage(`User "${user.name}" cannot be deleted because it still has related ${messages.join(', ')}.\n\nPlease delete or move the related data first.`);
             setShowRelationDialog(true);
             return;
         }
@@ -161,7 +161,7 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                         href={route('admin.users.create')}
                         className="w-full sm:w-auto bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors text-center"
                     >
-                        + Tambah User
+                        + Add User
                     </Link>
                 </div>
             }
@@ -249,7 +249,7 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                             <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2">
                                 <input
                                     type="text"
-                                    placeholder="Cari nama, email, atau role..."
+                                    placeholder="Search name, email, or role..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -260,7 +260,7 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                         onClick={handleSearch}
                                         className="flex-1 sm:flex-none bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md transition-colors text-sm font-medium"
                                     >
-                                        Cari
+                                        Search
                                     </button>
                                     {filters.search && (
                                         <button
@@ -382,7 +382,7 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
                                                             user.is_active ? 'bg-green-600' : 'bg-gray-300'
                                                         }`}
-                                                        title={user.is_active ? 'Klik untuk nonaktifkan' : 'Klik untuk aktifkan'}
+                                                        title={user.is_active ? 'Click to deactivate' : 'Click to activate'}
                                                     >
                                                         <span
                                                             className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -421,7 +421,7 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                                             }`}
                                                             title={
                                                                 (user.project_teams_count || 0) > 0 || (user.activity_logs_count || 0) > 0 || (user.registered_ap_count || 0) > 0
-                                                                    ? 'Tidak dapat dihapus karena memiliki data terkait'
+                                                                    ? 'Cannot be deleted because it has related data'
                                                                     : 'Delete'
                                                             }
                                                         >
@@ -516,7 +516,7 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
                                                     user.is_active ? 'bg-green-600' : 'bg-gray-300'
                                                 }`}
-                                                title={user.is_active ? 'Klik untuk nonaktifkan' : 'Klik untuk aktifkan'}
+                                                title={user.is_active ? 'Click to deactivate' : 'Click to activate'}
                                             >
                                                 <span
                                                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -559,7 +559,7 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                                 }`}
                                                 title={
                                                     (user.project_teams_count || 0) > 0 || (user.activity_logs_count || 0) > 0 || (user.registered_ap_count || 0) > 0
-                                                        ? 'Tidak dapat dihapus karena memiliki data terkait'
+                                                        ? 'Cannot be deleted because it has related data'
                                                         : 'Delete'
                                                 }
                                             >
@@ -616,10 +616,10 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
             {/* Delete Confirmation Dialog */}
             <ConfirmDialog
                 show={showDeleteDialog}
-                title="Hapus User"
-                message={`Apakah Anda yakin ingin menghapus user "${userToDelete?.name}"? Tindakan ini tidak dapat dibatalkan.`}
-                confirmText="Hapus"
-                cancelText="Batal"
+                title="Delete User"
+                message={`Are you sure you want to delete user "${userToDelete?.name}"? This action cannot be undone.`}
+                confirmText="Delete"
+                cancelText="Cancel"
                 onConfirm={handleDeleteConfirm}
                 onClose={() => {
                     setShowDeleteDialog(false);
@@ -631,9 +631,9 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
             {/* Relation Warning Dialog */}
             <ConfirmDialog
                 show={showRelationDialog}
-                title="Tidak Dapat Menghapus User"
+                title="Cannot Delete User"
                 message={relationMessage}
-                confirmText="Mengerti"
+                confirmText="Understood"
                 cancelText=""
                 onConfirm={() => {
                     setShowRelationDialog(false);
@@ -651,14 +651,14 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
             {/* Toggle Status Confirmation Dialog */}
             <ConfirmDialog
                 show={showToggleStatusDialog}
-                title={userToToggle?.is_active ? 'Nonaktifkan User' : 'Aktifkan User'}
+                title={userToToggle?.is_active ? 'Deactivate User' : 'Activate User'}
                 message={
                     userToToggle?.is_active
-                        ? `Apakah Anda yakin ingin menonaktifkan user "${userToToggle?.name}"? User tidak akan bisa login setelah dinonaktifkan.`
-                        : `Apakah Anda yakin ingin mengaktifkan user "${userToToggle?.name}"? User akan bisa login kembali setelah diaktifkan.`
+                        ? `Are you sure you want to deactivate user "${userToToggle?.name}"? User will not be able to login after being deactivated.`
+                        : `Are you sure you want to activate user "${userToToggle?.name}"? User will be able to login again after being activated.`
                 }
-                confirmText={userToToggle?.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-                cancelText="Batal"
+                confirmText={userToToggle?.is_active ? 'Deactivate' : 'Activate'}
+                cancelText="Cancel"
                 onConfirm={handleToggleStatusConfirm}
                 onClose={() => {
                     setShowToggleStatusDialog(false);

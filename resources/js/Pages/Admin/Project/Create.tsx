@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { PageProps } from '@/types';
-import { FormEventHandler, useMemo } from 'react';
+import { FormEventHandler, useMemo, useEffect } from 'react';
 import SearchableSelect from '@/Components/SearchableSelect';
 
 interface Client {
@@ -52,18 +52,37 @@ export default function Create({ auth, clients, availableUsers, templates }: Pro
         template_id: 0,
     });
 
-    // Get available years for selected client
-    const availableYears = useMemo(() => {
-        if (!data.client_id) {
-            return Array.from({ length: currentYear - 1999 }, (_, i) => currentYear - i);
-        }
-
+    // Get year options with disabled status for used years
+    const yearOptions = useMemo(() => {
         const selectedClient = clients.find(c => c.id === data.client_id);
-        const usedYears = selectedClient?.used_years || [];
+        const usedYears = (selectedClient?.used_years || []).map(y => Number(y)); // Convert to numbers
         
-        return Array.from({ length: currentYear - 1999 }, (_, i) => currentYear - i)
-            .filter(year => !usedYears.includes(year));
+        return Array.from({ length: currentYear - 1999 }, (_, i) => {
+            const year = currentYear - i;
+            const isDisabled = usedYears.includes(year);
+            return {
+                value: year,
+                label: year.toString(),
+                isDisabled: isDisabled
+            };
+        });
     }, [data.client_id, clients, currentYear]);
+
+    // Reset year if it becomes disabled when client changes
+    useEffect(() => {
+        const selectedClient = clients.find(c => c.id === data.client_id);
+        const usedYears = (selectedClient?.used_years || []).map(y => Number(y)); // Convert to numbers
+        
+        if (usedYears.includes(data.year)) {
+            // Find first available year
+            const availableYear = Array.from({ length: currentYear - 1999 }, (_, i) => currentYear - i)
+                .find(year => !usedYears.includes(year));
+            
+            if (availableYear) {
+                setData('year', availableYear);
+            }
+        }
+    }, [data.client_id]);
 
     const addTeamMember = () => {
         setData('team_members', [
@@ -109,7 +128,7 @@ export default function Create({ auth, clients, availableUsers, templates }: Pro
                             <div className="mb-6">
                                 <h3 className="text-lg font-medium text-gray-900 mb-2">New Project</h3>
                                 <p className="text-sm text-gray-600">
-                                    Buat project baru
+                                    Create a new project
                                 </p>
                             </div>
 
@@ -157,10 +176,7 @@ export default function Create({ auth, clients, availableUsers, templates }: Pro
                                         Project Year <span className="text-red-500">*</span>
                                     </label>
                                     <SearchableSelect
-                                        options={availableYears.map(year => ({
-                                            value: year,
-                                            label: year.toString(),
-                                        }))}
+                                        options={yearOptions}
                                         value={data.year}
                                         onChange={(value) => setData('year', value as number)}
                                         placeholder="Select project year..."

@@ -34,7 +34,7 @@ export default function Create({ auth }: Props) {
                             <div className="mb-6">
                                 <h3 className="text-lg font-medium text-gray-900 mb-2">New Project Template</h3>
                                 <p className="text-sm text-gray-600">
-                                    Buat kategori template baru (contoh: "Project Audit BLU", "Audit Internal", dll.)
+                                    Create a new template category (e.g., "BLU Audit Project", "Internal Audit", etc.)
                                 </p>
                             </div>
 

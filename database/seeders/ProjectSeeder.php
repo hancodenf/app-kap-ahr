@@ -26,6 +26,7 @@ class ProjectSeeder extends Seeder
                 'slug' => Str::slug($projectName),
                 'client_id' => $client->id,
                 'year' => 2024, // Add year
+                'status' => 'open',
                 // Denormalized client data
                 'client_name' => $client->name,
                 'client_alamat' => $client->alamat,

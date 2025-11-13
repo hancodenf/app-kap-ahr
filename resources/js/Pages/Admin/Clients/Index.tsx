@@ -64,14 +64,14 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 			// Show relation dialog instead of delete dialog
 			const messages = [];
 			if ((client.client_users_count || 0) > 0) {
-				messages.push(`${client.client_users_count} akun user`);
+				messages.push(`${client.client_users_count} user account(s)`);
 			}
 			if ((client.projects_count || 0) > 0) {
-				messages.push(`${client.projects_count} project`);
+				messages.push(`${client.projects_count} project(s)`);
 			}
 			
 			setClientToDelete(client);
-			setRelationMessage(`Client "${client.name}" tidak dapat dihapus karena masih memiliki ${messages.join(' dan ')} yang terkait.\n\nSilakan hapus atau pindahkan data terkait terlebih dahulu.`);
+			setRelationMessage(`Client "${client.name}" cannot be deleted because it still has related ${messages.join(' and ')}.\n\nPlease delete or move the related data first.`);
 			setShowRelationDialog(true);
 			return;
 		}
@@ -137,7 +137,7 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 							<div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2">
 								<input
 									type="text"
-									placeholder="Cari nama, alamat, kementrian, atau kode satker..."
+									placeholder="Search name, address, ministry, or satker code..."
 									value={search}
 									onChange={(e) => setSearch(e.target.value)}
 									onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -148,7 +148,7 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 										onClick={handleSearch}
 										className="flex-1 sm:flex-none bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md transition-colors text-sm font-medium"
 									>
-										Cari
+										Search
 									</button>
 									{filters.search && (
 										<button
@@ -179,13 +179,13 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 												Kode Satker
 											</th>
 											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-												Jumlah Akun
+												Accounts
 											</th>
 											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Projects
 											</th>
 											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-												Bergabung
+												Joined
 											</th>
 											<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Actions
@@ -257,17 +257,17 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 															</svg>
 														</Link>
 												<button
-															onClick={() => handleDeleteClick(client)}
-															className={`inline-flex items-center px-3 py-1.5 rounded-md transition-colors ${
-																(client.client_users_count || 0) > 0 || (client.projects_count || 0) > 0
-																	? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-																	: 'bg-red-50 text-red-700 hover:bg-red-100'
-															}`}
-															title={
-																(client.client_users_count || 0) > 0 || (client.projects_count || 0) > 0
-																	? 'Tidak dapat dihapus karena memiliki data terkait'
-																	: 'Delete'
-															}
+														onClick={() => handleDeleteClick(client)}
+														className={`inline-flex items-center px-3 py-1.5 rounded-md transition-colors ${
+															(client.client_users_count || 0) > 0 || (client.projects_count || 0) > 0
+																? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+																: 'bg-red-50 text-red-700 hover:bg-red-100'
+														}`}
+														title={
+															(client.client_users_count || 0) > 0 || (client.projects_count || 0) > 0
+																? 'Cannot be deleted because it has related data'
+																: 'Delete'
+														}
 														>
 															<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 																<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -303,11 +303,11 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 										{/* Client Info Grid */}
 										<div className="grid grid-cols-2 gap-2 mb-3">
 											<div className="bg-gray-50 rounded-lg p-2">
-												<div className="text-[10px] text-gray-500 mb-0.5">Kementrian</div>
+												<div className="text-[10px] text-gray-500 mb-0.5">Ministry</div>
 												<div className="text-sm font-medium text-gray-900 truncate">{client.kementrian}</div>
 											</div>
 											<div className="bg-gray-50 rounded-lg p-2">
-												<div className="text-[10px] text-gray-500 mb-0.5">Kode Satker</div>
+												<div className="text-[10px] text-gray-500 mb-0.5">Satker Code</div>
 												<div className="text-sm">
 													<span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
 														{client.kode_satker}
@@ -315,7 +315,7 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 												</div>
 											</div>
 											<div className="bg-gray-50 rounded-lg p-2">
-												<div className="text-[10px] text-gray-500 mb-0.5">Jumlah Akun</div>
+												<div className="text-[10px] text-gray-500 mb-0.5">Accounts</div>
 												<div className="text-sm font-medium text-gray-900">{client.client_users_count || 0} users</div>
 											</div>
 											<div className="bg-gray-50 rounded-lg p-2">
@@ -325,7 +325,7 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 										</div>
 
 										<div className="text-xs text-gray-500 mb-3">
-											<span className="font-medium">Bergabung:</span> {formatDate(client.created_at)}
+											<span className="font-medium">Joined:</span> {formatDate(client.created_at)}
 										</div>
 
 										<div className="flex gap-2">
@@ -350,14 +350,14 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 											</Link>
 											<button
 												onClick={() => handleDeleteClick(client)}
-												className={`inline-flex items-center justify-center px-3 py-2 rounded-md transition-colors ${
+												className={`inline-flex items-center px-3 py-2 rounded-md transition-colors ${
 													(client.client_users_count || 0) > 0 || (client.projects_count || 0) > 0
 														? 'bg-gray-100 text-gray-400 cursor-not-allowed'
 														: 'bg-red-50 text-red-700 hover:bg-red-100'
 												}`}
 												title={
 													(client.client_users_count || 0) > 0 || (client.projects_count || 0) > 0
-														? 'Tidak dapat dihapus karena memiliki data terkait'
+														? 'Cannot be deleted because it has related data'
 														: 'Delete'
 												}
 											>
@@ -374,7 +374,7 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 							{clients.data.length === 0 && (
 								<div className="text-center py-8">
 									<div className="text-gray-500">
-										{filters.search ? 'Tidak ada client yang ditemukan.' : 'Belum ada client.'}
+										{filters.search ? 'No clients found.' : 'No clients yet.'}
 									</div>
 								</div>
 							)}
@@ -414,10 +414,10 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 			{/* Delete Confirmation Dialog */}
 			<ConfirmDialog
 				show={showDeleteDialog}
-				title="Hapus Client"
-				message={`Apakah Anda yakin ingin menghapus client "${clientToDelete?.name}"? Tindakan ini tidak dapat dibatalkan.`}
-				confirmText="Hapus"
-				cancelText="Batal"
+				title="Delete Client"
+				message={`Are you sure you want to delete client "${clientToDelete?.name}"? This action cannot be undone.`}
+				confirmText="Delete"
+				cancelText="Cancel"
 				onConfirm={handleDeleteConfirm}
 				onClose={() => {
 					setShowDeleteDialog(false);
@@ -429,9 +429,9 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 			{/* Relation Warning Dialog */}
 			<ConfirmDialog
 				show={showRelationDialog}
-				title="Tidak Dapat Menghapus Client"
+				title="Cannot Delete Client"
 				message={relationMessage}
-				confirmText="Mengerti"
+				confirmText="Understood"
 				cancelText=""
 				onConfirm={() => {
 					setShowRelationDialog(false);
