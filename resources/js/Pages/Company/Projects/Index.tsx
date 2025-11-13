@@ -168,7 +168,7 @@ export default function ProjectsIndex({ auth, projects, filters, statusCounts }:
                                     </div>
                                     <input
                                         type="text"
-                                        placeholder="Cari nama project atau klien..."
+                                        placeholder="Search project name or client..."
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -180,7 +180,7 @@ export default function ProjectsIndex({ auth, projects, filters, statusCounts }:
                                         onClick={handleSearch}
                                         className="flex-1 sm:flex-none bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
                                     >
-                                        Cari
+                                        Search
                                     </button>
                                     {filters.search && (
                                         <button

@@ -80,19 +80,19 @@ export default function Show({ client }: Props) {
                             <h3 className="text-lg font-semibold text-gray-900 mb-4">Client Information</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Nama Klien</label>
+                                    <label className="block text-sm font-medium text-gray-700">Client Name</label>
                                     <p className="mt-1 text-sm text-gray-900">{client.name}</p>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Kementrian</label>
+                                    <label className="block text-sm font-medium text-gray-700">Ministry</label>
                                     <p className="mt-1 text-sm text-gray-900">{client.kementrian}</p>
                                 </div>
                                 <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700">Alamat</label>
+                                    <label className="block text-sm font-medium text-gray-700">Address</label>
                                     <p className="mt-1 text-sm text-gray-900">{client.alamat}</p>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Kode Satker</label>
+                                    <label className="block text-sm font-medium text-gray-700">Satker Code</label>
                                     <p className="mt-1 text-sm text-gray-900">{client.kode_satker}</p>
                                 </div>
                                 <div>

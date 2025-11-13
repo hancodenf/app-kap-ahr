@@ -17,6 +17,7 @@ interface ProjectBundle {
     };
     project_teams?: Array<{
         id: number;
+        user_id?: number;
         user_name: string;
         role: string;
     }>;
@@ -89,11 +90,33 @@ export default function Index({ bundles, filters, availableYears }: Props) {
         });
     };
 
-    const getPartners = (projectTeams?: Array<{ user_name: string; role: string }>) => {
-        if (!projectTeams || projectTeams.length === 0) return 'No partner';
-        const partners = projectTeams.filter(team => team.role === 'partner');
-        if (partners.length === 0) return 'No partner';
-        return partners.map(p => p.user_name).join(', ');
+    const getPartners = (projectTeams?: Array<{ user_id?: number; user_name: string; role: string }>) => {
+        if (!projectTeams || projectTeams.length === 0) return [];
+        return projectTeams.filter(team => team.role === 'partner');
+    };
+
+    const renderPartners = (partners: Array<{ user_id?: number; user_name: string; role: string }>) => {
+        if (partners.length === 0) return <span className="text-sm text-gray-700">No partner</span>;
+        
+        return (
+            <div className="flex flex-wrap gap-1">
+                {partners.map((partner, index) => (
+                    <span key={index}>
+                        {partner.user_id ? (
+                            <Link
+                                href={route('admin.users.show', partner.user_id)}
+                                className="text-sm text-primary-600 hover:text-primary-800 hover:underline"
+                            >
+                                {partner.user_name}
+                            </Link>
+                        ) : (
+                            <span className="text-sm text-gray-700">{partner.user_name}</span>
+                        )}
+                        {index < partners.length - 1 && <span className="text-gray-700">, </span>}
+                    </span>
+                ))}
+            </div>
+        );
     };
 
     return (
@@ -210,12 +233,21 @@ export default function Index({ bundles, filters, availableYears }: Props) {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-2"> 
-                                                        <span className="text-sm text-gray-900">{bundle.client_name || bundle.client?.name || 'N/A'}</span>
+                                                        {bundle.client ? (
+                                                            <Link 
+                                                                href={route('admin.clients.show', bundle.client.id)}
+                                                                className="text-sm text-primary-600 hover:text-primary-800 hover:underline"
+                                                            >
+                                                                {bundle.client_name || bundle.client.name}
+                                                            </Link>
+                                                        ) : (
+                                                            <span className="text-sm text-gray-900">N/A</span>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-2"> 
-                                                        <span className="text-sm text-gray-700">{getPartners(bundle.project_teams)}</span>
+                                                        {renderPartners(getPartners(bundle.project_teams))}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -281,10 +313,19 @@ export default function Index({ bundles, filters, availableYears }: Props) {
                                                     {bundle.name}
                                                 </h3>
                                                 <div className="flex items-center gap-2 text-sm text-gray-600 mb-1"> 
-                                                    <span>{bundle.client_name || bundle.client?.name || 'N/A'}</span>
+                                                    {bundle.client ? (
+                                                        <Link 
+                                                            href={route('admin.clients.show', bundle.client.id)}
+                                                            className="text-primary-600 hover:text-primary-800 hover:underline"
+                                                        >
+                                                            {bundle.client_name || bundle.client.name}
+                                                        </Link>
+                                                    ) : (
+                                                        <span>N/A</span>
+                                                    )}
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-600 mb-2"> 
-                                                    <span className="text-xs">{getPartners(bundle.project_teams)}</span>
+                                                    <span className="text-xs">{renderPartners(getPartners(bundle.project_teams))}</span>
                                                 </div>
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                                     bundle.status === 'open' 

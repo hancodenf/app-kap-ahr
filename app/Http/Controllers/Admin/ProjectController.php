@@ -27,7 +27,7 @@ class ProjectController extends Controller
         $year = $request->input('year', '');
         
         $query = Project::with(['client:id,name', 'projectTeams' => function($q) {
-            $q->where('role', 'partner')->select('id', 'project_id', 'user_name', 'role');
+            $q->where('role', 'partner')->select('id', 'project_id', 'user_id', 'user_name', 'role');
         }]);
 
         // Search filter

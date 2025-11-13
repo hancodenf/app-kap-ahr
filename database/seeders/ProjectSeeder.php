@@ -43,11 +43,11 @@ class ProjectSeeder extends Seeder
     {
         // Create project team with different roles
         $teamMembers = [
-            ['user_id' => 2, 'role' => 'partner'],      // John Partner
-            ['user_id' => 3, 'role' => 'manager'],      // Jane Manager
-            ['user_id' => 4, 'role' => 'supervisor'],   // Bob Supervisor
-            ['user_id' => 5, 'role' => 'team leader'],  // Alice Team Leader
-            ['user_id' => 6, 'role' => 'member'],       // Mike Auditor
+            ['user_id' => 3, 'role' => 'partner'],      // John Partner
+            ['user_id' => 4, 'role' => 'manager'],      // Jane Manager
+            ['user_id' => 5, 'role' => 'supervisor'],   // Bob Supervisor
+            ['user_id' => 6, 'role' => 'team leader'],  // Alice Team Leader
+            ['user_id' => 7, 'role' => 'member'],       // Mike Auditor
         ];
 
         foreach ($teamMembers as $member) {

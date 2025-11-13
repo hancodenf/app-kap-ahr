@@ -51,67 +51,67 @@ export default function Welcome({
         admin: [
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13.5 3.03V5.25M6.75 15.75l-2.197 2.197M17.25 15.75l2.197 2.197" />,
-                title: 'Manajemen User & Role',
-                description: 'Kelola admin, partner, staff, dan klien dengan sistem role-based access control yang powerful'
+                title: 'User & Role Management',
+                description: 'Manage admins, partners, staff, and clients with a powerful role-based access control system'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />,
-                title: 'Manajemen Klien & Proyek',
-                description: 'Sistem lengkap untuk mengelola klien, proyek audit, dan dokumen dengan terstruktur'
+                title: 'Client & Project Management',
+                description: 'Complete system to manage clients, audit projects, and documents in a structured way'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
                 title: 'Template Management',
-                description: 'Buat dan kelola template audit dengan sistem level & sub-level yang fleksibel'
+                description: 'Create and manage audit templates with a flexible level & sub-level system'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />,
-                title: 'Dashboard Analytics',
-                description: 'Monitoring real-time semua aktivitas, statistik user, proyek, dan tasks'
+                title: 'Analytics Dashboard',
+                description: 'Real-time monitoring of all activities, user statistics, projects, and tasks'
             }
         ],
         company: [
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />,
-                title: 'Kelola Proyek Audit',
-                description: 'Akses penuh untuk mengelola semua proyek audit yang ditangani perusahaan'
+                title: 'Manage Audit Projects',
+                description: 'Full access to manage all audit projects handled by the company'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />,
-                title: 'Assign Tim Audit',
-                description: 'Tentukan tim auditor untuk setiap proyek dengan role yang jelas'
+                title: 'Assign Audit Team',
+                description: 'Assign auditor teams for each project with clear roles'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />,
-                title: 'Track Progress Real-time',
-                description: 'Monitor progress setiap task di workflow audit: Perikatan, Perencanaan, Pelaksanaan, Pelaporan'
+                title: 'Track Real-time Progress',
+                description: 'Monitor progress of each task in the audit workflow: Engagement, Planning, Execution, Reporting'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />,
-                title: 'Upload Dokumen',
-                description: 'Sistem penyimpanan dokumen terorganisir untuk semua file audit'
+                title: 'Upload Documents',
+                description: 'Organized document storage system for all audit files'
             }
         ],
         client: [
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />,
-                title: 'Lihat Progress Audit',
-                description: 'Monitor perkembangan proyek audit perusahaan Anda secara real-time'
+                title: 'View Audit Progress',
+                description: 'Monitor the progress of your company\'s audit project in real-time'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13.5 3.03V5.25" />,
-                title: 'Info Tim Auditor',
-                description: 'Lihat siapa saja tim auditor yang menangani proyek Anda lengkap dengan kontak WhatsApp'
+                title: 'Auditor Team Info',
+                description: 'View the auditor team handling your project, complete with WhatsApp contacts'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
-                title: 'Detail Task & Dokumen',
-                description: 'Akses detail setiap task dan dokumen yang terkait dengan audit perusahaan'
+                title: 'Task & Document Details',
+                description: 'Access detailed information about each task and documents related to the audit'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />,
-                title: 'Timeline Proyek',
-                description: 'Pantau timeline dan deadline setiap tahapan audit dengan jelas'
+                title: 'Project Timeline',
+                description: 'Monitor the timeline and deadlines of each audit stage clearly'
             }
         ]
     };
@@ -121,28 +121,28 @@ export default function Welcome({
             name: 'Budi Santoso',
             position: 'Finance Director',
             company: 'PT Maju Jaya',
-            text: 'AURA mengubah cara kami berkolaborasi dengan auditor. Transparansi penuh dan real-time updates membuat proses audit jauh lebih efisien.',
+            text: 'AURA has transformed the way we collaborate with auditors. Full transparency and real-time updates make the audit process much more efficient.',
             rating: 5
         },
         {
             name: 'Siti Nurhaliza',
             position: 'CEO',
             company: 'CV Berkah Sejahtera',
-            text: 'Sistem yang sangat membantu! Kami bisa track progress audit kapan saja dan komunikasi dengan tim auditor jadi lebih mudah.',
+            text: 'Very helpful system! We can track audit progress anytime and communication with the audit team is much easier.',
             rating: 5
         },
         {
             name: 'Ahmad Wijaya',
             position: 'Managing Partner',
             company: 'KAP Internal Team',
-            text: 'AURA membuat pekerjaan tim audit kami lebih terstruktur. Template yang fleksibel dan sistem role yang jelas sangat membantu.',
+            text: 'AURA makes our audit team\'s work more structured. Flexible templates and clear role system are very helpful.',
             rating: 5
         }
     ];
 
     return (
         <>
-            <Head title="AURA - Sistem Manajemen Audit Profesional" />
+            <Head title="AURA - Professional Audit Management System" />
             <div className="bg-white min-h-screen overflow-hidden">
                 {/* Floating Header */}
                 <header 
@@ -170,10 +170,10 @@ export default function Welcome({
                             </Link>
                             
                             <nav className="hidden md:flex items-center space-x-8">
-                                <a href="#features" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">Fitur</a>
+                                <a href="#features" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">Features</a>
                                 <a href="#workflow" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">Workflow</a>
-                                <a href="#testimonials" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">Testimoni</a>
-                                <a href="#contact" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">Kontak</a>
+                                <a href="#testimonials" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">Testimonials</a>
+                                <a href="#contact" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">Contact</a>
                             </nav>
 
                             <div className="flex items-center space-x-3">
@@ -194,7 +194,7 @@ export default function Welcome({
                                         href={route('login')}
                                         className="group relative bg-gradient-to-r from-primary-600 via-primary-500 to-emerald-600 hover:from-primary-700 hover:via-primary-600 hover:to-emerald-700 text-white px-6 py-2.5 rounded-full font-semibold shadow-lg shadow-primary-500/30 hover:shadow-xl hover:shadow-primary-500/40 transition-all duration-300 transform hover:scale-105"
                                     >
-                                        <span className="relative z-10">Masuk</span>
+                                        <span className="relative z-10">Login</span>
                                     </Link>
                                 )}
                             </div>
@@ -235,16 +235,16 @@ export default function Welcome({
                             </div>
 
                             <h1 className="text-5xl md:text-7xl font-black text-gray-900 mb-6 leading-tight">
-                                Sistem Manajemen Audit
+                                Professional Audit
                                 <br />
                                 <span className="bg-gradient-to-r from-primary-600 via-primary-500 to-emerald-500 bg-clip-text text-transparent">
-                                    Paling Modern di Indonesia
+                                    Management System
                                 </span>
                             </h1>
                             
                             <p className="text-xl md:text-2xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
-                                Platform digital end-to-end untuk <span className="font-bold text-primary-600">KAP Abdul Hamid dan Rekan</span>. 
-                                Kelola audit dari perencanaan hingga pelaporan dengan efisien, transparan, dan terstruktur.
+                                End-to-end digital platform for <span className="font-bold text-primary-600">KAP Abdul Hamid dan Rekan</span>. 
+                                Manage audits from planning to reporting efficiently, transparently, and systematically.
                             </p>
                             
                             {/* CTA Buttons */}
@@ -257,7 +257,7 @@ export default function Welcome({
                                         <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                         </svg>
-                                        Buka Dashboard
+                                        Open Dashboard
                                         <svg className="w-5 h-5 ml-3 transform group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                         </svg>
@@ -271,7 +271,7 @@ export default function Welcome({
                                             <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                             </svg>
-                                            Mulai Gratis Sekarang
+                                            Start Free Now
                                             <svg className="w-5 h-5 ml-3 transform group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                             </svg>
@@ -283,7 +283,7 @@ export default function Welcome({
                                             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
                                             </svg>
-                                            Lihat Fitur Lengkap
+                                            View Full Features
                                             <svg className="w-5 h-5 ml-3 transform group-hover:translate-y-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                                             </svg>
@@ -368,13 +368,13 @@ export default function Welcome({
                             }}
                         >
                             <div className="inline-block bg-primary-50 border border-primary-200 rounded-full px-5 py-2 mb-6">
-                                <span className="text-sm font-bold text-primary-600">FITUR LENGKAP</span>
+                                <span className="text-sm font-bold text-primary-600">COMPLETE FEATURES</span>
                             </div>
                             <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-6">
-                                Solusi untuk <span className="bg-gradient-to-r from-primary-600 to-emerald-600 bg-clip-text text-transparent">Semua Role</span>
+                                Solutions for <span className="bg-gradient-to-r from-primary-600 to-emerald-600 bg-clip-text text-transparent">All Roles</span>
                             </h2>
                             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                                Sistem yang dirancang khusus untuk kebutuhan Admin, Company Staff, dan Client dengan fitur yang powerful
+                                System designed specifically for Admin, Company Staff, and Client needs with powerful features
                             </p>
                         </div>
 
@@ -451,13 +451,13 @@ export default function Welcome({
                                 }}
                             >
                                 <div className="inline-block bg-emerald-50 border border-emerald-200 rounded-full px-5 py-2 mb-6">
-                                    <span className="text-sm font-bold text-emerald-600">WORKFLOW AUDIT</span>
+                                    <span className="text-sm font-bold text-emerald-600">AUDIT WORKFLOW</span>
                                 </div>
                                 <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-6">
-                                    4 Tahapan Audit yang <span className="bg-gradient-to-r from-primary-600 to-emerald-600 bg-clip-text text-transparent">Terstruktur</span>
+                                    4 <span className="bg-gradient-to-r from-primary-600 to-emerald-600 bg-clip-text text-transparent">Structured</span> Audit Stages
                                 </h2>
                                 <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                                    Sistem workflow yang mengikuti standar audit profesional: Perikatan → Perencanaan → Pelaksanaan → Pelaporan
+                                    Workflow system following professional audit standards: Engagement → Planning → Execution → Reporting
                                 </p>
                             </div>
 
@@ -484,10 +484,10 @@ export default function Welcome({
                             {/* Workflow Stats */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16">
                                 {[
-                                    { number: '1', label: 'Perikatan', desc: 'Penetapan KAP & Kontrak' },
-                                    { number: '2', label: 'Perencanaan', desc: 'Risk Assessment & Planning' },
-                                    { number: '3', label: 'Pelaksanaan', desc: 'Field Work & Testing' },
-                                    { number: '4', label: 'Pelaporan', desc: 'Audit Report & Delivery' }
+                                    { number: '1', label: 'Engagement', desc: 'KAP Assignment & Contract' },
+                                    { number: '2', label: 'Planning', desc: 'Risk Assessment & Planning' },
+                                    { number: '3', label: 'Execution', desc: 'Field Work & Testing' },
+                                    { number: '4', label: 'Reporting', desc: 'Audit Report & Delivery' }
                                 ].map((step, index) => (
                                     <div 
                                         key={index}
@@ -527,13 +527,13 @@ export default function Welcome({
                             }}
                         >
                             <div className="inline-block bg-amber-50 border border-amber-200 rounded-full px-5 py-2 mb-6">
-                                <span className="text-sm font-bold text-amber-600">TESTIMONI</span>
+                                <span className="text-sm font-bold text-amber-600">TESTIMONIALS</span>
                             </div>
                             <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-6">
-                                Dipercaya oleh <span className="bg-gradient-to-r from-primary-600 to-emerald-600 bg-clip-text text-transparent">500+ Klien</span>
+                                Trusted by <span className="bg-gradient-to-r from-primary-600 to-emerald-600 bg-clip-text text-transparent">500+ Clients</span>
                             </h2>
                             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                                Lihat apa kata mereka tentang pengalaman menggunakan AURA
+                                See what they say about their experience using AURA
                             </p>
                         </div>
 
@@ -592,10 +592,10 @@ export default function Welcome({
                     <div className="bg-gradient-to-br from-primary-600 via-primary-500 to-emerald-600 py-24">
                         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                             <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
-                                Siap Mengoptimalkan Proses Audit Anda?
+                                Ready to Optimize Your Audit Process?
                             </h2>
                             <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto">
-                                Bergabunglah dengan 500+ klien yang telah mempercayai AURA untuk mengelola audit mereka
+                                Join 500+ clients who have trusted AURA to manage their audits
                             </p>
                             {!auth.user && (
                                 <Link
@@ -605,7 +605,7 @@ export default function Welcome({
                                     <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                     </svg>
-                                    Mulai Sekarang - Gratis!
+                                    Start Now - Free!
                                 </Link>
                             )}
                         </div>
@@ -639,7 +639,7 @@ export default function Welcome({
                                     </div>
                                 </Link>
                                 <p className="text-gray-400 leading-relaxed mb-6 max-w-md">
-                                    Platform audit digital profesional yang mengintegrasikan keahlian dengan teknologi modern untuk layanan audit yang lebih efisien dan akurat.
+                                    Professional digital audit platform that integrates expertise with modern technology for more efficient and accurate audit services.
                                 </p>
                                 <div className="flex space-x-4">
                                     {[
@@ -663,7 +663,7 @@ export default function Welcome({
                             
                             {/* Contact Column */}
                             <div>
-                                <h4 className="font-bold text-lg mb-6 text-white">Kontak</h4>
+                                <h4 className="font-bold text-lg mb-6 text-white">Contact</h4>
                                 <div className="space-y-4">
                                     <a href="mailto:abdulhamidkap@gmail.com" className="flex items-start space-x-3 text-gray-400 hover:text-primary-400 transition-colors group">
                                         <svg className="w-5 h-5 mt-0.5 flex-shrink-0 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -694,11 +694,11 @@ export default function Welcome({
                                 <h4 className="font-bold text-lg mb-6 text-white">Quick Links</h4>
                                 <ul className="space-y-3">
                                     {[
-                                        { label: 'Tentang Kami', href: '#about' },
-                                        { label: 'Fitur', href: '#features' },
+                                        { label: 'About Us', href: '#about' },
+                                        { label: 'Features', href: '#features' },
                                         { label: 'Workflow', href: '#workflow' },
-                                        { label: 'Testimoni', href: '#testimonials' },
-                                        { label: 'Kontak', href: '#contact' }
+                                        { label: 'Testimonials', href: '#testimonials' },
+                                        { label: 'Contact', href: '#contact' }
                                     ].map((link, index) => (
                                         <li key={index}>
                                             <a href={link.href} className="flex items-center space-x-2 text-gray-400 hover:text-primary-400 transition-colors group text-sm">
