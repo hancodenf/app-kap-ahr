@@ -12,10 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('documents', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             
             // Foreign key reference (nullable untuk denormalisasi)
-            $table->unsignedBigInteger('task_assignment_id')->nullable();
+            $table->uuid('task_assignment_id')->nullable();
             $table->foreign('task_assignment_id')->references('id')->on('task_assignments')->onDelete('set null');
             
             $table->string('name');

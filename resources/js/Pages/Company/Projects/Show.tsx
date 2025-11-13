@@ -982,7 +982,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                                         {task.latest_assignment.notes && (
                                                             <div className="p-3 bg-gray-50 rounded-lg">
                                                                 <p className="text-xs font-medium text-gray-700 mb-1">📝 Notes:</p>
-                                                                <p className="text-sm text-gray-900">{task.latest_assignment.notes}</p>
+                                                                <p className="text-sm text-gray-900" style={{ whiteSpace: 'pre-line' }}>{task.latest_assignment.notes}</p>
                                                             </div>
                                                         )}
 
@@ -1217,7 +1217,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                                         {assignment.notes && (
                                                             <div className="mb-3">
                                                                 <p className="text-xs font-medium text-gray-700">📝 Notes:</p>
-                                                                <p className="text-sm text-gray-600 mt-1">{assignment.notes}</p>
+                                                                <p className="text-sm text-gray-600 mt-1" style={{ whiteSpace: 'pre-line' }}>{assignment.notes}</p>
                                                             </div>
                                                         )}
                                                         
@@ -1312,7 +1312,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                     )}
 
                                     {/* Client Document Review Actions - Show when status is "Client Reply" */}
-                                    {selectedTask.status === 'Client Reply' && selectedTask.is_assigned_to_me && (
+                                    {(selectedTask.status === 'Client Reply' && selectedTask.completion_status === 'in_progress' && selectedTask.is_assigned_to_me) && (
                                         <div className="mb-6 p-4 bg-yellow-50 border-2 border-yellow-300 rounded-lg">
                                             <div className="flex items-start space-x-3 mb-4">
                                                 <svg className="w-6 h-6 text-yellow-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1709,7 +1709,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                                         {assignment.notes && (
                                                             <div>
                                                                 <p className="text-xs font-medium text-gray-700">📝 Notes:</p>
-                                                                <p className="text-sm text-gray-600 mt-1">{assignment.notes}</p>
+                                                                <p className="text-sm text-gray-600 mt-1" style={{ whiteSpace: 'pre-line' }}>{assignment.notes}</p>
                                                             </div>
                                                         )}
                                                         
@@ -1804,7 +1804,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                         </div>
 
                                         {/* Client Document Review Actions - Show when status is "Client Reply" (in view-only mode) */}
-                                        {selectedTask.status === 'Client Reply' && selectedTask.is_assigned_to_me && (
+                                        {selectedTask.status === 'Client Reply' && selectedTask.completion_status === 'in_progress' && selectedTask.is_assigned_to_me && (
                                             <div className="mt-6 p-4 bg-yellow-50 border-2 border-yellow-300 rounded-lg">
                                                 <div className="flex items-start space-x-3 mb-4">
                                                     <svg className="w-6 h-6 text-yellow-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

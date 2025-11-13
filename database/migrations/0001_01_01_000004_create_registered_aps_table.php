@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('registered_aps', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->foreignId('user_id')->unique()->constrained()->onDelete('cascade');
             $table->string('ap_number')->unique();
             $table->date('registration_date');

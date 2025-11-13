@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('activity_logs', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
 
             // 🔹 Data user yang melakukan aksi
             $table->foreignId('user_id')->nullable()

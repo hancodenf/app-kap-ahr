@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('task_workers', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             
             // Foreign key references (nullable untuk denormalisasi)
-            $table->unsignedBigInteger('task_id')->nullable();
+            $table->uuid('task_id')->nullable();
             $table->foreign('task_id')->references('id')->on('tasks')->onDelete('set null');
-            $table->unsignedBigInteger('project_team_id')->nullable();
+            $table->uuid('project_team_id')->nullable();
             $table->foreign('project_team_id')->references('id')->on('project_teams')->onDelete('set null');
             
             // Denormalized working sub step data

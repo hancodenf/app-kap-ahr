@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('project_teams', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             
             // Foreign key references (nullable untuk denormalisasi)
-            $table->unsignedBigInteger('project_id')->nullable();
+            $table->uuid('project_id')->nullable();
             $table->foreign('project_id')->references('id')->on('projects')->onDelete('set null');
-            $table->unsignedBigInteger('user_id')->nullable();
+            $table->uuid('user_id')->nullable();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
             
             // Denormalized project data

@@ -924,7 +924,7 @@ class CompanyController extends Controller
         }
 
         // Update task status to "Submitted" (ready for approval workflow)
-        $task->status = 'Submitted';
+        // $task->status = 'Submitted';
         $task->completion_status = 'completed';
         $task->save();
 
@@ -989,7 +989,7 @@ class CompanyController extends Controller
             'project_name' => $task->project_name,
             'project_client_name' => $task->project_client_name,
             'time' => now(),
-            'notes' => 'Re-upload requested <br> Comment: <br>' . $request->comment,
+            'notes' => "Re-upload requested\nComment:\n" . $request->comment,
             'is_approved' => false,
         ]);
 
