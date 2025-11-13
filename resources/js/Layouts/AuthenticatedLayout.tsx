@@ -1,7 +1,8 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import Toast from '@/Components/Toast';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 import { PropsWithChildren, ReactNode, useState, useEffect } from 'react';
+import axios from 'axios';
 
 export default function Authenticated({
     header,
@@ -19,11 +20,76 @@ export default function Authenticated({
         }
         return false;
     });
+    
+    // Security unlock state
+    const [securityUnlocked, setSecurityUnlocked] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('security_unlocked') === 'true';
+        }
+        return false;
+    });
+    const [showUnlockModal, setShowUnlockModal] = useState(false);
+    const [unlockKey, setUnlockKey] = useState('');
+    const [unlockError, setUnlockError] = useState('');
 
     // Save state to localStorage whenever it changes
     useEffect(() => {
         localStorage.setItem('sidebarCollapsed', String(sidebarCollapsed));
     }, [sidebarCollapsed]);
+
+    // Keyboard shortcut Ctrl+K for unlock/lock toggle
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k' && user.role === 'admin') {
+                e.preventDefault();
+                
+                // If already unlocked, lock it with confirmation
+                if (securityUnlocked) {
+                    if (confirm('Lock security monitoring access? You will need to enter the key again to unlock.')) {
+                        handleLock();
+                    }
+                } else {
+                    // Show unlock modal
+                    setShowUnlockModal(true);
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [user.role, securityUnlocked]);
+
+    // Handle lock
+    const handleLock = () => {
+        // Clear local state
+        setSecurityUnlocked(false);
+        localStorage.removeItem('security_unlocked');
+        
+        // Redirect to lock endpoint which will clear session and redirect back
+        window.location.href = route('admin.security.lock');
+    };
+
+    // Handle unlock
+    const handleUnlock = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setUnlockError('');
+
+        try {
+            const response = await axios.post(route('admin.security.unlock'), {
+                key: unlockKey
+            });
+
+            if (response.data.success) {
+                setSecurityUnlocked(true);
+                localStorage.setItem('security_unlocked', 'true');
+                setShowUnlockModal(false);
+                setUnlockKey('');
+                router.reload();
+            }
+        } catch (error: any) {
+            setUnlockError(error.response?.data?.message || 'Invalid key');
+        }
+    };
 
     const getDashboardRoute = () => {
         const role = user.role;
@@ -86,6 +152,26 @@ export default function Authenticated({
                 ),
                 active: route().current('admin.users.*'),
             },
+            {
+                name: 'Registered APs',
+                href: route('admin.registered-aps.index'),
+                icon: (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                ),
+                active: route().current('admin.registered-aps.*'),
+            },
+            ...(securityUnlocked ? [{
+                name: 'Login Security',
+                href: route('admin.login-security.index'),
+                icon: (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                ),
+                active: route().current('admin.login-security.*'),
+            }] : []),
             {
                 name: 'Clients',
                 href: route('admin.clients.index'),
@@ -370,6 +456,73 @@ export default function Authenticated({
                     {children}
                 </main>
             </div>
+
+            {/* Security Unlock Modal */}
+            {showUnlockModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-xl p-6 w-96 max-w-md">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900">Security Access</h3>
+                            <button
+                                onClick={() => {
+                                    setShowUnlockModal(false);
+                                    setUnlockKey('');
+                                    setUnlockError('');
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <form onSubmit={handleUnlock}>
+                            <div className="mb-4">
+                                <label htmlFor="unlockKey" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Enter Security Key
+                                </label>
+                                <input
+                                    id="unlockKey"
+                                    type="password"
+                                    value={unlockKey}
+                                    onChange={(e) => setUnlockKey(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Enter key..."
+                                    autoFocus
+                                />
+                                {unlockError && (
+                                    <p className="mt-2 text-sm text-red-600">{unlockError}</p>
+                                )}
+                            </div>
+                            
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowUnlockModal(false);
+                                        setUnlockKey('');
+                                        setUnlockError('');
+                                    }}
+                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                >
+                                    Unlock
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <p className="mt-4 text-xs text-gray-500 text-center">
+                            Press <kbd className="px-2 py-1 bg-gray-100 border border-gray-300 rounded">Ctrl</kbd> + <kbd className="px-2 py-1 bg-gray-100 border border-gray-300 rounded">K</kbd> to open this dialog
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
         </div>
     );

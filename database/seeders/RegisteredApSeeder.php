@@ -19,21 +19,21 @@ class RegisteredApSeeder extends Seeder
         $apData = [
             [
                 'ap_number' => 'AP. 0818',
-                'user_id' => 1,
+                'user_id' => 3,
                 'registration_date' => Carbon::parse('2021-11-12'),
                 'expiry_date' => Carbon::parse('2026-11-12'),
                 'status' => 'active',
             ],
             [
                 'ap_number' => 'AP.1271',
-                'user_id' => 2,
+                'user_id' => 4,
                 'registration_date' => Carbon::parse('2021-07-21'),
                 'expiry_date' => Carbon::parse('2026-07-21'),
                 'status' => 'active',
             ],
             [
                 'ap_number' => 'AP.1760',
-                'user_id' => 3,
+                'user_id' => 5,
                 'registration_date' => Carbon::parse('2021-07-14'),
                 'expiry_date' => Carbon::parse('2026-07-14'),
                 'status' => 'active',

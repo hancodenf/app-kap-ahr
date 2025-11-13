@@ -33,6 +33,10 @@ class User extends Authenticatable
         'client_id',
         'is_active',
         'whatsapp',
+        'is_suspended',
+        'suspended_until',
+        'failed_login_count',
+        'last_failed_login',
     ];
 
     protected $hidden = [
@@ -51,6 +55,9 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'is_suspended' => 'boolean',
+            'suspended_until' => 'datetime',
+            'last_failed_login' => 'datetime',
         ];
     }
 
@@ -93,6 +100,36 @@ class User extends Authenticatable
     public function activityLogs(): HasMany
     {
         return $this->hasMany(ActivityLog::class);
+    }
+
+    /**
+     * Get the failed login attempts for the user.
+     */
+    public function failedLoginAttempts(): HasMany
+    {
+        return $this->hasMany(FailedLoginAttempt::class);
+    }
+
+    /**
+     * Check if user is currently suspended.
+     */
+    public function isSuspended(): bool
+    {
+        if (!$this->is_suspended) {
+            return false;
+        }
+
+        if ($this->suspended_until && now()->greaterThan($this->suspended_until)) {
+            // Suspension expired, auto-unsuspend
+            $this->update([
+                'is_suspended' => false,
+                'suspended_until' => null,
+                'failed_login_count' => 0,
+            ]);
+            return false;
+        }
+
+        return true;
     }
 
     /**

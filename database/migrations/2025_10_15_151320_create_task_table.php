@@ -25,7 +25,7 @@ return new class extends Migration
             
             // Denormalized project data
             $table->string('project_name');
-            $table->string('project_client_name');
+            $table->string('project_client_name');  
             
             // Denormalized working step data
             $table->string('working_step_name');

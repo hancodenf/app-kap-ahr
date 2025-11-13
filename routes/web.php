@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Client\ClientController;
 use App\Http\Controllers\Admin\ClientController as AdminClientController;
 use App\Http\Controllers\Admin\ProjectController;
+use App\Http\Controllers\Admin\RegisteredApController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Company\StaffController;
 use App\Http\Controllers\Company\CompanyController;
@@ -71,6 +72,53 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::resource('users', UserController::class);
     Route::post('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
+
+    // Registered APs Management Routes
+    Route::resource('registered-aps', RegisteredApController::class);
+
+    // Login Security Monitoring Routes (Protected with unlock key)
+    Route::prefix('login-security')->name('login-security.')->middleware('security.unlock')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\LoginSecurityController::class, 'index'])->name('index');
+        Route::get('/{attempt}', [\App\Http\Controllers\Admin\LoginSecurityController::class, 'show'])->name('show');
+        Route::post('/unsuspend/{user}', [\App\Http\Controllers\Admin\LoginSecurityController::class, 'unsuspend'])->name('unsuspend');
+        Route::delete('/{attempt}', [\App\Http\Controllers\Admin\LoginSecurityController::class, 'destroy'])->name('destroy');
+    });
+
+    // Security Unlock API
+    Route::post('/security-unlock', function(\Illuminate\Http\Request $request) {
+        $key = $request->input('key');
+        $envKey = env('SECURITY_UNLOCK_KEY', 'handev');
+        
+        // Debug logging
+        \Log::info('Security unlock attempt', [
+            'input_key' => $key,
+            'env_key' => $envKey,
+            'match' => $key === $envKey
+        ]);
+        
+        if ($key === $envKey) {
+            $request->session()->put('security_unlocked', true);
+            return response()->json(['success' => true, 'message' => 'Security monitoring unlocked']);
+        }
+        
+        return response()->json(['success' => false, 'message' => 'Invalid key'], 403);
+    })->name('security.unlock');
+
+    // Security Lock - GET route that clears session and redirects
+    Route::get('/security-lock', function(\Illuminate\Http\Request $request) {
+        // Debug logging
+        \Log::info('Security lock requested', [
+            'session_id' => $request->session()->getId(),
+        ]);
+        
+        // Remove the security_unlocked flag from session
+        $request->session()->forget('security_unlocked');
+        
+        \Log::info('Security locked successfully');
+        
+        // Redirect to dashboard
+        return redirect()->route('admin.dashboard')->with('success', 'Security monitoring has been locked');
+    })->name('security.lock');
 
     // Client Management Routes  
     Route::resource('clients', AdminClientController::class);

@@ -46,12 +46,27 @@ export default function Login({
     const [showTenagaAhli, setShowTenagaAhli] = useState(false);
     const [showStaff, setShowStaff] = useState(false);
     const [showClient, setShowClient] = useState(false);
+    const [failedAttempts, setFailedAttempts] = useState(0);
+    const [showWarning, setShowWarning] = useState(false);
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
         post(route('login'), {
             onFinish: () => reset('password'),
+            onError: () => {
+                const newAttempts = failedAttempts + 1;
+                setFailedAttempts(newAttempts);
+                
+                // Show warning on 2nd attempt
+                if (newAttempts >= 2) {
+                    setShowWarning(true);
+                }
+            },
+            onSuccess: () => {
+                setFailedAttempts(0);
+                setShowWarning(false);
+            },
         });
     };
 
@@ -100,6 +115,24 @@ export default function Login({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* LEFT COLUMN - Login Form */}
                 <div className="lg:pr-8 lg:border-r border-gray-200">
+                    {/* Security Warning */}
+                    {showWarning && (
+                        <div className="mb-4 bg-yellow-50 border border-yellow-400 rounded-lg p-4">
+                            <div className="flex items-start">
+                                <svg className="w-6 h-6 text-yellow-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <div>
+                                    <h3 className="font-semibold text-yellow-800">Security Alert</h3>
+                                    <p className="text-sm text-yellow-700 mt-1">
+                                        You have {3 - failedAttempts} login attempt(s) remaining. 
+                                        After 3 failed attempts, your account will be temporarily suspended.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Header Section */}
                     <div className="mb-6">
                         <h2 className="text-2xl font-bold text-gray-800">Welcome Back!</h2>
