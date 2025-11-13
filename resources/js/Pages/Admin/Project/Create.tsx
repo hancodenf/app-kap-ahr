@@ -41,9 +41,12 @@ interface TeamMemberRow {
 }
 
 export default function Create({ auth, clients, availableUsers, templates }: Props) {
+    const currentYear = new Date().getFullYear();
+    
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         client_id: 0,
+        year: currentYear,
         team_members: [] as TeamMemberRow[],
         template_id: 0,
     });
@@ -132,6 +135,27 @@ export default function Create({ auth, clients, availableUsers, templates }: Pro
                                     />
                                     {errors.client_id && (
                                         <p className="mt-1 text-sm text-red-600">{errors.client_id}</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Project Year <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        id="year"
+                                        name="year"
+                                        value={data.year}
+                                        onChange={(e) => setData('year', parseInt(e.target.value))}
+                                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                                        required
+                                    >
+                                        {Array.from({ length: currentYear - 1999 }, (_, i) => currentYear - i).map(year => (
+                                            <option key={year} value={year}>{year}</option>
+                                        ))}
+                                    </select>
+                                    {errors.year && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.year}</p>
                                     )}
                                 </div>
 

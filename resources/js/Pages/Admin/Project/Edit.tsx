@@ -66,6 +66,7 @@ interface TaskWorker {
 interface ProjectBundle {
     id: number;
     name: string;
+    year: number;
     status: 'open' | 'closed';
     client_id: number | null;
     client_name: string | null;
@@ -417,6 +418,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     const { data: editTemplateData, setData: setEditTemplateData, put: putTemplate, processing: editTemplateProcessing, errors: editTemplateErrors, reset: resetEditTemplate } = useForm({
         name: '',
         client_id: 0,
+        year: new Date().getFullYear(),
         status: 'closed' as 'open' | 'closed',
     });
 
@@ -537,6 +539,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         setEditTemplateData({
             name: bundle.name,
             client_id: bundle.client_id || 0,
+            year: bundle.year || new Date().getFullYear(),
             status: bundle.status || 'closed',
         });
         setShowEditTemplateModal(true);
@@ -1361,6 +1364,25 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                 />
                                 {editTemplateErrors.client_id && (
                                     <p className="mt-1 text-sm text-red-600">{editTemplateErrors.client_id}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Project Year
+                                </label>
+                                <select
+                                    value={editTemplateData.year}
+                                    onChange={(e) => setEditTemplateData('year', parseInt(e.target.value))}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    required
+                                >
+                                    {Array.from({ length: new Date().getFullYear() - 1999 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                                        <option key={year} value={year}>{year}</option>
+                                    ))}
+                                </select>
+                                {editTemplateErrors.year && (
+                                    <p className="mt-1 text-sm text-red-600">{editTemplateErrors.year}</p>
                                 )}
                             </div>
 
