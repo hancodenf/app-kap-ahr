@@ -65,9 +65,16 @@ class ProjectController extends Controller
 
     public function createBundle()
     {
-        // Get all clients
+        // Get all clients with their used years
         $clients = \App\Models\Client::orderBy('name')
-            ->get(['id', 'name', 'alamat', 'kementrian']);
+            ->get(['id', 'name', 'alamat', 'kementrian'])
+            ->map(function ($client) {
+                $usedYears = Project::where('client_id', $client->id)
+                    ->pluck('year')
+                    ->toArray();
+                $client->used_years = $usedYears;
+                return $client;
+            });
 
         // Get all users (company role only)
         $availableUsers = User::where('role', 'company')
@@ -96,6 +103,17 @@ class ProjectController extends Controller
             'team_members.*.role' => 'required|in:partner,manager,supervisor,team leader,member',
             'template_id' => 'nullable|exists:project_templates,id',
         ]);
+
+        // Check if project with same client and year already exists
+        $existingProject = Project::where('client_id', $request->client_id)
+            ->where('year', $request->year)
+            ->first();
+        
+        if ($existingProject) {
+            return back()->withErrors([
+                'year' => 'A project for this client in year ' . $request->year . ' already exists: ' . $existingProject->name
+            ])->withInput();
+        }
 
         // Get client data
         $client = \App\Models\Client::find($request->client_id);
@@ -318,8 +336,16 @@ class ProjectController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'position']);
 
-        // Get clients with their users
-        $clients = Client::with('clientUsers')->orderBy('name')->get();
+        // Get clients with their used years
+        $clients = Client::with('clientUsers')->orderBy('name')->get()
+            ->map(function ($client) use ($bundle) {
+                $usedYears = Project::where('client_id', $client->id)
+                    ->where('id', '!=', $bundle->id) // Exclude current project
+                    ->pluck('year')
+                    ->toArray();
+                $client->used_years = $usedYears;
+                return $client;
+            });
 
         return Inertia::render('Admin/Project/Edit', [
             'bundle' => $bundle,
@@ -338,6 +364,18 @@ class ProjectController extends Controller
             'year' => 'required|integer|min:2000|max:' . date('Y'),
             'status' => 'required|in:open,closed',
         ]);
+
+        // Check if project with same client and year already exists (excluding current project)
+        $existingProject = Project::where('client_id', $request->client_id)
+            ->where('year', $request->year)
+            ->where('id', '!=', $bundle->id)
+            ->first();
+        
+        if ($existingProject) {
+            return back()->withErrors([
+                'year' => 'A project for this client in year ' . $request->year . ' already exists: ' . $existingProject->name
+            ])->withInput();
+        }
 
         // Get client for denormalized data
         $client = Client::findOrFail($request->client_id);

@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { PageProps } from '@/types';
-import { FormEventHandler } from 'react';
+import { FormEventHandler, useMemo } from 'react';
 import SearchableSelect from '@/Components/SearchableSelect';
 
 interface Client {
@@ -10,6 +10,7 @@ interface Client {
     alamat: string;
     kementrian: string;
     kode_satker: string;
+    used_years?: number[];
     user?: {
         id: number;
         name: string;
@@ -50,6 +51,19 @@ export default function Create({ auth, clients, availableUsers, templates }: Pro
         team_members: [] as TeamMemberRow[],
         template_id: 0,
     });
+
+    // Get available years for selected client
+    const availableYears = useMemo(() => {
+        if (!data.client_id) {
+            return Array.from({ length: currentYear - 1999 }, (_, i) => currentYear - i);
+        }
+
+        const selectedClient = clients.find(c => c.id === data.client_id);
+        const usedYears = selectedClient?.used_years || [];
+        
+        return Array.from({ length: currentYear - 1999 }, (_, i) => currentYear - i)
+            .filter(year => !usedYears.includes(year));
+    }, [data.client_id, clients, currentYear]);
 
     const addTeamMember = () => {
         setData('team_members', [
@@ -142,18 +156,15 @@ export default function Create({ auth, clients, availableUsers, templates }: Pro
                                     <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-2">
                                         Project Year <span className="text-red-500">*</span>
                                     </label>
-                                    <select
-                                        id="year"
-                                        name="year"
+                                    <SearchableSelect
+                                        options={availableYears.map(year => ({
+                                            value: year,
+                                            label: year.toString(),
+                                        }))}
                                         value={data.year}
-                                        onChange={(e) => setData('year', parseInt(e.target.value))}
-                                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                                        required
-                                    >
-                                        {Array.from({ length: currentYear - 1999 }, (_, i) => currentYear - i).map(year => (
-                                            <option key={year} value={year}>{year}</option>
-                                        ))}
-                                    </select>
+                                        onChange={(value) => setData('year', value as number)}
+                                        placeholder="Select project year..."
+                                    />
                                     {errors.year && (
                                         <p className="mt-1 text-sm text-red-600">{errors.year}</p>
                                     )}

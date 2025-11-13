@@ -2,7 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import ConfirmDialog from '@/Components/ConfirmDialog';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import SearchableSelect from '@/Components/SearchableSelect';
 import axios from 'axios';
 import {
@@ -106,6 +106,7 @@ interface Client {
     alamat: string;
     kementrian: string;
     kode_satker: string;
+    used_years?: number[];
 }
 
 interface Props extends PageProps {
@@ -421,6 +422,21 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         year: new Date().getFullYear(),
         status: 'closed' as 'open' | 'closed',
     });
+
+    // Get available years for selected client in edit form
+    const availableYears = useMemo(() => {
+        const currentYear = new Date().getFullYear();
+        
+        if (!editTemplateData.client_id) {
+            return Array.from({ length: currentYear - 1999 }, (_, i) => currentYear - i);
+        }
+
+        const selectedClient = clients.find(c => c.id === editTemplateData.client_id);
+        const usedYears = selectedClient?.used_years || [];
+        
+        return Array.from({ length: currentYear - 1999 }, (_, i) => currentYear - i)
+            .filter(year => !usedYears.includes(year));
+    }, [editTemplateData.client_id, clients]);
 
     const { data: editTaskData, setData: setEditTaskData, put: putTask, reset: resetEditTask } = useForm({
         name: '',
@@ -1371,16 +1387,15 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                 <label className="block text-sm font-medium text-gray-700">
                                     Project Year
                                 </label>
-                                <select
+                                <SearchableSelect
+                                    options={availableYears.map(year => ({
+                                        value: year,
+                                        label: year.toString(),
+                                    }))}
                                     value={editTemplateData.year}
-                                    onChange={(e) => setEditTemplateData('year', parseInt(e.target.value))}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    required
-                                >
-                                    {Array.from({ length: new Date().getFullYear() - 1999 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                                        <option key={year} value={year}>{year}</option>
-                                    ))}
-                                </select>
+                                    onChange={(value) => setEditTemplateData('year', value as number)}
+                                    placeholder="Select project year..."
+                                />
                                 {editTemplateErrors.year && (
                                     <p className="mt-1 text-sm text-red-600">{editTemplateErrors.year}</p>
                                 )}
