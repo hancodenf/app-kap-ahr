@@ -98,7 +98,7 @@ export default function Index({ registeredAps, filters }: RegisteredApsPageProps
             header={
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <h2 className="text-lg sm:text-xl font-semibold leading-tight text-gray-800">
-                        Registered APs
+                        Registered AP
                     </h2>
                     <Link
                         href={route('admin.registered-aps.create')}

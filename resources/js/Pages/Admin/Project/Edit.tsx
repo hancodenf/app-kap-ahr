@@ -1630,20 +1630,16 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         <label htmlFor="user_id" className="block text-sm font-medium text-gray-700 mb-2">
                                             Select User
                                         </label>
-                                        <select
-                                            id="user_id"
+                                        <SearchableSelect
+                                            options={availableUsers.map((user) => ({
+                                                value: user.id,
+                                                label: user.name,
+                                                subtitle: user.email,
+                                            }))}
                                             value={teamMemberData.user_id}
-                                            onChange={(e) => setTeamMemberData('user_id', parseInt(e.target.value))}
-                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                            required
-                                        >
-                                            <option value={0}>Select a user...</option>
-                                            {availableUsers.map((user) => (
-                                                <option key={user.id} value={user.id}>
-                                                    {user.name} ({user.email})
-                                                </option>
-                                            ))}
-                                        </select>
+                                            onChange={(value) => setTeamMemberData('user_id', value as number)}
+                                            placeholder="Search and select user..."
+                                        />
                                     </div>
 
                                     <div>

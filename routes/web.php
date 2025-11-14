@@ -109,12 +109,13 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
         // Debug logging
         \Log::info('Security lock requested', [
             'session_id' => $request->session()->getId(),
+            'user_id' => auth()->id(),
         ]);
         
         // Remove the security_unlocked flag from session
         $request->session()->forget('security_unlocked');
         
-        \Log::info('Security locked successfully');
+        \Log::info('Security locked successfully - session cleared');
         
         // Redirect to dashboard
         return redirect()->route('admin.dashboard')->with('success', 'Security monitoring has been locked');

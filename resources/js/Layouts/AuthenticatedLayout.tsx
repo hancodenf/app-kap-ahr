@@ -153,7 +153,7 @@ export default function Authenticated({
                 active: route().current('admin.users.*'),
             },
             {
-                name: 'Registered APs',
+                name: 'Registered AP',
                 href: route('admin.registered-aps.index'),
                 icon: (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
