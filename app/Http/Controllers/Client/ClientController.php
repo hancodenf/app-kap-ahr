@@ -109,22 +109,34 @@ class ClientController extends Controller
                 })
             : collect([]);
         
-        // 5. Tasks Requiring Client Action (client_interact = true, status = 'Submitted to Client')
+        // 5. Tasks Requiring Client Action (client_interact = true, latest assignment status = 'Submitted to Client')
         $tasksRequiringAction = $projectIds->isNotEmpty()
             ? Task::whereIn('project_id', $projectIds)
-                ->where('client_interact', true)
-                ->where('status', 'Submitted to Client')
+                ->where('client_interact', '!=', 'read only')
                 ->where('completion_status', '!=', 'completed')
+                ->whereHas('taskAssignments', function($query) {
+                    // Check if latest assignment has status 'Submitted to Client'
+                    $query->whereIn('id', function($subQuery) {
+                        $subQuery->select(DB::raw('MAX(id)'))
+                            ->from('task_assignments')
+                            ->groupBy('task_id');
+                    })
+                    ->where('status', 'Submitted to Client');
+                })
+                ->with(['taskAssignments' => function($q) {
+                    $q->latest()->limit(1);
+                }])
                 ->orderBy('created_at', 'desc')
                 ->limit(10)
                 ->get()
                 ->map(function($task) {
+                    $latestAssignment = $task->taskAssignments->first();
                     return [
                         'id' => $task->id,
                         'name' => $task->name,
                         'project_name' => $task->project_name,
                         'working_step_name' => $task->working_step_name,
-                        'status' => $task->status,
+                        'status' => $latestAssignment->status ?? 'Draft',
                         'completion_status' => $task->completion_status,
                         'created_at' => $task->created_at->format('Y-m-d H:i:s'),
                     ];
@@ -369,7 +381,7 @@ class ClientController extends Controller
                             'order' => $task->order,
                             'is_required' => $task->is_required,
                             'completion_status' => $task->completion_status,
-                            'status' => $task->status,
+                            'status' => $latestAssignment->status ?? 'Draft',
                             'client_interact' => $task->client_interact,
                             'multiple_files' => $task->multiple_files,
                             'is_assigned_to_me' => $task->client_interact, // Client can only interact with tasks marked client_interact
@@ -494,6 +506,7 @@ class ClientController extends Controller
         });
 
         // Format task data for React component
+        $latestAssignment = $task->taskAssignments->first();
         $taskData = [
             'id' => $task->id,
             'name' => $task->name,
@@ -501,7 +514,7 @@ class ClientController extends Controller
             'order' => $task->order,
             'is_required' => $task->is_required,
             'completion_status' => $task->completion_status,
-            'status' => $task->status,
+            'status' => $latestAssignment->status ?? 'Draft',
             'client_interact' => $task->client_interact,
             'multiple_files' => $task->multiple_files,
             'project_name' => $task->project->name,
@@ -617,12 +630,17 @@ class ClientController extends Controller
             return $doc->file !== null;
         });
 
-        // Update task status to Client Reply if all documents uploaded
+        // Update assignment status to Client Reply if all documents uploaded
         // Allow status update from both "Submitted to Client" and "Submitted"
-        if ($allUploaded && ($task->status === 'Submitted to Client' || $task->status === 'Submitted')) {
-            // Update task status to Client Reply
-            $task->update([
+        $currentStatus = $latestAssignment->status ?? 'Draft';
+        if ($allUploaded && ($currentStatus === 'Submitted to Client' || $currentStatus === 'Submitted')) {
+            // Update assignment status to Client Reply
+            $latestAssignment->update([
                 'status' => 'Client Reply',
+            ]);
+            
+            // Update task completion status
+            $task->update([
                 'completion_status' => 'in_progress',
             ]);
 

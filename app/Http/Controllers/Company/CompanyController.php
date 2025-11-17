@@ -100,7 +100,9 @@ class CompanyController extends Controller
         $myActiveTasks = $hasProjects
             ? \App\Models\TaskWorker::whereIn('project_team_id', $projectTeamIds)
                 ->with(['task' => function($query) {
-                    $query->with('workingStep.project')
+                    $query->with(['workingStep.project', 'taskAssignments' => function($q) {
+                        $q->latest();
+                    }])
                         ->where('completion_status', '!=', 'completed');
                 }])
                 ->get()
@@ -108,6 +110,7 @@ class CompanyController extends Controller
                     return $taskWorker->task !== null;
                 })
                 ->map(function($taskWorker) {
+                    $latestAssignment = $taskWorker->task->taskAssignments->first();
                     return [
                         'id' => $taskWorker->task->id,
                         'name' => $taskWorker->task->name,
@@ -115,7 +118,7 @@ class CompanyController extends Controller
                         'project_name' => $taskWorker->task->project_name,
                         'working_step_name' => $taskWorker->task->working_step_name,
                         'completion_status' => $taskWorker->task->completion_status,
-                        'status' => $taskWorker->task->status,
+                        'status' => $latestAssignment->status ?? 'Draft',
                         'is_required' => $taskWorker->task->is_required,
                     ];
                 })
@@ -171,7 +174,7 @@ class CompanyController extends Controller
                         'task_name' => $taskWorker->task->name,
                         'project_name' => $taskWorker->task->project_name,
                         'deadline' => $latestAssignment->time,
-                        'status' => $taskWorker->task->status,
+                        'status' => $latestAssignment->status ?? 'Draft',
                     ];
                 })
                 ->sortBy('deadline')
@@ -338,7 +341,7 @@ class CompanyController extends Controller
                             'order' => $task->order,
                             'is_required' => $task->is_required,
                             'completion_status' => $task->completion_status,
-                            'status' => $task->status,
+                            'status' => $latestAssignment->status ?? 'Draft',
                             'client_interact' => $task->client_interact,
                             'multiple_files' => $task->multiple_files,
                             'is_assigned_to_me' => $myAssignment !== null,
@@ -456,7 +459,8 @@ class CompanyController extends Controller
         // For rejected/revision statuses, create new assignment
         $taskAssignment = $task->taskAssignments()->latest()->first();
         
-        $isEditable = $task->status === 'Draft' || $task->status === 'Submitted' || $task->status === 'Submitted to Client';
+        $currentStatus = $taskAssignment->status ?? 'Draft';
+        $isEditable = $currentStatus === 'Draft' || $currentStatus === 'Submitted' || $currentStatus === 'Submitted to Client';
         
         // Custom validation: at least one of files or client_documents must be provided
         // UNLESS editing existing assignment (which already has files)
@@ -560,20 +564,23 @@ class CompanyController extends Controller
         // Determine status based on what was submitted
         $hasClientDocs = $request->has('client_documents') && is_array($request->client_documents) && count($request->client_documents) > 0;
         
-        // Update task status - keep as "Submitted" until user clicks "Submit for Review"
-        if ($task->status === 'Draft') {
+        // Get the assignment we just created/updated
+        $latestAssignment = $task->taskAssignments()->latest()->first();
+        
+        // Update assignment status - keep as "Submitted" until user clicks "Submit for Review"
+        if ($currentStatus === 'Draft') {
             // Draft → Submitted (masih editable)
             if ($hasClientDocs) {
-                $task->status = 'Submitted to Client'; // Client interaction path
+                $latestAssignment->status = 'Submitted to Client'; // Client interaction path
             } else {
-                $task->status = 'Submitted'; // Keep as Submitted, not auto-advance yet
+                $latestAssignment->status = 'Submitted'; // Keep as Submitted, not auto-advance yet
             }
-            $task->save();
-        } elseif ($task->status === 'Client Reply') {
+            $latestAssignment->save();
+        } elseif ($currentStatus === 'Client Reply') {
             // If client replied, keep as submitted
-            $task->status = 'Submitted';
-            $task->save();
-        } elseif (str_contains($task->status, 'Returned for Revision')) {
+            $latestAssignment->status = 'Submitted';
+            $latestAssignment->save();
+        } elseif (str_contains($currentStatus, 'Returned for Revision')) {
             // If resubmitting after rejection, create new assignment but keep status
             // Status will change when user clicks "Submit for Review"
             // Don't auto-advance here, let user review first
@@ -634,37 +641,40 @@ class CompanyController extends Controller
             return back()->withErrors(['error' => 'You are not assigned to this task.']);
         }
 
+        // Get latest assignment
+        $latestAssignment = $task->taskAssignments()->latest()->first();
+        
+        if (!$latestAssignment) {
+            return back()->withErrors(['error' => 'Please save your work before submitting for review.']);
+        }
+
+        $currentStatus = $latestAssignment->status ?? 'Draft';
+
         // Only allow submit if status is "Submitted" or "Returned for Revision"
-        $canSubmit = $task->status === 'Submitted' || str_contains($task->status, 'Returned for Revision');
+        $canSubmit = $currentStatus === 'Submitted' || str_contains($currentStatus, 'Returned for Revision');
         
         if (!$canSubmit) {
             return back()->withErrors(['error' => 'Task cannot be submitted for review in its current status.']);
         }
 
-        // Check if there's at least one assignment
-        $hasAssignment = $task->taskAssignments()->exists();
-        if (!$hasAssignment) {
-            return back()->withErrors(['error' => 'Please save your work before submitting for review.']);
-        }
-
         // Determine which reviewer to send to
-        if (str_contains($task->status, 'Returned for Revision')) {
+        if (str_contains($currentStatus, 'Returned for Revision')) {
             // If resubmitting after rejection, go back to the reviewer who rejected it
-            if (str_contains($task->status, 'Team Leader')) {
-                $task->status = 'Under Review by Team Leader';
-            } elseif (str_contains($task->status, 'Manager')) {
-                $task->status = 'Under Review by Manager';
-            } elseif (str_contains($task->status, 'Supervisor')) {
-                $task->status = 'Under Review by Supervisor';
-            } elseif (str_contains($task->status, 'Partner')) {
-                $task->status = 'Under Review by Partner';
+            if (str_contains($currentStatus, 'Team Leader')) {
+                $latestAssignment->status = 'Under Review by Team Leader';
+            } elseif (str_contains($currentStatus, 'Manager')) {
+                $latestAssignment->status = 'Under Review by Manager';
+            } elseif (str_contains($currentStatus, 'Supervisor')) {
+                $latestAssignment->status = 'Under Review by Supervisor';
+            } elseif (str_contains($currentStatus, 'Partner')) {
+                $latestAssignment->status = 'Under Review by Partner';
             }
         } else {
             // First submission, go to Team Leader
-            $task->status = 'Under Review by Team Leader';
+            $latestAssignment->status = 'Under Review by Team Leader';
         }
 
-        $task->save();
+        $latestAssignment->save();
 
         return back()->with('success', 'Task submitted for review successfully!');
     }
@@ -703,11 +713,19 @@ class CompanyController extends Controller
         
         $targetStatus = $statusMap[$roleLower];
         
-        // Get all tasks in this project with the target status
+        // Get all tasks in this project where the LATEST ASSIGNMENT has the target status
         $tasks = Task::whereHas('workingStep', function($query) use ($project) {
                 $query->where('project_id', $project->id);
             })
-            ->where('status', $targetStatus)
+            ->whereHas('taskAssignments', function($query) use ($targetStatus) {
+                // Check if latest assignment has the target status
+                $query->whereIn('id', function($subQuery) {
+                    $subQuery->select(DB::raw('MAX(id)'))
+                        ->from('task_assignments')
+                        ->groupBy('task_id');
+                })
+                ->where('status', $targetStatus);
+            })
             ->with([
                 'workingStep',
                 'taskAssignments' => function($q) {
@@ -725,7 +743,7 @@ class CompanyController extends Controller
                     'id' => $task->id,
                     'name' => $task->name,
                     'slug' => $task->slug,
-                    'status' => $task->status,
+                    'status' => $latestAssignment->status ?? 'Draft',
                     'completion_status' => $task->completion_status,
                     'working_step' => $task->workingStep ? [
                         'id' => $task->workingStep->id,
@@ -801,33 +819,36 @@ class CompanyController extends Controller
         
         $roleLower = strtolower($role);
         
-        if (!isset($approvalWorkflow[$roleLower]) || $task->status !== $approvalWorkflow[$roleLower]['current']) {
+        // Get latest assignment
+        $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
+        
+        if (!$latestAssignment) {
+            return response()->json(['error' => 'No assignment found for this task.'], 404);
+        }
+        
+        if (!isset($approvalWorkflow[$roleLower]) || $latestAssignment->status !== $approvalWorkflow[$roleLower]['current']) {
             return response()->json(['error' => 'You cannot approve this task in its current status.'], 403);
         }
         
         // Get workflow for current role
         $workflow = $approvalWorkflow[$roleLower];
         
-        // Update task status - auto-advance to next review or mark as approved
+        // Update assignment status - auto-advance to next review or mark as approved
         if ($workflow['next_review']) {
             // Auto-advance to next reviewer in hierarchy
-            $task->status = $workflow['next_review'];
+            $latestAssignment->status = $workflow['next_review'];
             $message = "Task approved and forwarded to next reviewer!";
         } else {
             // Final approval by Partner
-            $task->status = $workflow['approved'];
+            $latestAssignment->status = $workflow['approved'];
             $task->completion_status = 'completed';
+            $task->save();
             $message = "Task approved and marked as completed!";
         }
         
-        $task->save();
-        
-        // Mark latest assignment as approved
-        $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
-        if ($latestAssignment) {
-            $latestAssignment->is_approved = true;
-            $latestAssignment->save();
-        }
+        // Mark assignment as approved
+        $latestAssignment->is_approved = true;
+        $latestAssignment->save();
         
         return response()->json(['success' => true, 'message' => $message]);
     }
@@ -860,7 +881,14 @@ class CompanyController extends Controller
         
         $roleLower = strtolower($role);
         
-        if (!isset($rejectionMap[$roleLower]) || $task->status !== $rejectionMap[$roleLower]['current']) {
+        // Get latest assignment
+        $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
+        
+        if (!$latestAssignment) {
+            return response()->json(['error' => 'No assignment found for this task.'], 404);
+        }
+        
+        if (!isset($rejectionMap[$roleLower]) || $latestAssignment->status !== $rejectionMap[$roleLower]['current']) {
             return response()->json(['error' => 'You cannot reject this task in its current status.'], 403);
         }
         
@@ -868,17 +896,11 @@ class CompanyController extends Controller
             'comment' => 'required|string',
         ]);
         
-        // Update task status
-        $task->status = $rejectionMap[$roleLower]['rejected'];
-        $task->save();
-        
-        // Add rejection comment to latest assignment
-        $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
-        if ($latestAssignment) {
-            $latestAssignment->comment = $request->comment;
-            $latestAssignment->is_approved = false;
-            $latestAssignment->save();
-        }
+        // Update assignment status
+        $latestAssignment->status = $rejectionMap[$roleLower]['rejected'];
+        $latestAssignment->comment = $request->comment;
+        $latestAssignment->is_approved = false;
+        $latestAssignment->save();
         
         return response()->json(['success' => true, 'message' => 'Task rejected and returned for revision.']);
     }
@@ -901,16 +923,16 @@ class CompanyController extends Controller
             return back()->with('error', 'You are not assigned to this task.');
         }
 
-        // Verify task status is "Client Reply"
-        if ($task->status !== 'Client Reply') {
-            return back()->with('error', 'Task is not in Client Reply status.');
-        }
-
         // Get latest assignment
         $latestAssignment = $task->taskAssignments()->latest()->first();
         
         if (!$latestAssignment) {
             return back()->with('error', 'No assignment found for this task.');
+        }
+
+        // Verify task assignment status is "Client Reply"
+        if ($latestAssignment->status !== 'Client Reply') {
+            return back()->with('error', 'Task is not in Client Reply status.');
         }
 
         // Verify all client documents have been uploaded
@@ -923,8 +945,11 @@ class CompanyController extends Controller
             return back()->with('error', 'Not all client documents have been uploaded yet.');
         }
 
-        // Update task status to "Submitted" (ready for approval workflow)
-        // $task->status = 'Submitted';
+        // Update assignment status to "Submitted" (ready for approval workflow)
+        $latestAssignment->status = 'Submitted';
+        $latestAssignment->save();
+        
+        // Mark task as completed
         $task->completion_status = 'completed';
         $task->save();
 
@@ -964,21 +989,21 @@ class CompanyController extends Controller
             return back()->with('error', 'You are not assigned to this task.');
         }
 
-        // Verify task status is "Client Reply"
-        if ($task->status !== 'Client Reply') {
+        // Get latest assignment
+        $latestAssignment = $task->taskAssignments()->latest()->first();
+        
+        if (!$latestAssignment) {
+            return back()->with('error', 'No assignment found for this task.');
+        }
+
+        // Verify task assignment status is "Client Reply"
+        if ($latestAssignment->status !== 'Client Reply') {
             return back()->with('error', 'Task is not in Client Reply status.');
         }
 
         $request->validate([
             'comment' => 'required|string|max:1000',
         ]);
-
-        // Get latest assignment (to copy client document requests)
-        $latestAssignment = $task->taskAssignments()->latest()->first();
-        
-        if (!$latestAssignment) {
-            return back()->with('error', 'No assignment found for this task.');
-        }
 
         // Create NEW task assignment (old one remains for history)
         $newAssignment = \App\Models\TaskAssignment::create([
@@ -990,6 +1015,7 @@ class CompanyController extends Controller
             'project_client_name' => $task->project_client_name,
             'time' => now(),
             'notes' => "Re-upload requested\nComment:\n" . $request->comment,
+            'status' => 'Submitted to Client', // Set status to request re-upload from client
             'is_approved' => false,
         ]);
 
@@ -1006,9 +1032,8 @@ class CompanyController extends Controller
             ]);
         }
 
-        // Update task status back to "Submitted to Client"
-        $task->status = 'Submitted to Client';
-        $task->save();
+        // Note: Task status is now managed through task_assignments
+        // No need to update task.status anymore
 
         // Log activity
         \App\Models\ActivityLog::create([

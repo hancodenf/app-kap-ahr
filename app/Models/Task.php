@@ -162,4 +162,76 @@ class Task extends Model
     {
         return storage_path("app/public/{$this->getStoragePath()}");
     }
+
+    /**
+     * Get current status from latest task assignment.
+     * 
+     * @return string
+     */
+    public function getCurrentStatus(): string
+    {
+        $latestAssignment = $this->taskAssignments()->latest()->first();
+        return $latestAssignment ? $latestAssignment->status : 'Draft';
+    }
+
+    /**
+     * Get latest task assignment.
+     * 
+     * @return TaskAssignment|null
+     */
+    public function getLatestAssignment(): ?TaskAssignment
+    {
+        return $this->taskAssignments()->latest()->first();
+    }
+
+    /**
+     * Check if task is editable (status is Draft, Submitted, or Submitted to Client).
+     * 
+     * @return bool
+     */
+    public function isEditable(): bool
+    {
+        $currentStatus = $this->getCurrentStatus();
+        return in_array($currentStatus, ['Draft', 'Submitted', 'Submitted to Client']);
+    }
+
+    /**
+     * Check if task can be submitted for review.
+     * 
+     * @return bool
+     */
+    public function canSubmitForReview(): bool
+    {
+        $currentStatus = $this->getCurrentStatus();
+        return $currentStatus === 'Submitted' || str_contains($currentStatus, 'Returned for Revision');
+    }
+
+    /**
+     * Get approval workflow for this task.
+     * 
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getApprovalWorkflow()
+    {
+        return $this->taskApprovals()->orderBy('order')->get();
+    }
+
+    /**
+     * Get current approval level based on status.
+     * 
+     * @return TaskApproval|null
+     */
+    public function getCurrentApproval(): ?TaskApproval
+    {
+        $currentStatus = $this->getCurrentStatus();
+        
+        return $this->taskApprovals()
+            ->where(function($query) use ($currentStatus) {
+                $query->where('status_name_pending', $currentStatus)
+                      ->orWhere('status_name_progress', $currentStatus)
+                      ->orWhere('status_name_reject', $currentStatus)
+                      ->orWhere('status_name_complete', $currentStatus);
+            })
+            ->first();
+    }
 }

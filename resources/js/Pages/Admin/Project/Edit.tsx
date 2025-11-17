@@ -1578,46 +1578,76 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                             ✅ Approval Required From
                                         </label>
                                         <p className="text-xs text-gray-500 mb-3">
-                                            Select roles that need to approve this task (in order)
+                                            Select roles that need to approve this task. Will be automatically ordered by priority.
                                         </p>
                                         <div className="space-y-2">
-                                            {(['partner', 'manager', 'supervisor', 'team leader'] as const).map((role) => (
-                                                <label key={role} className="flex items-center space-x-3 p-2 border rounded hover:bg-gray-50 cursor-pointer">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={editTaskData.approval_roles.includes(role)}
-                                                        onChange={(e) => {
-                                                            if (e.target.checked) {
-                                                                setEditTaskData('approval_roles', [...editTaskData.approval_roles, role]);
-                                                            } else {
-                                                                setEditTaskData('approval_roles', editTaskData.approval_roles.filter(r => r !== role));
-                                                            }
-                                                        }}
-                                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                                    />
-                                                    <div className="flex-1">
-                                                        <span className="text-sm font-medium text-gray-700 capitalize">
-                                                            {role}
-                                                        </span>
+                                            {(['team leader', 'manager', 'supervisor', 'partner'] as const).map((role) => {
+                                                // Define role priority for sorting
+                                                const rolePriority: { [key: string]: number } = {
+                                                    'team leader': 1,
+                                                    'manager': 2,
+                                                    'supervisor': 3,
+                                                    'partner': 4,
+                                                };
+                                                
+                                                // Sort approval roles by priority
+                                                const sortedRoles = [...editTaskData.approval_roles].sort((a, b) => 
+                                                    rolePriority[a] - rolePriority[b]
+                                                );
+                                                
+                                                const orderNumber = sortedRoles.indexOf(role) + 1;
+                                                
+                                                return (
+                                                    <label key={role} className="flex items-center space-x-3 p-2 border rounded hover:bg-gray-50 cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={editTaskData.approval_roles.includes(role)}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setEditTaskData('approval_roles', [...editTaskData.approval_roles, role]);
+                                                                } else {
+                                                                    setEditTaskData('approval_roles', editTaskData.approval_roles.filter(r => r !== role));
+                                                                }
+                                                            }}
+                                                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                        />
+                                                        <div className="flex-1 flex items-center justify-between">
+                                                            <span className="text-sm font-medium text-gray-700 capitalize">
+                                                                {role}
+                                                            </span>
+                                                            <span className="text-xs text-gray-400">
+                                                                Priority: {rolePriority[role]}
+                                                            </span>
+                                                        </div>
                                                         {editTaskData.approval_roles.includes(role) && (
-                                                            <span className="ml-2 text-xs text-blue-600">
-                                                                (Order: {editTaskData.approval_roles.indexOf(role) + 1})
+                                                            <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                                                                Order: {orderNumber}
                                                             </span>
                                                         )}
-                                                    </div>
-                                                </label>
-                                            ))}
+                                                    </label>
+                                                );
+                                            })}
                                         </div>
                                         {editTaskData.approval_roles.length > 0 && (
-                                            <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                                                <p className="text-xs font-medium text-blue-800 mb-1">Approval Flow:</p>
-                                                <p className="text-sm text-blue-700">
-                                                    {editTaskData.approval_roles.map((role, idx) => (
-                                                        <span key={role}>
-                                                            {idx > 0 && ' → '}
-                                                            <span className="capitalize font-medium">{role}</span>
-                                                        </span>
-                                                    ))}
+                                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                                <p className="text-xs font-medium text-blue-800 mb-1">✓ Approval Flow (Auto-sorted by priority):</p>
+                                                <p className="text-sm text-blue-700 font-medium">
+                                                    {(() => {
+                                                        const rolePriority: { [key: string]: number } = {
+                                                            'team leader': 1,
+                                                            'manager': 2,
+                                                            'supervisor': 3,
+                                                            'partner': 4,
+                                                        };
+                                                        return [...editTaskData.approval_roles]
+                                                            .sort((a, b) => rolePriority[a] - rolePriority[b])
+                                                            .map((role, idx) => (
+                                                                <span key={role}>
+                                                                    {idx > 0 && ' → '}
+                                                                    <span className="capitalize">{idx + 1}. {role}</span>
+                                                                </span>
+                                                            ));
+                                                    })()}
                                                 </p>
                                             </div>
                                         )}
