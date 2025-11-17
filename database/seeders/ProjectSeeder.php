@@ -39,21 +39,48 @@ class ProjectSeeder extends Seeder
 
     private function createProjectTeam($project)
     {
+        // Get users by position/role for project team
+        $partner = \App\Models\User::where('role', 'company')
+            ->where('position', 'Partner')
+            ->first();
+        $manager = \App\Models\User::where('role', 'company')
+            ->where('position', 'Associates Manager')
+            ->first();
+        $supervisor = \App\Models\User::where('role', 'company')
+            ->where('position', 'Tenaga Ahli - Supervisor')
+            ->first();
+        $seniorAuditor = \App\Models\User::where('role', 'company')
+            ->where('position', 'Senior Auditor')
+            ->first();
+        $juniorAuditor = \App\Models\User::where('role', 'company')
+            ->where('position', 'Junior Auditor')
+            ->first();
+
         // Create project team with different roles
-        $teamMembers = [
-            ['user_id' => 2, 'role' => 'partner'],      // John Partner
-            ['user_id' => 3, 'role' => 'manager'],      // Jane Manager
-            ['user_id' => 4, 'role' => 'supervisor'],   // Bob Supervisor
-            ['user_id' => 5, 'role' => 'team leader'],  // Alice Team Leader
-            ['user_id' => 6, 'role' => 'member'],       // Mike Auditor
-        ];
+        $teamMembers = [];
+        
+        if ($partner) {
+            $teamMembers[] = ['user' => $partner, 'role' => 'partner'];
+        }
+        if ($manager) {
+            $teamMembers[] = ['user' => $manager, 'role' => 'manager'];
+        }
+        if ($supervisor) {
+            $teamMembers[] = ['user' => $supervisor, 'role' => 'supervisor'];
+        }
+        if ($seniorAuditor) {
+            $teamMembers[] = ['user' => $seniorAuditor, 'role' => 'team leader'];
+        }
+        if ($juniorAuditor) {
+            $teamMembers[] = ['user' => $juniorAuditor, 'role' => 'member'];
+        }
 
         foreach ($teamMembers as $member) {
-            $user = \App\Models\User::find($member['user_id']);
+            $user = $member['user'];
             
             ProjectTeam::create([
                 'project_id' => $project->id,
-                'user_id' => $member['user_id'],
+                'user_id' => $user->id,
                 'role' => $member['role'],
                 // Denormalized project data
                 'project_name' => $project->name,

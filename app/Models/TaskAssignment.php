@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TaskAssignment extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     /**
      * The attributes that are mass assignable.
@@ -18,16 +19,15 @@ class TaskAssignment extends Model
      */
     protected $fillable = [
         'task_id',
-        'user_id',
         'task_name',
         'working_step_name',
         'project_name',
         'project_client_name',
         'time',
-        'notes',
         'comment',
+        'notes',
         'client_comment',
-        'is_approved',
+        'status',
     ];
 
     /**
@@ -39,7 +39,6 @@ class TaskAssignment extends Model
     {
         return [
             'time' => 'datetime',
-            'is_approved' => 'boolean',
         ];
     }
 
@@ -49,14 +48,6 @@ class TaskAssignment extends Model
     public function task(): BelongsTo
     {
         return $this->belongsTo(Task::class);
-    }
-
-    /**
-     * Get the user who created/worked on this assignment.
-     */
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
     }
 
     /**

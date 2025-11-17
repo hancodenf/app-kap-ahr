@@ -8,6 +8,7 @@ use App\Models\Document;
 use App\Models\Project;
 use App\Models\ProjectTeam;
 use App\Models\Task;
+use App\Models\TaskApproval;
 use App\Models\TaskAssignment;
 use App\Models\TaskWorker;
 use App\Models\User;
@@ -270,7 +271,9 @@ class ProjectController extends Controller
         // Get working steps for this project
         $workingSteps = WorkingStep::where('project_id', $bundle->id)
             ->with(['tasks' => function($query) {
-                $query->with('taskWorkers')->orderBy('order');
+                $query->with(['taskWorkers', 'taskApprovals' => function($q) {
+                    $q->orderBy('order');
+                }])->orderBy('order');
             }])
             ->orderBy('order')
             ->get();
@@ -507,16 +510,18 @@ class ProjectController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'client_interact' => 'boolean',
+            'client_interact' => 'required|in:read only,comment,upload',
             'multiple_files' => 'boolean',
             'worker_ids' => 'nullable|array',
             'worker_ids.*' => 'exists:project_teams,id',
+            'approval_roles' => 'nullable|array',
+            'approval_roles.*' => 'in:partner,manager,supervisor,team leader',
         ]);
 
         // Generate new slug if name changed
         $updateData = [
             'name' => $request->name,
-            'client_interact' => $request->boolean('client_interact'),
+            'client_interact' => $request->client_interact,
             'multiple_files' => $request->boolean('multiple_files'),
             'is_required' => $request->boolean('is_required'),
         ];
@@ -560,6 +565,32 @@ class ProjectController extends Controller
                             'worker_role' => $projectTeam->role,
                         ]);
                     }
+                }
+            }
+        }
+
+        // Sync approval roles - Delete old ones and create new ones
+        if ($request->has('approval_roles')) {
+            // Delete existing approvals for this task
+            $task->taskApprovals()->delete();
+
+            // Create new approvals with denormalized data and order
+            if (!empty($request->approval_roles)) {
+                foreach ($request->approval_roles as $index => $role) {
+                    TaskApproval::create([
+                        'task_id' => $task->id,
+                        'role' => $role,
+                        'order' => $index + 1,
+                        'task_name' => $task->name,
+                        'working_step_name' => $task->working_step_name,
+                        'project_name' => $task->project_name,
+                        'project_client_name' => $task->project_client_name,
+                        'status_name_pending' => 'Pending',
+                        'status_name_progress' => 'In Review',
+                        'status_name_reject' => 'Rejected',
+                        'status_name_complete' => 'Approved',
+                        'is_valid' => false,
+                    ]);
                 }
             }
         }

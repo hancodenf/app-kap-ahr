@@ -12,9 +12,8 @@ return new class extends Migration
             $table->uuid('id')->primary();
 
             // 🔹 Data user yang melakukan aksi
-            $table->foreignId('user_id')->nullable()
-                  ->constrained('users')
-                  ->nullOnDelete();
+            $table->uuid('user_id')->nullable();
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
 
             $table->string('user_name')->nullable();
             $table->string('user_email')->nullable();

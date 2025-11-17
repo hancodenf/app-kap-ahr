@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('registered_aps', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignId('user_id')->unique()->constrained()->onDelete('cascade');
+            $table->uuid('user_id')->nullable();
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
             $table->string('ap_number')->unique();
             $table->date('registration_date');
             $table->date('expiry_date')->nullable();

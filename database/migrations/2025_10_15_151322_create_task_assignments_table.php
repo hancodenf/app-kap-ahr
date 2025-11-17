@@ -26,8 +26,7 @@ return new class extends Migration
             $table->longText('comment')->nullable();
             $table->longText('notes')->nullable();
             $table->longText('client_comment')->nullable();
-            $table->string('status_role')->nullable();
-            $table->string('status_name')->nullable();
+            $table->string('status')->nullable();
 
             $table->timestamps();
         });

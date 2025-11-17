@@ -23,7 +23,7 @@ return new class extends Migration
             $table->timestamp('time')->nullable();
             $table->text('comment')->nullable();
             $table->text('client_comment')->nullable();
-            $table->boolean('client_interact')->default(false); // default read only
+            $table->enum('client_interact', ['read only', 'comment', 'upload'])->default('read only'); // default read only
             $table->boolean('multiple_files')->default(false); // default single file
             $table->boolean('is_required')->default(false); // Required to unlock next step
             $table->timestamps();
