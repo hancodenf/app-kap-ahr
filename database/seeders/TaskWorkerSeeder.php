@@ -29,11 +29,11 @@ class TaskWorkerSeeder extends Seeder
                     TaskWorker::create([
                         'task_id' => $task->id,
                         'project_team_id' => $team->id,
-                        // Denormalized task data
+                        // Denormalized task data;d,;w,d;wd
                         'task_name' => $task->name,
                         'working_step_name' => $task->working_step_name,
                         'project_name' => $task->project_name,
-                        'project_client_name' => $task->project_client_name,
+                        'project_client_name' => $task->project_client_name,    
                         // Denormalized project team data
                         'worker_name' => $team->user_name,
                         'worker_email' => $team->user_email,

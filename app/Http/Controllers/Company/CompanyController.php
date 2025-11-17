@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\ProjectTeam;
 use App\Models\WorkingStep;
 use App\Models\Task;
+use App\Models\News;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -179,6 +180,26 @@ class CompanyController extends Controller
                 ->values()
             : collect([]);
 
+        // Get latest published news
+        $latestNews = News::published()
+            ->with('creator')
+            ->orderBy('published_at', 'desc')
+            ->take(3)
+            ->get()
+            ->map(function ($news) {
+                return [
+                    'id' => $news->id,
+                    'title' => $news->title,
+                    'slug' => $news->slug,
+                    'excerpt' => $news->excerpt,
+                    'featured_image' => $news->featured_image,
+                    'published_at' => $news->published_at,
+                    'creator' => [
+                        'name' => $news->creator->name,
+                    ],
+                ];
+            });
+
         return Inertia::render('Company/Dashboard', [
             'user' => [
                 'id' => $user->id,
@@ -200,6 +221,7 @@ class CompanyController extends Controller
             'myActiveTasks' => $myActiveTasks,
             'taskTrend' => $taskTrend,
             'upcomingDeadlines' => $upcomingDeadlines,
+            'latestNews' => $latestNews,
         ]);
     }
 

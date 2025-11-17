@@ -17,6 +17,7 @@ use App\Models\Task;
 use App\Models\Document;
 use App\Models\ActivityLog;
 use App\Models\RegisteredAp;
+use App\Models\News;
 use Carbon\Carbon;
 
 class AdminController extends Controller
@@ -216,6 +217,26 @@ class AdminController extends Controller
                 ];
             });
 
+        // =============================================
+        // LATEST NEWS
+        // =============================================
+        $latestNews = News::published()
+            ->with('creator')
+            ->orderBy('published_at', 'desc')
+            ->take(3)
+            ->get()
+            ->map(function ($news) {
+                return [
+                    'id' => $news->id,
+                    'title' => $news->title,
+                    'slug' => $news->slug,
+                    'excerpt' => $news->excerpt,
+                    'featured_image' => $news->featured_image,
+                    'published_at' => $news->published_at,
+                    'creator' => ['name' => $news->creator->name],
+                ];
+            });
+
         return Inertia::render('Admin/Dashboard', [
             'user' => [
                 'id' => Auth::user()->id,
@@ -277,6 +298,7 @@ class AdminController extends Controller
             'recentUsers' => $recentUsers,
             'topActiveUsers' => $topActiveUsers,
             'topActiveProjects' => $topActiveProjects,
+            'latestNews' => $latestNews,
         ]);
     }
 }

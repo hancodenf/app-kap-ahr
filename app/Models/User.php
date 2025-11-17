@@ -111,6 +111,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the news articles created by the user.
+     */
+    public function news(): HasMany
+    {
+        return $this->hasMany(News::class, 'created_by');
+    }
+
+    /**
      * Check if user is currently suspended.
      */
     public function isSuspended(): bool

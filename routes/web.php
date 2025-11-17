@@ -124,6 +124,9 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     // Client Management Routes  
     Route::resource('clients', AdminClientController::class);
 
+    // News Management Routes
+    Route::resource('news', \App\Http\Controllers\Admin\NewsController::class);
+
     // Project Bundles Management Routes (CRUD for projects themselves)
     Route::prefix('projects')->name('projects.')->group(function () {
         Route::get('/', [ProjectController::class, 'index'])->name('bundles.index');
@@ -260,6 +263,11 @@ Route::middleware(['auth', 'verified', 'role:klien'])->prefix('klien')->name('kl
     Route::get('/tasks/{task}', [ClientController::class, 'viewTask'])->name('tasks.show');
     Route::post('/tasks/{task}/submit-reply', [ClientController::class, 'submitTaskReply'])->name('tasks.submit-reply');
     Route::post('/tasks/{task}/upload-client-documents', [ClientController::class, 'uploadClientDocuments'])->name('client-documents.upload');
+});
+
+// Public News Route (accessible by all authenticated users)
+Route::middleware('auth')->group(function () {
+    Route::get('/news/{news:slug}', [\App\Http\Controllers\Admin\NewsController::class, 'showPublic'])->name('news.show');
 });
 
 require __DIR__ . '/auth.php';

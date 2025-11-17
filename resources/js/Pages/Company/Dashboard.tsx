@@ -1,6 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 import { PageProps } from '@/types';
+import NewsCard from '@/Components/NewsCard';
 
 interface ProjectStats {
 	total: number;
@@ -49,6 +50,18 @@ interface UpcomingDeadline {
 	status: string;
 }
 
+interface NewsItem {
+	id: number;
+	title: string;
+	slug: string;
+	excerpt: string;
+	featured_image?: string | null;
+	published_at: string;
+	creator: {
+		name: string;
+	};
+}
+
 interface CompanyDashboardProps extends PageProps {
 	user: {
 		id: number;
@@ -70,6 +83,7 @@ interface CompanyDashboardProps extends PageProps {
 	myActiveTasks: ActiveTask[];
 	taskTrend: TaskTrendItem[];
 	upcomingDeadlines: UpcomingDeadline[];
+	latestNews: NewsItem[];
 }
 
 export default function CompanyDashboard({
@@ -79,6 +93,7 @@ export default function CompanyDashboard({
 	myActiveTasks,
 	taskTrend,
 	upcomingDeadlines,
+	latestNews,
 }: CompanyDashboardProps) {
 	const formatDate = (dateString: string) => {
 		return new Date(dateString).toLocaleDateString('id-ID', {
@@ -421,6 +436,26 @@ export default function CompanyDashboard({
                         </div>
                     </div>
                 </div>
+
+				{/* Latest News Section */}
+				{latestNews && latestNews.length > 0 && (
+					<div className="mt-8">
+						<div className="flex items-center justify-between mb-6">
+							<h2 className="text-2xl font-bold text-gray-900">Latest News</h2>
+							<div className="flex items-center text-primary-600 hover:text-primary-700 transition-colors cursor-pointer">
+								<span className="text-sm font-medium">View All</span>
+								<svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+								</svg>
+							</div>
+						</div>
+						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+							{latestNews.map((news) => (
+								<NewsCard key={news.id} {...news} />
+							))}
+						</div>
+					</div>
+				)}
             </div>
         </AuthenticatedLayout>
     );

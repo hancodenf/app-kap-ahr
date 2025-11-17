@@ -1,6 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 import { PageProps } from '@/types';
+import NewsCard from '@/Components/NewsCard';
 
 interface DashboardStatistics {
 	users: {
@@ -27,7 +28,7 @@ interface DashboardStatistics {
 	};
 	templates: {
 		total: number;
-	};
+	}; 	
 	system: {
 		working_steps: number;
 		documents: number;
@@ -88,6 +89,18 @@ interface TopActiveProject {
 	status: string;
 }
 
+interface NewsItem {
+	id: number;
+	title: string;
+	slug: string;
+	excerpt: string;
+	featured_image?: string | null;
+	published_at: string;
+	creator: {
+		name: string;
+	};
+}
+
 interface AdminDashboardProps extends PageProps {
 	user: {
 		id: number;
@@ -105,6 +118,7 @@ interface AdminDashboardProps extends PageProps {
 	recentUsers: RecentUser[];
 	topActiveUsers: TopActiveUser[];
 	topActiveProjects: TopActiveProject[];
+	latestNews: NewsItem[];
 }
 
 export default function AdminDashboard({
@@ -115,6 +129,7 @@ export default function AdminDashboard({
 	recentUsers,
 	topActiveUsers,
 	topActiveProjects,
+	latestNews,
 }: AdminDashboardProps) {
 	const formatDate = (dateString: string) => {
 		return new Date(dateString).toLocaleDateString('id-ID', {
@@ -349,6 +364,26 @@ export default function AdminDashboard({
 							</Link>
 						</div>
 					</div>
+
+					{/* Latest News Section */}
+					{latestNews && latestNews.length > 0 && (
+						<div className="bg-white shadow-sm rounded-lg p-6">
+							<div className="flex items-center justify-between mb-6">
+								<h3 className="text-lg font-semibold text-gray-900">Latest News & Updates</h3>
+								<Link href={route('admin.news.index')} className="flex items-center text-primary-600 hover:text-primary-700 transition-colors">
+									<span className="text-sm font-medium">Manage News</span>
+									<svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+									</svg>
+								</Link>
+							</div>
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+								{latestNews.map((news) => (
+									<NewsCard key={news.id} {...news} />
+								))}
+							</div>
+						</div>
+					)}
 				</div>
 			</div>
 		</AuthenticatedLayout>
