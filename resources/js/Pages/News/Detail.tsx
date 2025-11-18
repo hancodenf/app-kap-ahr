@@ -61,7 +61,7 @@ export default function NewsDetail({ news }: NewsDetailProps) {
                 <div className="flex items-center justify-between">
                     <h2 className="text-xl font-semibold leading-tight text-gray-800">News & Updates</h2>
                     <Link
-                        href={window.history.length > 1 ? 'javascript:history.back()' : '/'}
+                        href={route('news.index')}
                         className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
                     >
                         ← Back
@@ -159,8 +159,8 @@ export default function NewsDetail({ news }: NewsDetailProps) {
                                     <code className="bg-gray-200 px-2 py-1 rounded text-xs">{news.slug}</code>
                                 </div>
                                 <Link
-                                    href={window.history.length > 1 ? 'javascript:history.back()' : '/'}
-                                    className="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
+                                    href={route('news.index')}
+                                    className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
                                 >
                                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />

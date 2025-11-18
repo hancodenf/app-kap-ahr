@@ -39,6 +39,7 @@ class DatabaseSeeder extends Seeder
             
             // Other seeders
             RegisteredApSeeder::class,
+            NewsSeeder::class,
         ]);
     }
 }

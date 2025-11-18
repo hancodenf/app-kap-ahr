@@ -24,6 +24,7 @@ class ProjectSeeder extends Seeder
             $project = Project::create([
                 'name' => $projectName,
                 'slug' => Str::slug($projectName),
+                'year' => 2024,
                 'client_id' => $client->id,
                 // Denormalized client data
                 'client_name' => $client->name,

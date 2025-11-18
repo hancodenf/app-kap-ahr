@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('failed_login_attempts', function (Blueprint $table) {
             $table->id();
             $table->string('email')->index();
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
+            $table->uuid('user_id')->nullable();
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->string('ip_address', 45);
             $table->text('user_agent')->nullable();
             $table->string('mac_address')->nullable();

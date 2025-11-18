@@ -331,11 +331,18 @@ export default function Authenticated({
                 {/* Sidebar */}
                 <div className={`fixed left-0 z-50 flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
                     } lg:translate-x-0 ${sidebarCollapsed ? 'w-16' : 'w-64'
-                    } bg-white border-r border-gray-200`}
-                    style={{ top: '64px', bottom: 0 }}
+                    } bg-cover bg-center bg-no-repeat shadow-xl`}
+                    style={{ 
+                        top: '64px', 
+                        bottom: 0,
+                        backgroundImage: 'url(/AHR.jpg)'
+                    }}
                 >
+                    {/* Overlay for better text readability */}
+                    <div className="absolute inset-0"></div>
+                    
                     {/* Navigation */}
-                    <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">{menuItems.map((item, index) => (
+                    <nav className="relative z-10 flex-1 px-4 py-4 space-y-2 overflow-y-auto">{menuItems.map((item, index) => (
                         <div 
                             key={item.name} 
                             className="relative group"
@@ -354,9 +361,9 @@ export default function Authenticated({
                         >
                             <Link
                                 href={item.href}
-                                className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${item.active
-                                        ? 'bg-primary-100 text-primary-700 border-r-2 border-primary-600'
-                                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                className={`flex items-center px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${item.active
+                                        ? 'bg-white/95 text-gray-900 shadow-lg scale-[1.02]'
+                                        : 'text-white/90 hover:bg-white/20 hover:text-white backdrop-blur-sm'
                                     } ${sidebarCollapsed ? 'justify-center' : ''}`}
                             >
                                 <span className={`${sidebarCollapsed ? '' : 'mr-3'}`}>
@@ -367,9 +374,9 @@ export default function Authenticated({
 
                             {/* Tooltip when sidebar is collapsed */}
                             {sidebarCollapsed && (
-                                <div className="tooltip-content fixed px-3 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-[9999] shadow-xl pointer-events-none">
+                                <div className="tooltip-content fixed px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-[9999] shadow-xl pointer-events-none">
                                     {item.name}
-                                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-gray-800"></div>
+                                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-gray-900"></div>
                                 </div>
                             )}
                         </div>
@@ -377,12 +384,12 @@ export default function Authenticated({
                 </nav>
 
                 {/* User menu at bottom of sidebar */}
-                <div className="border-t border-gray-200 p-4">
+                <div className="relative z-10 border-t border-white/20 p-4 backdrop-blur-sm">
                     {!sidebarCollapsed ? (
                         <div className="space-y-1">
                             <Link
                                 href={route('profile.edit')}
-                                className="flex items-center px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100"
+                                className="flex items-center px-3 py-2.5 text-sm font-medium text-white/90 rounded-lg hover:bg-white/20 hover:text-white transition-all backdrop-blur-sm"
                             >
                                 <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -393,7 +400,7 @@ export default function Authenticated({
                                 href={route('logout')}
                                 method="post"
                                 as="button"
-                                className="flex items-center w-full px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100"
+                                className="flex items-center w-full px-3 py-2.5 text-sm font-medium text-white/90 rounded-lg hover:bg-white/20 hover:text-white transition-all backdrop-blur-sm"
                             >
                                 <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -406,15 +413,15 @@ export default function Authenticated({
                             <div className="relative group">
                                 <Link
                                     href={route('profile.edit')}
-                                    className="flex items-center justify-center px-1 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100"
+                                    className="flex items-center justify-center px-1 py-2 text-sm text-white/90 rounded-lg hover:bg-white/20 hover:text-white transition-all backdrop-blur-sm"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                     </svg>
                                 </Link>
-                                <div className="absolute left-full ml-3 bottom-0 px-3 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-[9999] shadow-xl">
+                                <div className="absolute left-full ml-3 bottom-0 px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-[9999] shadow-xl">
                                     Profile
-                                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-gray-800"></div>
+                                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-gray-900"></div>
                                 </div>
                             </div>
                             <div className="relative group">
@@ -422,15 +429,15 @@ export default function Authenticated({
                                     href={route('logout')}
                                     method="post"
                                     as="button"
-                                    className="flex items-center justify-center w-full px-1 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100"
+                                    className="flex items-center justify-center w-full px-1 py-2 text-sm text-white/90 rounded-lg hover:bg-white/20 hover:text-white transition-all backdrop-blur-sm"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                                     </svg>
                                 </Link>
-                                <div className="absolute left-full ml-3 bottom-0 px-3 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-[9999] shadow-xl">
+                                <div className="absolute left-full ml-3 bottom-0 px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-[9999] shadow-xl">
                                     Logout
-                                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-gray-800"></div>
+                                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-gray-900"></div>
                                 </div>
                             </div>
                         </div>

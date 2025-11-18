@@ -87,16 +87,19 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     // Security Unlock API
     Route::post('/security-unlock', function(\Illuminate\Http\Request $request) {
         $key = $request->input('key');
-        $envKey = env('SECURITY_UNLOCK_KEY', 'handev');
+        $envKeyHash = env('SECURITY_UNLOCK_KEY', 'f7b0bed5e6734693069a163b0b3e196a572001a8c9f727f4e4797c84344a03ac');
+        
+        // Hash the input key using SHA256
+        $inputKeyHash = hash('sha256', $key);
         
         // Debug logging
         \Log::info('Security unlock attempt', [
-            'input_key' => $key,
-            'env_key' => $envKey,
-            'match' => $key === $envKey
+            'input_key_hash' => $inputKeyHash,
+            'env_key_hash' => $envKeyHash,
+            'match' => $inputKeyHash === $envKeyHash
         ]);
         
-        if ($key === $envKey) {
+        if ($inputKeyHash === $envKeyHash) {
             $request->session()->put('security_unlocked', true);
             return response()->json(['success' => true, 'message' => 'Security monitoring unlocked']);
         }
@@ -267,6 +270,7 @@ Route::middleware(['auth', 'verified', 'role:klien'])->prefix('klien')->name('kl
 
 // Public News Route (accessible by all authenticated users)
 Route::middleware('auth')->group(function () {
+    Route::get('/news', [\App\Http\Controllers\Admin\NewsController::class, 'indexPublic'])->name('news.index');
     Route::get('/news/{news:slug}', [\App\Http\Controllers\Admin\NewsController::class, 'showPublic'])->name('news.show');
 });
 

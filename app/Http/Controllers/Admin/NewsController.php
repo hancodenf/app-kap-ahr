@@ -174,4 +174,28 @@ class NewsController extends Controller
             ],
         ]);
     }
+
+    public function indexPublic(Request $request)
+    {
+        $query = News::with('creator')->published();
+
+        // Filter by search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('excerpt', 'like', "%{$search}%")
+                  ->orWhere('content', 'like', "%{$search}%");
+            });
+        }
+
+        $news = $query->orderBy('published_at', 'desc')
+            ->paginate(12)
+            ->withQueryString();
+
+        return Inertia::render('News/Index', [
+            'news' => $news,
+            'filters' => $request->only(['search']),
+        ]);
+    }
 }

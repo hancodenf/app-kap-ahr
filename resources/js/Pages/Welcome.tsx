@@ -158,22 +158,38 @@ export default function Welcome({
                         <div className="flex justify-between items-center py-4">
                             <Link href="/" className="flex items-center space-x-3 group">
                                 <div className="relative">
-                                    <div className="absolute inset-0 bg-primary-500/20 blur-xl rounded-full group-hover:bg-primary-500/30 transition-all duration-300"></div>
+                                    <div className={`absolute inset-0 blur-xl rounded-full transition-all duration-300 ${
+                                        scrollY > 50 ? 'bg-primary-500/20 group-hover:bg-primary-500/30' : 'bg-white/20 group-hover:bg-white/30'
+                                    }`}></div>
                                     <ApplicationLogo className="h-12 w-12 relative transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-300" />
                                 </div>
                                 <div>
-                                    <h1 className="text-2xl font-black bg-gradient-to-r from-primary-600 via-primary-500 to-emerald-500 bg-clip-text text-transparent">
+                                    <h1 className={`text-2xl font-black transition-all duration-300 ${
+                                        scrollY > 50 
+                                            ? 'bg-gradient-to-r from-primary-600 via-primary-500 to-emerald-500 bg-clip-text text-transparent' 
+                                            : 'text-white drop-shadow-lg'
+                                    }`}>
                                         AURA
                                     </h1>
-                                    <p className="text-xs text-gray-600 font-medium">Audit Management System</p>
+                                    <p className={`text-xs font-medium transition-colors duration-300 ${
+                                        scrollY > 50 ? 'text-gray-600' : 'text-white/90 drop-shadow'
+                                    }`}>Audit Management System</p>
                                 </div>
                             </Link>
                             
                             <nav className="hidden md:flex items-center space-x-8">
-                                <a href="#features" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">Features</a>
-                                <a href="#workflow" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">Workflow</a>
-                                <a href="#testimonials" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">Testimonials</a>
-                                <a href="#contact" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">Contact</a>
+                                <a href="#features" className={`font-medium transition-colors ${
+                                    scrollY > 50 ? 'text-gray-700 hover:text-primary-600' : 'text-white/90 hover:text-white drop-shadow'
+                                }`}>Features</a>
+                                <a href="#workflow" className={`font-medium transition-colors ${
+                                    scrollY > 50 ? 'text-gray-700 hover:text-primary-600' : 'text-white/90 hover:text-white drop-shadow'
+                                }`}>Workflow</a>
+                                <a href="#testimonials" className={`font-medium transition-colors ${
+                                    scrollY > 50 ? 'text-gray-700 hover:text-primary-600' : 'text-white/90 hover:text-white drop-shadow'
+                                }`}>Testimonials</a>
+                                <a href="#contact" className={`font-medium transition-colors ${
+                                    scrollY > 50 ? 'text-gray-700 hover:text-primary-600' : 'text-white/90 hover:text-white drop-shadow'
+                                }`}>Contact</a>
                             </nav>
 
                             <div className="flex items-center space-x-3">
@@ -202,16 +218,19 @@ export default function Welcome({
                     </div>
                 </header>
 
-                {/* Hero Section - Powerful & Visual */}
-                <main className="relative pt-20">
-                    {/* Animated Background */}
-                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                        <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-primary-400/30 to-emerald-400/20 rounded-full blur-3xl animate-pulse"></div>
-                        <div className="absolute top-1/2 -left-40 w-96 h-96 bg-gradient-to-tr from-emerald-400/20 to-primary-400/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-                        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-gradient-to-tl from-primary-300/20 to-emerald-300/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-                    </div>
+                {/* Hero Section - Powerful & Visual with Background Image */}
+                <main className="relative">
+                    {/* Hero Banner with Background Image */}
+                    <div className="relative overflow-hidden pt-20">
+                        {/* Background Image */}
+                        <div 
+                            className="absolute inset-0 bg-cover bg-center"
+                            style={{ backgroundImage: 'url(/AHR-horizontal.jpg)' }}
+                        ></div>
+                        {/* Overlay Gradient untuk readability */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/60 to-black/70"></div>
 
-                    <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+                        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
                         {/* Hero Content */}
                         <div 
                             className="text-center mb-16"
@@ -223,29 +242,29 @@ export default function Welcome({
                                 transition: 'all 1s cubic-bezier(0.4, 0, 0.2, 1)'
                             }}
                         >
-                            {/* Badge */}
-                            <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-primary-50 to-emerald-50 border border-primary-200 rounded-full px-4 py-2 mb-8">
-                                <span className="relative flex h-3 w-3">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-primary-500"></span>
-                                </span>
-                                <span className="text-sm font-semibold bg-gradient-to-r from-primary-600 to-emerald-600 bg-clip-text text-transparent">
-                                    Trusted by 500+ Clients
-                                </span>
-                            </div>
+                                {/* Badge */}
+                                <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 mb-8">
+                                    <span className="relative flex h-3 w-3">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                    </span>
+                                    <span className="text-sm font-semibold text-white drop-shadow-lg">
+                                        Trusted by 500+ Clients
+                                    </span>
+                                </div>
 
-                            <h1 className="text-5xl md:text-7xl font-black text-gray-900 mb-6 leading-tight">
-                                Professional Audit
-                                <br />
-                                <span className="bg-gradient-to-r from-primary-600 via-primary-500 to-emerald-500 bg-clip-text text-transparent">
-                                    Management System
-                                </span>
-                            </h1>
-                            
-                            <p className="text-xl md:text-2xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
-                                End-to-end digital platform for <span className="font-bold text-primary-600">KAP Abdul Hamid dan Rekan</span>. 
-                                Manage audits from planning to reporting efficiently, transparently, and systematically.
-                            </p>
+                                <h1 className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight drop-shadow-2xl">
+                                    Professional Audit
+                                    <br />
+                                    <span className="text-emerald-400 drop-shadow-2xl">
+                                        Management System
+                                    </span>
+                                </h1>
+                                
+                                <p className="text-xl md:text-2xl text-white/90 mb-10 max-w-3xl mx-auto leading-relaxed drop-shadow-lg">
+                                    End-to-end digital platform for <span className="font-bold text-emerald-400">KAP Abdul Hamid dan Rekan</span>. 
+                                    Manage audits from planning to reporting efficiently, transparently, and systematically.
+                                </p>
                             
                             {/* CTA Buttons */}
                             <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-16">
@@ -293,28 +312,33 @@ export default function Welcome({
                             </div>
 
                             {/* Trust Indicators */}
-                            <div className="flex flex-wrap justify-center items-center gap-8 text-sm text-gray-600">
+                            <div className="flex flex-wrap justify-center items-center gap-8 text-sm text-white/90">
                                 <div className="flex items-center space-x-2">
-                                    <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg className="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                     </svg>
-                                    <span className="font-medium">No Credit Card Required</span>
+                                    <span className="font-medium drop-shadow">No Credit Card Required</span>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                    <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg className="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                     </svg>
-                                    <span className="font-medium">Setup in 5 Minutes</span>
+                                    <span className="font-medium drop-shadow">Setup in 5 Minutes</span>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                    <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg className="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                     </svg>
-                                    <span className="font-medium">24/7 Support</span>
+                                    <span className="font-medium drop-shadow">24/7 Support</span>
                                 </div>
                             </div>
                         </div>
+                        </div>
+                    </div>
 
+                    {/* Dashboard Preview Section - White Background */}
+                    <div className="bg-white py-20">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         {/* Dashboard Preview */}
                         <div 
                             className="relative"
@@ -353,10 +377,12 @@ export default function Welcome({
                                 </div>
                             </div>
                         </div>
+                        </div>
                     </div>
 
-                    {/* Features by Role - Interactive Tabs */}
-                    <div id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
+                    {/* Features Section - White Background */}
+                    <div id="features" className="bg-white py-32">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div 
                             className="text-center mb-16"
                             id="features-header"
@@ -435,12 +461,21 @@ export default function Welcome({
                                 </div>
                             ))}
                         </div>
+                        </div>
                     </div>
 
-                    {/* Workflow Section */}
-                    <div id="workflow" className="bg-gradient-to-br from-gray-50 to-white py-32">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <div 
+                    {/* Workflow Section - Background Image */}
+                    <div id="workflow" className="relative py-32 overflow-hidden">
+                        {/* Background Image */}
+                        <div 
+                            className="absolute inset-0 bg-cover bg-center"
+                            style={{ backgroundImage: 'url(/AHR-horizontal.jpg)' }}
+                        ></div>
+                        {/* Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/85 via-emerald-800/80 to-emerald-900/85"></div>
+                        
+                        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div
                                 className="text-center mb-16"
                                 id="workflow-header"
                                 data-animate
@@ -450,13 +485,13 @@ export default function Welcome({
                                     transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
                                 }}
                             >
-                                <div className="inline-block bg-emerald-50 border border-emerald-200 rounded-full px-5 py-2 mb-6">
-                                    <span className="text-sm font-bold text-emerald-600">AUDIT WORKFLOW</span>
+                                <div className="inline-block bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-5 py-2 mb-6">
+                                    <span className="text-sm font-bold text-white drop-shadow">AUDIT WORKFLOW</span>
                                 </div>
-                                <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-6">
-                                    4 <span className="bg-gradient-to-r from-primary-600 to-emerald-600 bg-clip-text text-transparent">Structured</span> Audit Stages
+                                <h2 className="text-4xl md:text-5xl font-black text-white mb-6 drop-shadow-xl">
+                                    4 <span className="text-emerald-400 drop-shadow-xl">Structured</span> Audit Stages
                                 </h2>
-                                <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                                <p className="text-xl text-white/90 max-w-3xl mx-auto drop-shadow-lg">
                                     Workflow system following professional audit standards: Engagement → Planning → Execution → Reporting
                                 </p>
                             </div>
@@ -500,13 +535,13 @@ export default function Welcome({
                                             transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${index * 0.1 + 0.4}s`
                                         }}
                                     >
-                                        <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary-500 to-emerald-500 rounded-2xl flex items-center justify-center text-3xl font-black text-white shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                                        <div className="w-16 h-16 mx-auto mb-4 bg-white/95 backdrop-blur-sm rounded-2xl flex items-center justify-center text-3xl font-black text-emerald-600 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
                                             {step.number}
                                         </div>
-                                        <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-primary-600 transition-colors">
+                                        <h3 className="text-lg font-bold text-white mb-2 drop-shadow group-hover:text-emerald-400 transition-colors">
                                             {step.label}
                                         </h3>
-                                        <p className="text-sm text-gray-600">
+                                        <p className="text-sm text-white/80 drop-shadow">
                                             {step.desc}
                                         </p>
                                     </div>
@@ -515,8 +550,9 @@ export default function Welcome({
                         </div>
                     </div>
 
-                    {/* Testimonials Section */}
-                    <div id="testimonials" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
+                    {/* Testimonials Section - White Background */}
+                    <div id="testimonials" className="bg-white py-32">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="text-center mb-16"
                             id="testimonials-header"
                             data-animate
@@ -586,16 +622,25 @@ export default function Welcome({
                                 ))}
                             </div>
                         </div>
+                        </div>
                     </div>
 
-                    {/* CTA Section */}
-                    <div className="bg-gradient-to-br from-primary-600 via-primary-500 to-emerald-600 py-24">
-                        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                            <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
-                                Ready to Optimize Your Audit Process?
+                    {/* CTA Section - Background Image */}
+                    <div className="relative py-24 overflow-hidden">
+                        {/* Background Image */}
+                        <div 
+                            className="absolute inset-0 bg-cover bg-center"
+                            style={{ backgroundImage: 'url(/AHR-horizontal.jpg)' }}
+                        ></div>
+                        {/* Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/90 via-emerald-800/85 to-emerald-900/90"></div>
+                        
+                        <div className="relative max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+                            <h2 className="text-4xl md:text-5xl font-black text-white mb-6 drop-shadow-xl">
+                                Ready to Optimize Your Audit Management?
                             </h2>
-                            <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto">
-                                Join 500+ clients who have trusted AURA to manage their audits
+                            <p className="text-xl text-white/90 mb-10 drop-shadow-lg">
+                                Join hundreds of audit professionals who trust AURA for their workflow
                             </p>
                             {!auth.user && (
                                 <Link
