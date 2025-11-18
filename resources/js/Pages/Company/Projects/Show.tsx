@@ -24,6 +24,7 @@ interface TaskAssignment {
     notes: string | null;
     comment: string | null;
     client_comment: string | null;
+    status: string;
     is_approved: boolean;
     created_at: string;
     documents: Document[];
@@ -38,7 +39,7 @@ interface Task {
     is_required: boolean;
     completion_status: 'pending' | 'in_progress' | 'completed';
     status: string;
-    client_interact: boolean;
+    client_interact: 'read only' | 'comment' | 'upload';
     multiple_files: boolean;
     is_assigned_to_me: boolean;
     my_assignment_id: number | null;
@@ -118,7 +119,6 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
     const [showTaskModal, setShowTaskModal] = useState(false);
     const [showForm, setShowForm] = useState(false);
     const [expandedSubmissions, setExpandedSubmissions] = useState<number[]>([]);
-    const [uploadMode, setUploadMode] = useState<'upload' | 'request'>('upload');
     const [showReuploadModal, setShowReuploadModal] = useState(false);
     const [reuploadComment, setReuploadComment] = useState('');
     const [fileInputs, setFileInputs] = useState<Array<{ 
@@ -148,7 +148,6 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
         setShowTaskModal(false);
         setSelectedTask(null);
         setShowForm(false);
-        setUploadMode('upload');
         setFileInputs([{ id: 0, label: '', file: null }]);
         setClientDocInputs([{ id: 0, name: '', description: '' }]);
         setNextFileId(1);
@@ -300,8 +299,6 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
         } else {
             setExpandedSubmissions([]);
         }
-        
-        setUploadMode('upload');
         
         // Initialize form inputs - loop from database records (assignments array)
         let initialFileInputs: Array<{ 
@@ -530,7 +527,6 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                 setShowTaskModal(false);
                 setSelectedTask(null);
                 setShowForm(false);
-                setUploadMode('upload');
                 setFileInputs([{ id: 0, label: '', file: null }]);
                 setClientDocInputs([{ id: 0, name: '', description: '' }]);
                 setNextFileId(1);
@@ -541,39 +537,6 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                 router.reload({ only: ['workingSteps'] });
             },
         });
-    };
-
-    const handleSubmitForReview = async () => {
-        if (!selectedTask) return;
-
-        if (!confirm('Submit this task for review? You will not be able to edit it after submission.')) {
-            return;
-        }
-
-        try {
-            const response = await fetch(route('company.tasks.submit-for-review', selectedTask.id), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                alert('Task submitted for review successfully!');
-                setShowTaskModal(false);
-                setSelectedTask(null);
-                setShowForm(false);
-                router.reload({ only: ['workingSteps'] });
-            } else {
-                alert(data.error || 'Failed to submit task for review');
-            }
-        } catch (error) {
-            console.error('Error submitting for review:', error);
-            alert('An error occurred while submitting for review');
-        }
     };
 
     const handleAcceptClientDocuments = async () => {
@@ -1135,7 +1098,6 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                         setShowTaskModal(false);
                                         setSelectedTask(null);
                                         setShowForm(false);
-                                        setUploadMode('upload');
                                         setFileInputs([{ id: 0, label: '', file: null }]);
                                         setClientDocInputs([{ id: 0, name: '', description: '' }]);
                                         setNextFileId(1);
@@ -1353,259 +1315,226 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                         </div>
                                     )}
 
-                                    {/* Tab System - Only show for client_interact tasks */}
-                                    {selectedTask.client_interact && (
-                                        <div className="mb-6">
-                                            <div className="border-b border-gray-200">
-                                                <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setUploadMode('upload')}
-                                                        className={`${
-                                                            uploadMode === 'upload'
-                                                                ? 'border-primary-500 text-primary-600'
-                                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                                        } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-                                                    >
-                                                        📁 Upload Files
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setUploadMode('request')}
-                                                        className={`${
-                                                            uploadMode === 'request'
-                                                                ? 'border-primary-500 text-primary-600'
-                                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                                        } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-                                                    >
-                                                        📋 Request from Client
-                                                    </button>
-                                                </nav>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* File Upload Section - Form Repeater Style */}
-                                    {(!selectedTask.client_interact || uploadMode === 'upload') && (
-                                    <div>
-                                        <div className="flex items-center justify-between mb-3">
-                                            <label className="block text-sm font-medium text-gray-700">
-                                                Upload Files
+                                    {/* File Upload Section - Email Attachment Style */}
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                📎 Attach Files
                                                 {selectedTask.multiple_files ? (
-                                                    <span className="ml-2 text-xs text-gray-500">(Multiple files allowed)</span>
+                                                    <span className="ml-2 text-xs text-gray-500">(You can upload multiple files)</span>
                                                 ) : (
                                                     <span className="ml-2 text-xs text-gray-500">(Single file only)</span>
                                                 )}
                                             </label>
+                                            
+                                            {/* Add File Button - Only show if multiple files allowed */}
                                             {selectedTask.multiple_files && (
                                                 <button
                                                     type="button"
                                                     onClick={addFileInput}
-                                                    className="inline-flex items-center px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                                    className="mb-3 inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                                 >
                                                     <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                                     </svg>
-                                                    Add File
+                                                    Add Another File
                                                 </button>
                                             )}
-                                        </div>
-                                        
-                                        <div className="space-y-4">
-                                            {fileInputs.map((input, index) => (
-                                                <div key={input.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                                                    <div className="flex items-start gap-3">
-                                                        {/* Label Input */}
-                                                        <div className="flex-1">
-                                                            <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                                File Label / Name
-                                                            </label>
-                                                            <input
-                                                                type="text"
-                                                                value={input.label}
-                                                                onChange={(e) => handleLabelChange(input.id, e.target.value)}
-                                                                placeholder="e.g., Laporan Keuangan, KTP, etc."
-                                                                className="block w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                                                            />
-                                                        </div>
-
-                                                        {/* Remove Button */}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeFileInput(input.id)}
-                                                            className="mt-6 p-1.5 text-red-600 hover:text-red-700 hover:bg-red-100 rounded-md transition-colors"
-                                                            title="Remove file input"
-                                                        >
-                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                            </svg>
-                                                        </button>
-                                                    </div>
-
-                                                    {/* Show existing file link if available */}
-                                                    {input.existingFilePath && !input.file && (
-                                                        <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
-                                                            <div className="flex items-center justify-between">
-                                                                <div className="flex items-center space-x-2">
-                                                                    <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                                                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-                                                                    </svg>
-                                                                    <span className="text-xs text-blue-800">📎 Current file: {input.label}</span>
-                                                                </div>
-                                                                <a
-                                                                    href={`/storage/${input.existingFilePath}`}
-                                                                    download
-                                                                    className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded"
-                                                                >
-                                                                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                                                    </svg>
-                                                                    Download
-                                                                </a>
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Drag & Drop File Upload Area */}
-                                                    <div className="mt-3">
-                                                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                            File Upload
-                                                        </label>
-                                                        <div
-                                                            onDrop={(e) => handleFileDrop(input.id, e)}
-                                                            onDragOver={(e) => e.preventDefault()}
-                                                            onDragEnter={(e) => e.preventDefault()}
-                                                            className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary-400 hover:bg-white transition-colors cursor-pointer"
-                                                        >
-                                                            {!input.file ? (
-                                                                <div>
-                                                                    <svg className="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                                                    </svg>
-                                                                    <p className="mt-1 text-sm text-gray-600">
-                                                                        <span className="font-semibold text-primary-600">Click to upload</span> or drag and drop
-                                                                    </p>
-                                                                    <p className="text-xs text-gray-500 mt-1">
-                                                                        PDF, DOC, DOCX, XLS, XLSX, JPG, PNG (Max. 10MB)
-                                                                    </p>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="flex items-center justify-center space-x-2 text-green-600">
-                                                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                                    </svg>
-                                                                    <div className="text-left">
-                                                                        <p className="text-sm font-medium text-gray-900">{input.file.name}</p>
-                                                                        <p className="text-xs text-gray-500">{(input.file.size / 1024).toFixed(2)} KB</p>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                            <input
-                                                                type="file"
-                                                                onChange={(e) => handleFileSelect(input.id, e)}
-                                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        
-                                        <p className="mt-2 text-xs text-gray-500">
-                                            Allowed: PDF, DOC, DOCX, XLS, XLSX, JPG, JPEG, PNG (Max. 10MB per file)
-                                        </p>
-                                        
-                                        {errors.files && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.files}</p>
-                                        )}
-                                    </div>
-                                    )}
-
-                                    {/* Client Document Request Section */}
-                                    {selectedTask.client_interact && uploadMode === 'request' && (
-                                    <div>
-                                        <div className="flex items-center justify-between mb-3">
-                                            <label className="block text-sm font-medium text-gray-700">
-                                                Request Documents from Client
-                                                {selectedTask.multiple_files ? (
-                                                    <span className="ml-2 text-xs text-gray-500">(Multiple documents allowed)</span>
-                                                ) : (
-                                                    <span className="ml-2 text-xs text-gray-500">(Single document only)</span>
-                                                )}
-                                            </label>
-                                            {selectedTask.multiple_files && (
-                                                <button
-                                                    type="button"
-                                                    onClick={addClientDocInput}
-                                                    className="inline-flex items-center px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                                                >
-                                                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                                    </svg>
-                                                    Add Document
-                                                </button>
-                                            )}
-                                        </div>
-                                        
-                                        <div className="space-y-4">
-                                            {clientDocInputs.map((input, index) => (
-                                                <div key={input.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                                                    <div className="flex items-start gap-3">
-                                                        <div className="flex-1 space-y-3">
-                                                            {/* Document Name */}
-                                                            <div>
+                                            
+                                            <div className="space-y-4">
+                                                {fileInputs.map((input, index) => (
+                                                    <div key={input.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                                        <div className="flex items-start gap-3">
+                                                            {/* File Name Input */}
+                                                            <div className="flex-1">
                                                                 <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                                    Document Name *
+                                                                    File Label {!selectedTask.multiple_files && '*'}
                                                                 </label>
                                                                 <input
                                                                     type="text"
-                                                                    value={input.name}
-                                                                    onChange={(e) => handleClientDocNameChange(input.id, e.target.value)}
-                                                                    placeholder="e.g., Financial Report 2024"
+                                                                    value={input.label}
+                                                                    onChange={(e) => handleLabelChange(input.id, e.target.value)}
+                                                                    placeholder="e.g., Laporan Keuangan, KTP, etc."
                                                                     className="block w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500"
                                                                 />
                                                             </div>
 
-                                                            {/* Document Description */}
-                                                            <div>
-                                                                <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                                    Description
-                                                                </label>
-                                                                <textarea
-                                                                    value={input.description}
-                                                                    onChange={(e) => handleClientDocDescriptionChange(input.id, e.target.value)}
-                                                                    rows={2}
-                                                                    placeholder="Add details about what document is needed..."
-                                                                    className="block w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                                            {/* Remove Button - Only show if multiple files */}
+                                                            {selectedTask.multiple_files && fileInputs.length > 1 && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removeFileInput(input.id)}
+                                                                    className="mt-6 p-1.5 text-red-600 hover:text-red-700 hover:bg-red-100 rounded-md transition-colors"
+                                                                    title="Remove file"
+                                                                >
+                                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                    </svg>
+                                                                </button>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Show existing file link if available */}
+                                                        {input.existingFilePath && !input.file && (
+                                                            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                        </svg>
+                                                                        <div>
+                                                                            <p className="text-sm font-medium text-blue-900">📎 Current file</p>
+                                                                            <p className="text-xs text-blue-700">{input.label || 'Uploaded file'}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <a
+                                                                        href={`/storage/${input.existingFilePath}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-md transition-colors"
+                                                                    >
+                                                                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                        </svg>
+                                                                        View File
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Drag & Drop File Upload */}
+                                                        <div className="mt-3">
+                                                            <div
+                                                                onDrop={(e) => handleFileDrop(input.id, e)}
+                                                                onDragOver={(e) => e.preventDefault()}
+                                                                onDragEnter={(e) => e.preventDefault()}
+                                                                className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary-400 hover:bg-white transition-colors cursor-pointer"
+                                                            >
+                                                                {!input.file ? (
+                                                                    <div>
+                                                                        <svg className="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                                        </svg>
+                                                                        <p className="mt-1 text-sm text-gray-600">
+                                                                            <span className="font-semibold text-primary-600">Click to upload</span> or drag and drop
+                                                                        </p>
+                                                                        <p className="text-xs text-gray-500 mt-1">
+                                                                            PDF, DOC, DOCX, XLS, XLSX, JPG, PNG (Max. 10MB)
+                                                                        </p>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex items-center justify-center space-x-2 text-green-600">
+                                                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                        </svg>
+                                                                        <div className="text-left">
+                                                                            <p className="text-sm font-medium text-gray-900">{input.file.name}</p>
+                                                                            <p className="text-xs text-gray-500">{(input.file.size / 1024).toFixed(2)} KB</p>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                <input
+                                                                    type="file"
+                                                                    onChange={(e) => handleFileSelect(input.id, e)}
+                                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
                                                                 />
                                                             </div>
                                                         </div>
-
-                                                        {/* Remove Button */}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeClientDocInput(input.id)}
-                                                            className="mt-6 p-1.5 text-red-600 hover:text-red-700 hover:bg-red-100 rounded-md transition-colors"
-                                                            title="Remove document request"
-                                                        >
-                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                            </svg>
-                                                        </button>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
+                                            
+                                            
+                                            {errors.files && (
+                                                <p className="mt-1 text-sm text-red-600">{errors.files}</p>
+                                            )}
                                         </div>
-                                        
-                                        <p className="mt-2 text-xs text-gray-500">
-                                            Specify which documents you need from the client
-                                        </p>
-                                        
-                                        {errors.client_documents && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.client_documents}</p>
-                                        )}
                                     </div>
+
+                                    {/* Request Documents from Client - Only for 'upload' permission */}
+                                    {selectedTask.client_interact === 'upload' && (
+                                        <div className="border-t border-gray-200 pt-6 mt-6">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <label className="block text-sm font-medium text-gray-700">
+                                                    📋 Request Documents from Client
+                                                    <span className="ml-2 text-xs text-gray-500">(Optional)</span>
+                                                </label>
+                                                {selectedTask.multiple_files && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={addClientDocInput}
+                                                        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                                                    >
+                                                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                        </svg>
+                                                        Add Document Request
+                                                    </button>
+                                                )}
+                                            </div>
+                                            
+                                            <div className="space-y-4">
+                                                {clientDocInputs.map((input, index) => (
+                                                    <div key={input.id} className="border border-purple-200 rounded-lg p-4 bg-purple-50">
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="flex-1 space-y-3">
+                                                                {/* Document Name */}
+                                                                <div>
+                                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                                        Document Name *
+                                                                    </label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={input.name}
+                                                                        onChange={(e) => handleClientDocNameChange(input.id, e.target.value)}
+                                                                        placeholder="e.g., Financial Report 2024"
+                                                                        className="block w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500"
+                                                                    />
+                                                                </div>
+
+                                                                {/* Document Description */}
+                                                                <div>
+                                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                                        Description
+                                                                    </label>
+                                                                    <textarea
+                                                                        value={input.description}
+                                                                        onChange={(e) => handleClientDocDescriptionChange(input.id, e.target.value)}
+                                                                        rows={2}
+                                                                        placeholder="Add details about what document is needed..."
+                                                                        className="block w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500"
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Remove Button */}
+                                                            {selectedTask.multiple_files && clientDocInputs.length > 1 && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removeClientDocInput(input.id)}
+                                                                    className="mt-6 p-1.5 text-red-600 hover:text-red-700 hover:bg-red-100 rounded-md transition-colors"
+                                                                    title="Remove document request"
+                                                                >
+                                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                    </svg>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            
+                                            <p className="mt-2 text-xs text-gray-500">
+                                                💡 Specify which documents you need from the client. They will receive a notification to upload these files.
+                                            </p>
+                                            
+                                            {errors.client_documents && (
+                                                <p className="mt-1 text-sm text-red-600">{errors.client_documents}</p>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
 
@@ -1616,7 +1545,6 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                             setShowTaskModal(false);
                                             setSelectedTask(null);
                                             setShowForm(false);
-                                            setUploadMode('upload');
                                             setFileInputs([{ id: 0, label: '', file: null }]);
                                             setClientDocInputs([{ id: 0, name: '', description: '' }]);
                                             setNextFileId(1);
@@ -1634,17 +1562,6 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                     >
                                         {processing ? 'Saving...' : 'Save Changes'}
                                     </button>
-                                    {/* Submit for Review button - only show for Draft/Submitted status */}
-                                    {selectedTask && (selectedTask.status === 'Draft' || selectedTask.status === 'Submitted' || selectedTask.status.includes('Returned for Revision')) && selectedTask.assignments && selectedTask.assignments.length > 0 && (
-                                        <button
-                                            type="button"
-                                            onClick={handleSubmitForReview}
-                                            disabled={processing}
-                                            className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50"
-                                        >
-                                            📤 Submit for Review
-                                        </button>
-                                    )}
                                 </div>
                             </form>
                             ) : (

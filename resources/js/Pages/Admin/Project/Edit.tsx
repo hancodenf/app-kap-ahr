@@ -409,6 +409,8 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     const { data: taskData, setData: setTaskData, post: postTask, reset: resetTask } = useForm({
         name: '',
         working_step_id: 0,
+        client_interact: 'read only' as 'read only' | 'comment' | 'upload',
+        multiple_files: false,
         is_required: false,
     });
 
@@ -1297,39 +1299,70 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                             <form onSubmit={handleAddTask} className="p-6">
                                 <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Task</h3>
                                 
-                                <div className="mb-4">
-                                    <label htmlFor="task_name" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Task Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="task_name"
-                                        value={taskData.name}
-                                        onChange={(e) => setTaskData('name', e.target.value)}
-                                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                        placeholder="e.g., Penetapan KAP"
-                                        required
-                                    />
-                                </div>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label htmlFor="task_name" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Task Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="task_name"
+                                            value={taskData.name}
+                                            onChange={(e) => setTaskData('name', e.target.value)}
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                            placeholder="e.g., Penetapan KAP"
+                                            required
+                                        />
+                                    </div>
 
-                                <div className="mb-4">
-                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                    <div>
+                                        <label htmlFor="add_task_client_interact" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Client Interaction Level
+                                        </label>
+                                        <select
+                                            id="add_task_client_interact"
+                                            value={taskData.client_interact}
+                                            onChange={(e) => setTaskData('client_interact', e.target.value as 'read only' | 'comment' | 'upload')}
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                        >
+                                            <option value="read only">👁️ Read Only - Client can only view</option>
+                                            <option value="comment">💬 Comment - Client can view and comment</option>
+                                            <option value="upload">📤 Upload - Client can upload files</option>
+                                        </select>
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            Set how clients can interact with this task
+                                        </p>
+                                    </div>
+
+                                    <label className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={taskData.multiple_files}
+                                            onChange={(e) => setTaskData('multiple_files', e.target.checked)}
+                                            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                        />
+                                        <span className="ml-2 text-sm text-gray-700">Multiple Files</span>
+                                    </label>
+
+                                    <label className="flex items-start space-x-2">
                                         <input
                                             type="checkbox"
                                             checked={taskData.is_required}
                                             onChange={(e) => setTaskData('is_required', e.target.checked)}
-                                            className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                                            className="mt-1 w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
                                         />
-                                        <span className="text-sm font-medium text-gray-700">
-                                            Required to unlock next step
-                                        </span>
+                                        <div>
+                                            <span className="text-sm font-medium text-gray-700">
+                                                Required to unlock next step
+                                            </span>
+                                            <p className="text-xs text-gray-500">
+                                                Must be completed before next step can be accessed
+                                            </p>
+                                        </div>
                                     </label>
-                                    <p className="text-xs text-gray-500 mt-1 ml-6">
-                                        This task must be completed before the next step can be accessed
-                                    </p>
                                 </div>
 
-                                <div className="flex justify-end space-x-3">
+                                <div className="flex justify-end space-x-3 mt-6">
                                     <button
                                         type="button"
                                         onClick={() => setShowAddTaskModal(false)}
@@ -1616,12 +1649,12 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                             Select roles that need to approve this task. Will be automatically ordered by priority.
                                         </p>
                                         <div className="space-y-2">
-                                            {(['team leader', 'manager', 'supervisor', 'partner'] as const).map((role) => {
+                                            {(['team leader', 'supervisor', 'manager', 'partner'] as const).map((role) => {
                                                 // Define role priority for sorting
                                                 const rolePriority: { [key: string]: number } = {
                                                     'team leader': 1,
-                                                    'manager': 2,
-                                                    'supervisor': 3,
+                                                    'supervisor': 2,
+                                                    'manager': 3,
                                                     'partner': 4,
                                                 };
                                                 
@@ -1670,8 +1703,8 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                     {(() => {
                                                         const rolePriority: { [key: string]: number } = {
                                                             'team leader': 1,
-                                                            'manager': 2,
-                                                            'supervisor': 3,
+                                                            'supervisor': 2,
+                                                            'manager': 3,
                                                             'partner': 4,
                                                         };
                                                         return [...editTaskData.approval_roles]

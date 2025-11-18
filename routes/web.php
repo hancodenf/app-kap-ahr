@@ -232,7 +232,6 @@ Route::middleware(['auth', 'verified', 'role:company'])->prefix('company')->name
     Route::get('/projects/{project}', [CompanyController::class, 'showProject'])->name('projects.show');
     Route::put('/tasks/{task}/status', [CompanyController::class, 'updateTaskStatus'])->name('tasks.update-status');
     Route::post('/tasks/{task}/comment', [CompanyController::class, 'addTaskComment'])->name('tasks.add-comment');
-    Route::post('/tasks/{task}/submit-for-review', [CompanyController::class, 'submitForReview'])->name('tasks.submit-for-review');
     
     // Approval workflow routes
     Route::get('/projects/{project}/approval-requests', [CompanyController::class, 'getApprovalRequests'])->name('projects.approval-requests');
