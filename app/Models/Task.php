@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 class Task extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     /**
      * The attributes that are mass assignable.
@@ -32,28 +33,8 @@ class Task extends Model
         'multiple_files',
         'is_required',
         'completion_status',
-        'status',
+        'completed_at',
     ];
-
-    /**
-     * Valid status values for tasks
-     */
-    const STATUS_DRAFT = 'Draft';
-    const STATUS_SUBMITTED = 'Submitted';
-    const STATUS_UNDER_REVIEW_TEAM_LEADER = 'Under Review by Team Leader';
-    const STATUS_APPROVED_TEAM_LEADER = 'Approved by Team Leader';
-    const STATUS_RETURNED_TEAM_LEADER = 'Returned for Revision (by Team Leader)';
-    const STATUS_UNDER_REVIEW_MANAGER = 'Under Review by Manager';
-    const STATUS_APPROVED_MANAGER = 'Approved by Manager';
-    const STATUS_RETURNED_MANAGER = 'Returned for Revision (by Manager)';
-    const STATUS_UNDER_REVIEW_SUPERVISOR = 'Under Review by Supervisor';
-    const STATUS_APPROVED_SUPERVISOR = 'Approved by Supervisor';
-    const STATUS_RETURNED_SUPERVISOR = 'Returned for Revision (by Supervisor)';
-    const STATUS_UNDER_REVIEW_PARTNER = 'Under Review by Partner';
-    const STATUS_APPROVED_PARTNER = 'Approved by Partner';
-    const STATUS_RETURNED_PARTNER = 'Returned for Revision (by Partner)';
-    const STATUS_SUBMITTED_TO_CLIENT = 'Submitted to Client';
-    const STATUS_CLIENT_REPLY = 'Client Reply';
 
     /**
      * Get the attributes that should be cast.
@@ -61,9 +42,9 @@ class Task extends Model
     protected function casts(): array
     {
         return [
-            'client_interact' => 'boolean',
             'multiple_files' => 'boolean',
             'is_required' => 'boolean',
+            'completed_at' => 'datetime',
         ];
     }
 
@@ -97,6 +78,14 @@ class Task extends Model
     public function taskAssignments(): HasMany
     {
         return $this->hasMany(TaskAssignment::class);
+    }
+
+    /**
+     * Get the task approvals for the task.
+     */
+    public function taskApprovals(): HasMany
+    {
+        return $this->hasMany(TaskApproval::class);
     }
 
     /**
@@ -172,5 +161,77 @@ class Task extends Model
     public function getFullStoragePath(): string
     {
         return storage_path("app/public/{$this->getStoragePath()}");
+    }
+
+    /**
+     * Get current status from latest task assignment.
+     * 
+     * @return string
+     */
+    public function getCurrentStatus(): string
+    {
+        $latestAssignment = $this->taskAssignments()->latest()->first();
+        return $latestAssignment ? $latestAssignment->status : 'Draft';
+    }
+
+    /**
+     * Get latest task assignment.
+     * 
+     * @return TaskAssignment|null
+     */
+    public function getLatestAssignment(): ?TaskAssignment
+    {
+        return $this->taskAssignments()->latest()->first();
+    }
+
+    /**
+     * Check if task is editable (status is Draft, Submitted, or Submitted to Client).
+     * 
+     * @return bool
+     */
+    public function isEditable(): bool
+    {
+        $currentStatus = $this->getCurrentStatus();
+        return in_array($currentStatus, ['Draft', 'Submitted', 'Submitted to Client']);
+    }
+
+    /**
+     * Check if task can be submitted for review.
+     * 
+     * @return bool
+     */
+    public function canSubmitForReview(): bool
+    {
+        $currentStatus = $this->getCurrentStatus();
+        return $currentStatus === 'Submitted' || str_contains($currentStatus, 'Returned for Revision');
+    }
+
+    /**
+     * Get approval workflow for this task.
+     * 
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getApprovalWorkflow()
+    {
+        return $this->taskApprovals()->orderBy('order')->get();
+    }
+
+    /**
+     * Get current approval level based on status.
+     * 
+     * @return TaskApproval|null
+     */
+    public function getCurrentApproval(): ?TaskApproval
+    {
+        $currentStatus = $this->getCurrentStatus();
+        
+        return $this->taskApprovals()
+            ->where(function($query) use ($currentStatus) {
+                $query->where('status_name_pending', $currentStatus)
+                      ->orWhere('status_name_progress', $currentStatus)
+                      ->orWhere('status_name_reject', $currentStatus)
+                      ->orWhere('status_name_complete', $currentStatus);
+            })
+            ->first();
     }
 }

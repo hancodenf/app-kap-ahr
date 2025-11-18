@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tasks', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->integer('order')->default(0);
             $table->string('name');
             $table->string('slug')->unique();
             
             // Foreign key references (nullable untuk denormalisasi)
-            $table->unsignedBigInteger('project_id')->nullable();
+            $table->uuid('project_id')->nullable();
             $table->foreign('project_id')->references('id')->on('projects')->onDelete('set null');
-            $table->unsignedBigInteger('working_step_id')->nullable();
+            $table->uuid('working_step_id')->nullable();
             $table->foreign('working_step_id')->references('id')->on('working_steps')->onDelete('set null');
             
             // Denormalized project data
@@ -29,36 +29,38 @@ return new class extends Migration
             
             // Denormalized working step data
             $table->string('working_step_name');
-            
-            $table->boolean('client_interact')->default(false); // default read only
+
+            $table->enum('client_interact', ['read only', 'comment', 'upload'])->default('read only'); // default read only
             $table->boolean('multiple_files')->default(false); // default single file
             
             // Task requirement & progress tracking
             $table->boolean('is_required')->default(false); // Required to unlock next step
             $table->enum('completion_status', ['pending', 'in_progress', 'completed'])->default('pending');
-            
-            $table->enum('status', [
-                'Draft',
-                'Submitted',
-                'Under Review by Team Leader',
-                'Approved by Team Leader',
-                'Returned for Revision (by Team Leader)',
-                'Waiting for Manager review',
-                'Under Review by Manager',
-                'Approved by Manager',
-                'Returned for Revision (by Manager)',
-                'Waiting for Supervisor review',
-                'Under Review by Supervisor',
-                'Approved by Supervisor',
-                'Returned for Revision (by Supervisor)',
-                'Waiting for Partner review',
-                'Under Review by Partner',
-                'Approved by Partner',
-                'Returned for Revision (by Partner)',
-                'Submitted to Client',
-                'Under Review by Client',
-                'Client Reply'
-            ])->default('Draft');
+            $table->timestamp('completed_at')->nullable();
+            // $table->enum('status', [
+            //     'Draft',
+            //     'Submitted',
+            //     'Under Review by Team Leader',
+            //     'Approved by Team Leader',
+            //     'Returned for Revision (by Team Leader)',
+            //     'Waiting for Manager review',
+            //     'Under Review by Manager',
+            //     'Approved by Manager',
+            //     'Returned for Revision (by Manager)',
+            //     'Waiting for Supervisor review',
+            //     'Under Review by Supervisor',
+            //     'Approved by Supervisor',
+            //     'Returned for Revision (by Supervisor)',
+            //     'Waiting for Partner review',
+            //     'Under Review by Partner',
+            //     'Approved by Partner',
+            //     'Returned for Revision (by Partner)',
+            //     'Submitted to Client',
+            //     'Under Review by Client',
+            //     'Returned for Revision (by Client)',
+            //     'Client Reply',
+            //     'Approved by Client'
+            // ])->default('Draft');
             $table->timestamps();
         });
     }

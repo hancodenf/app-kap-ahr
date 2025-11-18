@@ -188,6 +188,9 @@ class ProjectTemplateController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'template_working_step_id' => 'required|exists:template_working_steps,id',
+            'client_interact' => 'required|string|in:read only,comment,upload',
+            'multiple_files' => 'boolean',
+            'is_required' => 'boolean',
         ]);
 
         // Get the working step to get project_template_id
@@ -213,6 +216,8 @@ class ProjectTemplateController extends Controller
             'template_working_step_id' => $request->template_working_step_id,
             'project_template_id' => $workingStep->project_template_id,
             'order' => $nextOrder,
+            'client_interact' => $request->client_interact,
+            'multiple_files' => $request->boolean('multiple_files'),
             'is_required' => $request->boolean('is_required'),
         ]);
 
@@ -223,7 +228,7 @@ class ProjectTemplateController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'client_interact' => 'boolean',
+            'client_interact' => 'required|string|in:read only,comment,upload',
             'multiple_files' => 'boolean',
             'is_required' => 'boolean',
         ]);
@@ -231,7 +236,7 @@ class ProjectTemplateController extends Controller
         // Generate new slug if name changed
         $updateData = [
             'name' => $request->name,
-            'client_interact' => $request->boolean('client_interact'),
+            'client_interact' => $request->client_interact,
             'multiple_files' => $request->boolean('multiple_files'),
             'is_required' => $request->boolean('is_required'),
         ];

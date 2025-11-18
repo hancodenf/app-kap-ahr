@@ -46,7 +46,7 @@ interface TemplateTask {
     time?: string;
     comment?: string;
     client_comment?: string;
-    client_interact: boolean;
+    client_interact: 'read only' | 'comment' | 'upload';
     multiple_files: boolean;
     is_required: boolean;
 }
@@ -174,7 +174,7 @@ function DraggableTask({ task, onEdit, onDelete }: {
                         {task.name}
                     </h4>
                     
-                    {(task.is_required || task.client_interact || task.multiple_files) && (
+                    {(task.is_required || task.client_interact !== 'read only' || task.multiple_files) && (
                         <div className="flex flex-wrap gap-2 mt-2">
                             {task.is_required && (
                                 <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 border border-red-200">
@@ -184,9 +184,9 @@ function DraggableTask({ task, onEdit, onDelete }: {
                                     Required
                                 </span>
                             )}
-                            {task.client_interact && (
+                            {task.client_interact !== 'read only' && (
                                 <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                                    Client Interact
+                                    {task.client_interact === 'comment' ? '💬 Client Comment' : '📤 Client Upload'}
                                 </span>
                             )}
                             {task.multiple_files && (
@@ -349,7 +349,7 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
 
     const { data: editTaskData, setData: setEditTaskData, put: putTask, reset: resetEditTask } = useForm({
         name: '',
-        client_interact: false,
+        client_interact: 'read only' as 'read only' | 'comment' | 'upload',
         multiple_files: false,
         is_required: false,
     });
@@ -1158,28 +1158,35 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                         />
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <div className="flex items-center space-x-4">
-                                            <label className="flex items-center">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={editTaskData.client_interact}
-                                                    onChange={(e) => setEditTaskData('client_interact', e.target.checked)}
-                                                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                                                />
-                                                <span className="ml-2 text-sm text-gray-700">Client Interact</span>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label htmlFor="client_interact" className="block text-sm font-medium text-gray-700 mb-2">
+                                                Client Interaction Level
                                             </label>
-
-                                            <label className="flex items-center">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={editTaskData.multiple_files}
-                                                    onChange={(e) => setEditTaskData('multiple_files', e.target.checked)}
-                                                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                                                />
-                                                <span className="ml-2 text-sm text-gray-700">Multiple Files</span>
-                                            </label>
+                                            <select
+                                                id="client_interact"
+                                                value={editTaskData.client_interact}
+                                                onChange={(e) => setEditTaskData('client_interact', e.target.value as 'read only' | 'comment' | 'upload')}
+                                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                            >
+                                                <option value="read only">👁️ Read Only - Client can only view</option>
+                                                <option value="comment">💬 Comment - Client can view and comment</option>
+                                                <option value="upload">📤 Upload - Client can upload files</option>
+                                            </select>
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                Set how clients can interact with this task
+                                            </p>
                                         </div>
+
+                                        <label className="flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={editTaskData.multiple_files}
+                                                onChange={(e) => setEditTaskData('multiple_files', e.target.checked)}
+                                                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                            />
+                                            <span className="ml-2 text-sm text-gray-700">Multiple Files</span>
+                                        </label>
 
                                         <label className="flex items-start space-x-2">
                                             <input

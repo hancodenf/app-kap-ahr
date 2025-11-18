@@ -12,14 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('projects', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->string('name');
             $table->string('slug')->unique();
             $table->enum('status', ['open', 'closed'])->default('closed');
             $table->year('year'); // Project year
 
             // Foreign key reference (nullable untuk denormalisasi)
-            $table->unsignedBigInteger('client_id')->nullable();
+            $table->uuid('client_id')->nullable();
             $table->foreign('client_id')->references('id')->on('clients')->onDelete('set null');
             
             // Denormalized client data

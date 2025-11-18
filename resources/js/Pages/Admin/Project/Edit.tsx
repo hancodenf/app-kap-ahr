@@ -47,11 +47,12 @@ interface Task {
     time?: string;
     comment?: string;
     client_comment?: string;
-    client_interact: boolean;
+    client_interact: 'read only' | 'comment' | 'upload';
     multiple_files: boolean;
     is_required: boolean;
     completion_status?: 'pending' | 'in_progress' | 'completed';
     task_workers?: TaskWorker[];
+    task_approvals?: Array<{id: number; role: 'partner' | 'manager' | 'supervisor' | 'team leader'; order: number}>;
 }
 
 interface TaskWorker {
@@ -227,7 +228,7 @@ function DraggableTask({ task, onEdit, onDelete }: {
                         {task.name}
                     </h4>
                     
-                    {(!!task.is_required || !!task.client_interact || !!task.multiple_files || (task.task_workers && task.task_workers.length > 0)) && (
+                    {(!!task.is_required || task.client_interact !== 'read only' || !!task.multiple_files || (task.task_workers && task.task_workers.length > 0)) && (
                         <div className="flex flex-wrap gap-2 mt-2">
                             {!!task.is_required && (
                                 <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 border border-red-200">
@@ -237,9 +238,9 @@ function DraggableTask({ task, onEdit, onDelete }: {
                                     Required
                                 </span>
                             )}
-                            {!!task.client_interact && (
+                            {task.client_interact !== 'read only' && (
                                 <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                                    Client Interact
+                                    {task.client_interact === 'comment' ? '💬 Client Comment' : '📤 Client Upload'}
                                 </span>
                             )}
                             {!!task.multiple_files && (
@@ -441,10 +442,11 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
 
     const { data: editTaskData, setData: setEditTaskData, put: putTask, reset: resetEditTask } = useForm({
         name: '',
-        client_interact: false,
+        client_interact: 'read only' as 'read only' | 'comment' | 'upload',
         multiple_files: false,
         is_required: false,
         worker_ids: [] as number[],
+        approval_roles: [] as Array<'partner' | 'manager' | 'supervisor' | 'team leader'>,
     });
 
     // Team Member Forms
@@ -519,12 +521,17 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         const validWorkerIds = (task.task_workers?.map(w => w.project_team_id) || [])
             .filter(workerId => teamMembers.some(member => member.id === workerId));
         
+        const approvalRoles = (task.task_approvals || [])
+            .sort((a, b) => a.order - b.order)
+            .map(approval => approval.role);
+        
         setEditTaskData({
             name: task.name,
             client_interact: task.client_interact,
             multiple_files: task.multiple_files,
             is_required: task.is_required || false,
             worker_ids: validWorkerIds,
+            approval_roles: approvalRoles,
         });
         setShowEditTaskModal(true);
     };
@@ -1536,28 +1543,35 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         />
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <div className="flex items-center space-x-4">
-                                            <label className="flex items-center">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={editTaskData.client_interact}
-                                                    onChange={(e) => setEditTaskData('client_interact', e.target.checked)}
-                                                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                                                />
-                                                <span className="ml-2 text-sm text-gray-700">Client Interact</span>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label htmlFor="client_interact" className="block text-sm font-medium text-gray-700 mb-2">
+                                                Client Interaction Level
                                             </label>
-
-                                            <label className="flex items-center">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={editTaskData.multiple_files}
-                                                    onChange={(e) => setEditTaskData('multiple_files', e.target.checked)}
-                                                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                                                />
-                                                <span className="ml-2 text-sm text-gray-700">Multiple Files</span>
-                                            </label>
+                                            <select
+                                                id="client_interact"
+                                                value={editTaskData.client_interact}
+                                                onChange={(e) => setEditTaskData('client_interact', e.target.value as 'read only' | 'comment' | 'upload')}
+                                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                            >
+                                                <option value="read only">👁️ Read Only - Client can only view</option>
+                                                <option value="comment">💬 Comment - Client can view and comment</option>
+                                                <option value="upload">📤 Upload - Client can upload files</option>
+                                            </select>
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                Set how clients can interact with this task
+                                            </p>
                                         </div>
+
+                                        <label className="flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={editTaskData.multiple_files}
+                                                onChange={(e) => setEditTaskData('multiple_files', e.target.checked)}
+                                                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                            />
+                                            <span className="ml-2 text-sm text-gray-700">Multiple Files</span>
+                                        </label>
 
                                         <label className="flex items-start space-x-2">
                                             <input
@@ -1592,6 +1606,86 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                             onChange={(value) => setEditTaskData('worker_ids', value as number[])}
                                             placeholder="Select team members..."
                                         />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            ✅ Approval Required From
+                                        </label>
+                                        <p className="text-xs text-gray-500 mb-3">
+                                            Select roles that need to approve this task. Will be automatically ordered by priority.
+                                        </p>
+                                        <div className="space-y-2">
+                                            {(['team leader', 'manager', 'supervisor', 'partner'] as const).map((role) => {
+                                                // Define role priority for sorting
+                                                const rolePriority: { [key: string]: number } = {
+                                                    'team leader': 1,
+                                                    'manager': 2,
+                                                    'supervisor': 3,
+                                                    'partner': 4,
+                                                };
+                                                
+                                                // Sort approval roles by priority
+                                                const sortedRoles = [...editTaskData.approval_roles].sort((a, b) => 
+                                                    rolePriority[a] - rolePriority[b]
+                                                );
+                                                
+                                                const orderNumber = sortedRoles.indexOf(role) + 1;
+                                                
+                                                return (
+                                                    <label key={role} className="flex items-center space-x-3 p-2 border rounded hover:bg-gray-50 cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={editTaskData.approval_roles.includes(role)}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setEditTaskData('approval_roles', [...editTaskData.approval_roles, role]);
+                                                                } else {
+                                                                    setEditTaskData('approval_roles', editTaskData.approval_roles.filter(r => r !== role));
+                                                                }
+                                                            }}
+                                                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                        />
+                                                        <div className="flex-1 flex items-center justify-between">
+                                                            <span className="text-sm font-medium text-gray-700 capitalize">
+                                                                {role}
+                                                            </span>
+                                                            <span className="text-xs text-gray-400">
+                                                                Priority: {rolePriority[role]}
+                                                            </span>
+                                                        </div>
+                                                        {editTaskData.approval_roles.includes(role) && (
+                                                            <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                                                                Order: {orderNumber}
+                                                            </span>
+                                                        )}
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                        {editTaskData.approval_roles.length > 0 && (
+                                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                                <p className="text-xs font-medium text-blue-800 mb-1">✓ Approval Flow (Auto-sorted by priority):</p>
+                                                <p className="text-sm text-blue-700 font-medium">
+                                                    {(() => {
+                                                        const rolePriority: { [key: string]: number } = {
+                                                            'team leader': 1,
+                                                            'manager': 2,
+                                                            'supervisor': 3,
+                                                            'partner': 4,
+                                                        };
+                                                        return [...editTaskData.approval_roles]
+                                                            .sort((a, b) => rolePriority[a] - rolePriority[b])
+                                                            .map((role, idx) => (
+                                                                <span key={role}>
+                                                                    {idx > 0 && ' → '}
+                                                                    <span className="capitalize">{idx + 1}. {role}</span>
+                                                                </span>
+                                                            ));
+                                                    })()}
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

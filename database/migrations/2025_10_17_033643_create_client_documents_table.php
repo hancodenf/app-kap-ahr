@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('client_documents', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('task_assignment_id')->nullable();
+            $table->uuid('id')->primary();
+            $table->uuid('task_assignment_id')->nullable();
             $table->foreign('task_assignment_id')->references('id')->on('task_assignments')->onDelete('set null');
             $table->string('name');
             $table->string('slug')->unique();

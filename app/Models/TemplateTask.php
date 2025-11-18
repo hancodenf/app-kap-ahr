@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +10,7 @@ use Illuminate\Support\Str;
 
 class TemplateTask extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     /**
      * The table associated with the model.
@@ -46,7 +47,6 @@ class TemplateTask extends Model
     {
         return [
             'time' => 'datetime',
-            'client_interact' => 'boolean',
             'multiple_files' => 'boolean',
             'is_required' => 'boolean',
         ];

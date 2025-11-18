@@ -84,8 +84,11 @@ class AdminController extends Controller
             'completed' => Task::where('completion_status', 'completed')->count(),
         ];
 
-        // Task approval status
-        $tasksByApprovalStatus = Task::select('status', DB::raw('count(*) as count'))
+        // Task assignment status (dari task_assignments, bukan tasks)
+        // Ambil latest assignment untuk setiap task dan group by status
+        $tasksByApprovalStatus = DB::table('task_assignments')
+            ->select('status', DB::raw('count(DISTINCT task_id) as count'))
+            ->whereNotNull('status')
             ->groupBy('status')
             ->pluck('count', 'status')
             ->toArray();

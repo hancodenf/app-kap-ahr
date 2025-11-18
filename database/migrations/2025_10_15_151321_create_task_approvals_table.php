@@ -11,10 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('task_assignments', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('task_id')->nullable();
+        Schema::create('task_approvals', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->integer('order')->default(0);
+            $table->uuid('task_id')->nullable();
             $table->foreign('task_id')->references('id')->on('tasks')->onDelete('set null');
+            $table->enum('role', ['partner', 'manager', 'supervisor', 'team leader'])->default('team leader');
             
             // Denormalized working sub step data
             $table->string('task_name');
@@ -22,12 +24,14 @@ return new class extends Migration
             $table->string('project_name');
             $table->string('project_client_name');
 
-            $table->timestamp('time')->nullable();
-            $table->longText('comment')->nullable();
-            $table->longText('notes')->nullable();
-            $table->longText('client_comment')->nullable();
-            $table->boolean('is_approved')->default(false);
 
+            $table->string('status_name_pending')->nullable();
+            $table->string('status_name_progress')->nullable();
+            $table->string('status_name_reject')->nullable();
+            $table->string('status_name_complete')->nullable();
+
+
+            $table->boolean('is_valid')->default(false);
             $table->timestamps();
         });
     }
@@ -37,6 +41,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('task_assignments');
+        Schema::dropIfExists('task_approvals');
     }
 };

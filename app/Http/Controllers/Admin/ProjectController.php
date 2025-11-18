@@ -8,6 +8,7 @@ use App\Models\Document;
 use App\Models\Project;
 use App\Models\ProjectTeam;
 use App\Models\Task;
+use App\Models\TaskApproval;
 use App\Models\TaskAssignment;
 use App\Models\TaskWorker;
 use App\Models\User;
@@ -247,7 +248,7 @@ class ProjectController extends Controller
                             'order' => $task->order,
                             'is_required' => $task->is_required,
                             'completion_status' => $task->completion_status,
-                            'status' => $task->status,
+                            'status' => $latestAssignment->status ?? 'Draft',
                             'client_interact' => $task->client_interact,
                             'multiple_files' => $task->multiple_files,
                             'is_assigned_to_me' => true, // Admin can edit all tasks
@@ -321,7 +322,9 @@ class ProjectController extends Controller
         // Get working steps for this project
         $workingSteps = WorkingStep::where('project_id', $bundle->id)
             ->with(['tasks' => function($query) {
-                $query->with('taskWorkers')->orderBy('order');
+                $query->with(['taskWorkers', 'taskApprovals' => function($q) {
+                    $q->orderBy('order');
+                }])->orderBy('order');
             }])
             ->orderBy('order')
             ->get();
@@ -580,16 +583,18 @@ class ProjectController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'client_interact' => 'boolean',
+            'client_interact' => 'required|in:read only,comment,upload',
             'multiple_files' => 'boolean',
             'worker_ids' => 'nullable|array',
             'worker_ids.*' => 'exists:project_teams,id',
+            'approval_roles' => 'nullable|array',
+            'approval_roles.*' => 'in:partner,manager,supervisor,team leader',
         ]);
 
         // Generate new slug if name changed
         $updateData = [
             'name' => $request->name,
-            'client_interact' => $request->boolean('client_interact'),
+            'client_interact' => $request->client_interact,
             'multiple_files' => $request->boolean('multiple_files'),
             'is_required' => $request->boolean('is_required'),
         ];
@@ -633,6 +638,78 @@ class ProjectController extends Controller
                             'worker_role' => $projectTeam->role,
                         ]);
                     }
+                }
+            }
+        }
+
+        // Sync approval roles - Delete old ones and create new ones with AUTO-SORT by priority
+        if ($request->has('approval_roles')) {
+            // Delete existing approvals for this task
+            $task->taskApprovals()->delete();
+
+            // Create new approvals with denormalized data and order
+            if (!empty($request->approval_roles)) {
+                // Define role priority order (lower number = higher priority / earlier in workflow)
+                $rolePriority = [
+                    'team leader' => 1,
+                    'manager' => 2,
+                    'supervisor' => 3,
+                    'partner' => 4,
+                ];
+                
+                // Define status names for each role
+                $roleStatusNames = [
+                    'team leader' => [
+                        'pending' => 'Waiting for Team Leader review',
+                        'progress' => 'Under Review by Team Leader',
+                        'reject' => 'Returned for Revision (by Team Leader)',
+                        'complete' => 'Approved by Team Leader',
+                    ],
+                    'manager' => [
+                        'pending' => 'Waiting for Manager review',
+                        'progress' => 'Under Review by Manager',
+                        'reject' => 'Returned for Revision (by Manager)',
+                        'complete' => 'Approved by Manager',
+                    ],
+                    'supervisor' => [
+                        'pending' => 'Waiting for Supervisor review',
+                        'progress' => 'Under Review by Supervisor',
+                        'reject' => 'Returned for Revision (by Supervisor)',
+                        'complete' => 'Approved by Supervisor',
+                    ],
+                    'partner' => [
+                        'pending' => 'Waiting for Partner review',
+                        'progress' => 'Under Review by Partner',
+                        'reject' => 'Returned for Revision (by Partner)',
+                        'complete' => 'Approved by Partner',
+                    ],
+                ];
+                
+                // Sort selected roles by priority BEFORE creating approvals
+                $sortedRoles = $request->approval_roles;
+                usort($sortedRoles, function($a, $b) use ($rolePriority) {
+                    return $rolePriority[strtolower($a)] <=> $rolePriority[strtolower($b)];
+                });
+                
+                // Create task approvals with correct order based on priority
+                foreach ($sortedRoles as $role) {
+                    $roleLower = strtolower($role);
+                    $statusNames = $roleStatusNames[$roleLower];
+                    
+                    TaskApproval::create([
+                        'task_id' => $task->id,
+                        'role' => $roleLower,
+                        'order' => $rolePriority[$roleLower], // Use role priority as order
+                        'task_name' => $task->name,
+                        'working_step_name' => $task->working_step_name,
+                        'project_name' => $task->project_name,
+                        'project_client_name' => $task->project_client_name,
+                        'status_name_pending' => $statusNames['pending'],
+                        'status_name_progress' => $statusNames['progress'],
+                        'status_name_reject' => $statusNames['reject'],
+                        'status_name_complete' => $statusNames['complete'],
+                        'is_valid' => true,
+                    ]);
                 }
             }
         }
@@ -870,9 +947,12 @@ class ProjectController extends Controller
             }
         }
         
-        // Admin can manually set task status (including "Submitted to Client")
-        $task->status = $request->task_status;
-        $task->save();
+        // Admin can manually set task assignment status (including "Submitted to Client")
+        $latestAssignment = $task->taskAssignments()->latest()->first();
+        if ($latestAssignment && $request->has('task_status')) {
+            $latestAssignment->status = $request->task_status;
+            $latestAssignment->save();
+        }
         
         // Update completion_status to in_progress when first submission is made
         if ($task->completion_status === 'pending') {
@@ -880,6 +960,6 @@ class ProjectController extends Controller
             $task->save();
         }
         
-        return back()->with('success', 'Task updated successfully with status: ' . $request->task_status);
+        return back()->with('success', 'Task updated successfully with status: ' . ($request->task_status ?? 'unchanged'));
     }
 }

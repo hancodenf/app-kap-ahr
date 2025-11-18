@@ -12,18 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('template_tasks', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->integer('order')->default(0);
             $table->string('name');
             $table->string('slug')->unique();
-            $table->unsignedBigInteger('project_template_id')->nullable();
+            $table->uuid('project_template_id')->nullable();
             $table->foreign('project_template_id')->references('id')->on('project_templates');
-            $table->unsignedBigInteger('template_working_step_id')->nullable();
+            $table->uuid('template_working_step_id')->nullable();
             $table->foreign('template_working_step_id')->references('id')->on('template_working_steps')->onDelete('cascade');
             $table->timestamp('time')->nullable();
             $table->text('comment')->nullable();
             $table->text('client_comment')->nullable();
-            $table->boolean('client_interact')->default(false); // default read only
+            $table->enum('client_interact', ['read only', 'comment', 'upload'])->default('read only'); // default read only
             $table->boolean('multiple_files')->default(false); // default single file
             $table->boolean('is_required')->default(false); // Required to unlock next step
             $table->timestamps();
