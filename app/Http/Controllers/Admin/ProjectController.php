@@ -465,6 +465,9 @@ class ProjectController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'working_step_id' => 'required|exists:working_steps,id',
+            'client_interact' => 'required|string|in:read only,comment,upload',
+            'multiple_files' => 'boolean',
+            'is_required' => 'boolean',
         ]);
 
         // Get the working step to get project_id
@@ -493,8 +496,8 @@ class ProjectController extends Controller
             'working_step_id' => $request->working_step_id,
             'project_id' => $workingStep->project_id,
             'order' => $nextOrder,
-            'client_interact' => false,
-            'multiple_files' => false,
+            'client_interact' => $request->client_interact,
+            'multiple_files' => $request->boolean('multiple_files'),
             'is_required' => $request->boolean('is_required'),
             'completion_status' => 'pending',
             'project_name' => $project->name,
@@ -579,8 +582,8 @@ class ProjectController extends Controller
                 // Define role priority order (lower number = higher priority / earlier in workflow)
                 $rolePriority = [
                     'team leader' => 1,
-                    'manager' => 2,
-                    'supervisor' => 3,
+                    'supervisor' => 2,
+                    'manager' => 3,
                     'partner' => 4,
                 ];
                 

@@ -353,6 +353,7 @@ class CompanyController extends Controller
                                 'notes' => $latestAssignment->notes,
                                 'comment' => $latestAssignment->comment,
                                 'client_comment' => $latestAssignment->client_comment,
+                                'status' => $latestAssignment->status,
                                 'is_approved' => $latestAssignment->is_approved,
                                 'created_at' => $latestAssignment->created_at,
                                 'documents' => $latestAssignment->documents->map(function($doc) {
@@ -381,6 +382,7 @@ class CompanyController extends Controller
                                     'notes' => $assignment->notes,
                                     'comment' => $assignment->comment,
                                     'client_comment' => $assignment->client_comment,
+                                    'status' => $assignment->status,
                                     'is_approved' => $assignment->is_approved,
                                     'created_at' => $assignment->created_at,
                                     'documents' => $assignment->documents->map(function($doc) {
@@ -567,23 +569,51 @@ class CompanyController extends Controller
         // Get the assignment we just created/updated
         $latestAssignment = $task->taskAssignments()->latest()->first();
         
-        // Update assignment status - keep as "Submitted" until user clicks "Submit for Review"
+        // AUTO-SUBMIT to approval workflow
         if ($currentStatus === 'Draft') {
-            // Draft → Submitted (masih editable)
+            // Get first approval in workflow (lowest order)
+            $firstApproval = $task->taskApprovals()->orderBy('order', 'asc')->first();
+            
             if ($hasClientDocs) {
                 $latestAssignment->status = 'Submitted to Client'; // Client interaction path
+            } elseif ($firstApproval) {
+                // Automatically submit to first approval level
+                $latestAssignment->status = $firstApproval->status_name_pending;
             } else {
-                $latestAssignment->status = 'Submitted'; // Keep as Submitted, not auto-advance yet
+                // No approval workflow, mark as completed directly
+                $latestAssignment->status = 'Completed';
+                $latestAssignment->is_approved = true;
+                $task->completion_status = 'completed';
+                $task->completed_at = now();
+                $task->save();
             }
             $latestAssignment->save();
         } elseif ($currentStatus === 'Client Reply') {
-            // If client replied, keep as submitted
-            $latestAssignment->status = 'Submitted';
+            // If client replied, auto-submit to first approval
+            $firstApproval = $task->taskApprovals()->orderBy('order', 'asc')->first();
+            if ($firstApproval) {
+                $latestAssignment->status = $firstApproval->status_name_pending;
+            } else {
+                $latestAssignment->status = 'Completed';
+                $latestAssignment->is_approved = true;
+            }
             $latestAssignment->save();
         } elseif (str_contains($currentStatus, 'Returned for Revision')) {
-            // If resubmitting after rejection, create new assignment but keep status
-            // Status will change when user clicks "Submit for Review"
-            // Don't auto-advance here, let user review first
+            // If resubmitting after rejection, go back to the approver who rejected it
+            if (str_contains($currentStatus, 'Team Leader')) {
+                $approval = $task->taskApprovals()->where('role', 'team leader')->first();
+                $latestAssignment->status = $approval ? $approval->status_name_pending : 'Pending Team Leader';
+            } elseif (str_contains($currentStatus, 'Manager')) {
+                $approval = $task->taskApprovals()->where('role', 'manager')->first();
+                $latestAssignment->status = $approval ? $approval->status_name_pending : 'Pending Manager';
+            } elseif (str_contains($currentStatus, 'Supervisor')) {
+                $approval = $task->taskApprovals()->where('role', 'supervisor')->first();
+                $latestAssignment->status = $approval ? $approval->status_name_pending : 'Pending Supervisor';
+            } elseif (str_contains($currentStatus, 'Partner')) {
+                $approval = $task->taskApprovals()->where('role', 'partner')->first();
+                $latestAssignment->status = $approval ? $approval->status_name_pending : 'Pending Partner';
+            }
+            $latestAssignment->save();
         }
         
         // Update completion_status to in_progress when first submission is made
@@ -592,7 +622,7 @@ class CompanyController extends Controller
             $task->save();
         }
         
-        return back()->with('success', 'Task saved successfully! Click "Submit for Review" when ready.');
+        return back()->with('success', 'Task submitted successfully!');
     }
 
     /**
@@ -621,62 +651,6 @@ class CompanyController extends Controller
         $task->save();
         
         return back()->with('success', 'Comment added successfully!');
-    }
-
-    /**
-     * Submit task for review (move from Submitted → Under Review)
-     */
-    public function submitForReview(Request $request, Task $task)
-    {
-        $user = Auth::user();
-        
-        // Check if user is assigned to this task
-        $taskWorker = \App\Models\TaskWorker::where('task_id', $task->id)
-            ->whereHas('projectTeam', function($query) use ($user) {
-                $query->where('user_id', $user->id);
-            })
-            ->first();
-            
-        if (!$taskWorker) {
-            return back()->withErrors(['error' => 'You are not assigned to this task.']);
-        }
-
-        // Get latest assignment
-        $latestAssignment = $task->taskAssignments()->latest()->first();
-        
-        if (!$latestAssignment) {
-            return back()->withErrors(['error' => 'Please save your work before submitting for review.']);
-        }
-
-        $currentStatus = $latestAssignment->status ?? 'Draft';
-
-        // Only allow submit if status is "Submitted" or "Returned for Revision"
-        $canSubmit = $currentStatus === 'Submitted' || str_contains($currentStatus, 'Returned for Revision');
-        
-        if (!$canSubmit) {
-            return back()->withErrors(['error' => 'Task cannot be submitted for review in its current status.']);
-        }
-
-        // Determine which reviewer to send to
-        if (str_contains($currentStatus, 'Returned for Revision')) {
-            // If resubmitting after rejection, go back to the reviewer who rejected it
-            if (str_contains($currentStatus, 'Team Leader')) {
-                $latestAssignment->status = 'Under Review by Team Leader';
-            } elseif (str_contains($currentStatus, 'Manager')) {
-                $latestAssignment->status = 'Under Review by Manager';
-            } elseif (str_contains($currentStatus, 'Supervisor')) {
-                $latestAssignment->status = 'Under Review by Supervisor';
-            } elseif (str_contains($currentStatus, 'Partner')) {
-                $latestAssignment->status = 'Under Review by Partner';
-            }
-        } else {
-            // First submission, go to Team Leader
-            $latestAssignment->status = 'Under Review by Team Leader';
-        }
-
-        $latestAssignment->save();
-
-        return back()->with('success', 'Task submitted for review successfully!');
     }
 
     /**
