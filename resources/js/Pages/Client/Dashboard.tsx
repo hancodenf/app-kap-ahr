@@ -176,35 +176,70 @@ export default function Dashboard({
             <div className="py-6 sm:py-8">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
                     
-                    {/* Welcome Section - Clean & Minimal */}
+                    {/* Welcome Section - Enhanced with more info */}
                     <div className="overflow-hidden shadow-lg rounded-2xl relative">
                         <div 
                             className="absolute inset-0 bg-cover bg-center"
                             style={{ backgroundImage: 'url(/AHR-horizontal.jpg)' }}
                         ></div>
-                        <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-black/10 to-black/20"></div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/90 via-emerald-800/85 to-emerald-900/90"></div>
                         <div className="relative p-8">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <p className="text-sm text-white/80 mb-1 drop-shadow">Selamat Datang</p>
-                                    <h1 className="text-3xl font-bold text-white mb-4 drop-shadow-lg">{user.name}</h1>
+                            <div className="flex flex-col lg:flex-row items-start justify-between gap-6">
+                                <div className="flex-1">
+                                    <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-1.5 mb-3">
+                                        <span className="relative flex h-2 w-2">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                                        </span>
+                                        <span className="text-xs font-semibold text-white drop-shadow">Status: Aktif</span>
+                                    </div>
+                                    <h1 className="text-3xl md:text-4xl font-black text-white mb-2 drop-shadow-xl">Selamat Datang, {user.name}!</h1>
+                                    <p className="text-white/90 drop-shadow mb-4">Portal Klien - KAP Abdul Hamid dan Rekan</p>
                                     {user.client && (
-                                        <div className="space-y-1.5 text-sm text-white/90">
-                                            <p className="flex items-center gap-2">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                                </svg>
-                                                <span className="font-medium text-white drop-shadow">{user.client.name}</span>
-                                            </p>
-                                            <p className="flex items-center gap-2">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                </svg>
-                                                <span className="drop-shadow">{user.client.kementrian}</span>
-                                            </p>
+                                        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                                            <div className="space-y-2 text-sm text-white/95">
+                                                <div className="flex items-start gap-3">
+                                                    <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                    </svg>
+                                                    <div>
+                                                        <p className="font-semibold text-white drop-shadow">{user.client.name}</p>
+                                                        <p className="text-xs text-white/70 drop-shadow mt-0.5">Nama Instansi</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start gap-3">
+                                                    <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                    </svg>
+                                                    <div>
+                                                        <p className="font-medium text-white drop-shadow">{user.client.kementrian}</p>
+                                                        <p className="text-xs text-white/70 drop-shadow mt-0.5">Kementerian/Lembaga</p>
+                                                    </div>
+                                                </div>
+                                                {user.client.kode_satker && (
+                                                    <div className="flex items-start gap-3">
+                                                        <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                                        </svg>
+                                                        <div>
+                                                            <p className="font-mono text-white drop-shadow">{user.client.kode_satker}</p>
+                                                            <p className="text-xs text-white/70 drop-shadow mt-0.5">Kode Satker</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     )}
+                                </div>
+                                <div className="flex lg:flex-col gap-3">
+                                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center">
+                                        <div className="text-3xl font-black text-white drop-shadow-lg">{statistics.projects.total}</div>
+                                        <div className="text-xs text-white/80 drop-shadow mt-1">Total Proyek</div>
+                                    </div>
+                                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center">
+                                        <div className="text-3xl font-black text-emerald-300 drop-shadow-lg">{taskCompletionRate}%</div>
+                                        <div className="text-xs text-white/80 drop-shadow mt-1">Penyelesaian</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -267,7 +302,7 @@ export default function Dashboard({
                         <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all border border-gray-100">
                             <div className="flex items-center gap-4">
                                 <div className="flex-shrink-0">
-                                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-sm">
+                                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-600 to-green-700 flex items-center justify-center shadow-sm">
                                         <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                         </svg>
@@ -284,7 +319,7 @@ export default function Dashboard({
                         <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all border border-gray-100">
                             <div className="flex items-center gap-4">
                                 <div className="flex-shrink-0">
-                                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center shadow-sm">
+                                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-700 to-green-800 flex items-center justify-center shadow-sm">
                                         <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                         </svg>
@@ -329,7 +364,7 @@ export default function Dashboard({
                             <div className="flex justify-between items-center mb-5">
                                 <h3 className="text-base font-semibold text-gray-900">Proyek Terbaru</h3>
                                 {recentProjects.length > 0 && (
-                                    <Link href="/client/projects" className="text-xs text-green-600 hover:text-green-700 font-medium flex items-center gap-1">
+                                    <Link href={route('klien.projects.index')} className="text-xs text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1">
                                         Lihat Semua
                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -348,22 +383,31 @@ export default function Dashboard({
                             ) : (
                                 <div className="space-y-3">
                                     {recentProjects.map((project) => (
-                                        <div key={project.id} className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-4 border border-gray-100 hover:border-green-200 hover:shadow-sm transition-all">
+                                        <Link 
+                                            key={project.id} 
+                                            href={route('klien.projects.show', project.id)}
+                                            className="block bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-4 border border-emerald-100 hover:border-emerald-300 hover:shadow-md transition-all group"
+                                        >
                                             <div className="flex justify-between items-start mb-2">
-                                                <h4 className="font-medium text-gray-900 text-sm">{project.name}</h4>
+                                                <h4 className="font-semibold text-gray-900 text-sm group-hover:text-emerald-700 transition-colors">{project.name}</h4>
                                                 {getStatusBadge(project.status)}
                                             </div>
-                                            <div className="flex gap-4 text-xs text-gray-500">
+                                            <div className="flex gap-4 text-xs text-gray-600">
                                                 <span className="flex items-center gap-1">
-                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                                     </svg>
-                                                    {project.tasks_count} tugas
+                                                    <span className="font-medium">{project.tasks_count} tugas</span>
                                                 </span>
                                                 <span className="text-gray-300">•</span>
-                                                <span>{formatDate(project.created_at)}</span>
+                                                <span className="flex items-center gap-1">
+                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                    {formatDate(project.created_at)}
+                                                </span>
                                             </div>
-                                        </div>
+                                        </Link>
                                     ))}
                                 </div>
                             )}
@@ -435,60 +479,77 @@ export default function Dashboard({
                         </div>
                     )}
 
-                    {/* Quick Actions - Clean & Minimal */}
+                    {/* Quick Actions - Enhanced & Informative */}
                     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                         <h3 className="text-base font-semibold text-gray-900 mb-5">Aksi Cepat</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                             <Link
-                                href="/client/projects"
-                                className="flex items-center gap-3 p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl hover:shadow-md transition-all border border-green-100 group"
+                                href={route('klien.projects.index')}
+                                className="flex items-center gap-3 p-4 bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl hover:shadow-md transition-all border border-emerald-200 group"
                             >
                                 <div className="flex-shrink-0">
-                                    <div className="w-11 h-11 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                                         </svg>
                                     </div>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-semibold text-gray-900 text-sm">Lihat Proyek</p>
-                                    <p className="text-xs text-gray-500 mt-0.5">Semua proyek Anda</p>
+                                    <p className="font-semibold text-gray-900 text-sm group-hover:text-emerald-700 transition-colors">Semua Proyek</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">{statistics.projects.total} proyek aktif</p>
                                 </div>
                             </Link>
                             
-                            <button
-                                onClick={() => window.location.reload()}
-                                className="flex items-center gap-3 p-4 bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl hover:shadow-md transition-all border border-emerald-100 group"
+                            <Link
+                                href={route('news.index')}
+                                className="flex items-center gap-3 p-4 bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl hover:shadow-md transition-all border border-emerald-200 group"
                             >
                                 <div className="flex-shrink-0">
-                                    <div className="w-11 h-11 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-600 to-green-700 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div className="flex-1 min-w-0 text-left">
+                                    <p className="font-semibold text-gray-900 text-sm group-hover:text-emerald-700 transition-colors">Berita & Info</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">Pembaruan terbaru</p>
+                                </div>
+                            </Link>
+
+                            <Link
+                                href={route('profile.edit')}
+                                className="flex items-center gap-3 p-4 bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl hover:shadow-md transition-all border border-emerald-200 group"
+                            >
+                                <div className="flex-shrink-0">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-700 to-green-800 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-gray-900 text-sm group-hover:text-emerald-700 transition-colors">Profil Saya</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">Kelola akun</p>
+                                </div>
+                            </Link>
+
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="flex items-center gap-3 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl hover:shadow-md transition-all border border-gray-200 group"
+                            >
+                                <div className="flex-shrink-0">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                         </svg>
                                     </div>
                                 </div>
                                 <div className="flex-1 min-w-0 text-left">
                                     <p className="font-semibold text-gray-900 text-sm">Muat Ulang</p>
-                                    <p className="text-xs text-gray-500 mt-0.5">Perbarui data</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">Perbarui dashboard</p>
                                 </div>
                             </button>
-
-                            <a
-                                href="#"
-                                className="flex items-center gap-3 p-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl hover:shadow-md transition-all border border-purple-100 group"
-                            >
-                                <div className="flex-shrink-0">
-                                    <div className="w-11 h-11 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                    </div>
-                                </div>3
-                                <div className="flex-1 min-w-0">
-                                    <p className="font-semibold text-gray-900 text-sm">Dokumen</p>
-                                    <p className="text-xs text-gray-500 mt-0.5">Akses semua file</p>
-                                </div>
-                            </a>
                         </div>
                     </div>
 
