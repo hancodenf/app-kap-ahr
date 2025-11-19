@@ -34,7 +34,7 @@ class UserSeeder extends Seeder
 
         // Company users from provided data
         $companyUsers = [   
-            ["name" => "Abdul Hamid Cebba", "position" => "Founder - Partner", "user_type" => "Staff", "email" => "abdulhamid@kap-ahr.com"],
+            ["name" => "Abdul Hamid", "position" => "Founder - Partner", "user_type" => "Staff", "email" => "abdulhamid@kap-ahr.com"],
             ["name" => "Wilda Farah", "position" => "Managing Partner", "user_type" => "Staff", "email" => "wilda_farah@kap-ahr.com"],
             ["name" => "Syamsul Bahri", "position" => "Partner", "user_type" => "Staff", "email" => "syamsulbahri@kap-ahr.com"],
             ["name" => "Fachriza Fayyad Fauzan", "position" => "Associates Manager", "user_type" => "Staff", "email" => "fachriza@kap-ahr.com"],
@@ -60,10 +60,22 @@ class UserSeeder extends Seeder
             ["name" => "Fitri Indah Ayuningsih", "position" => "Internship Finance", "user_type" => "Staff", "email" => "fitriindah@kap-ahr.com"],
             ["name" => "Hartono", "position" => "Support", "user_type" => "Staff", "email" => "hartono@kap-ahr.com"],
             ["name" => "Rizka Amelia", "position" => "Junior Auditor", "user_type" => "Staff", "email" => "rizkaamelia@kap-ahr.com"], 
-            // tenaga ahli
+            
+            // Tenaga Ahli
             ["name" => "Irma Nuranisa", "position" => "Tenaga Ahli - Supervisor", "user_type" => "Tenaga Ahli", "email" => "irmanuranisa@kap-ahr.com"],
             ["name" => "Jeremi Oktavianus", "position" => "Senior Auditor", "user_type" => "Tenaga Ahli", "email" => "jeremi@kap-ahr.com"],
             ["name" => "Audy Alifia Rudy", "position" => "Senior Auditor", "user_type" => "Tenaga Ahli", "email" => "audyrudy@kap-ahr.com"],
+            
+            // ========== NEWLY ADDED USERS ==========
+            ["name" => "Brian Pramudita", "position" => "Tenaga Ahli - Supervisor", "user_type" => "Staff", "email" => "brianpramudita@kap-ahr.com"],
+            ["name" => "Resi Ariyasa Qadri", "position" => "Junior Auditor", "user_type" => "Staff", "email" => "resiariyasa@kap-ahr.com"],
+            ["name" => "Yusar Sagara", "position" => "Junior Auditor", "user_type" => "Staff", "email" => "yusarsagara@kap-ahr.com"],
+            ["name" => "Nur Isnaini", "position" => "Junior Auditor", "user_type" => "Staff", "email" => "nurisnaini@kap-ahr.com"],
+            ["name" => "Cavin Valeri Nayotama", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "cavinvaleri@kap-ahr.com"],
+            ["name" => "Kievo Syah Guzman", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "kievosyah@kap-ahr.com"],
+            ["name" => "Mohammad Ilham Akbar", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "ilhamakbar@kap-ahr.com"],
+            ["name" => "Diva Muzdalipah", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "divamuzdalipah@kap-ahr.com"],
+            ["name" => "Zulya Fathul Jannah", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "zulyafathul@kap-ahr.com"],
         ];
 
         foreach ($companyUsers as $index => $userData) { 

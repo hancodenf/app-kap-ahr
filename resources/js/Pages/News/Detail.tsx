@@ -59,13 +59,7 @@ export default function NewsDetail({ news }: NewsDetailProps) {
         <AuthenticatedLayout
             header={
                 <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">News & Updates</h2>
-                    <Link
-                        href={route('news.index')}
-                        className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-                    >
-                        ← Back
-                    </Link>
+                    <h2 className="text-xl font-semibold leading-tight text-gray-800">News & Updates</h2> 
                 </div>
             }
         >
@@ -153,11 +147,7 @@ export default function NewsDetail({ news }: NewsDetailProps) {
 
                         {/* Article Footer */}
                         <div className="px-8 py-6 bg-gray-50 border-t border-gray-200">
-                            <div className="flex items-center justify-between">
-                                <div className="text-sm text-gray-600">
-                                    <span className="font-medium">Slug:</span>{' '}
-                                    <code className="bg-gray-200 px-2 py-1 rounded text-xs">{news.slug}</code>
-                                </div>
+                            <div className="flex items-center justify-between"> 
                                 <Link
                                     href={route('news.index')}
                                     className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
@@ -169,55 +159,7 @@ export default function NewsDetail({ news }: NewsDetailProps) {
                                 </Link>
                             </div>
                         </div>
-                    </article>
-
-                    {/* Related or Additional Info */}
-                    <div className="mt-8 bg-white rounded-xl shadow-lg p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">About this Article</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="flex items-start space-x-3">
-                                <div className="p-2 bg-blue-100 rounded-lg">
-                                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-gray-900">Published Date</p>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        {new Date(news.published_at || news.created_at).toLocaleDateString('id-ID', {
-                                            day: 'numeric',
-                                            month: 'long',
-                                            year: 'numeric',
-                                        })}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-start space-x-3">
-                                <div className="p-2 bg-green-100 rounded-lg">
-                                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-gray-900">Author</p>
-                                    <p className="text-xs text-gray-500 mt-1">{news.creator.name}</p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-start space-x-3">
-                                <div className="p-2 bg-purple-100 rounded-lg">
-                                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-gray-900">Status</p>
-                                    <p className="text-xs text-gray-500 mt-1 capitalize">{news.status}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    </article> 
                 </div>
             </div>
         </AuthenticatedLayout>

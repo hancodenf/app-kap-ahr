@@ -47,7 +47,14 @@ export default function Welcome({
         };
     }, []);
 
-    const features = {
+    interface Feature {
+        icon: React.ReactElement;
+        title: string;
+        description: string;
+        image?: string;
+    }
+
+    const features: Record<'admin' | 'company' | 'client', Feature[]> = {
         admin: [
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13.5 3.03V5.25M6.75 15.75l-2.197 2.197M17.25 15.75l2.197 2.197" />,
@@ -74,22 +81,26 @@ export default function Welcome({
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />,
                 title: 'Manage Audit Projects',
-                description: 'Full access to manage all audit projects handled by the company'
+                description: 'Full access to manage all audit projects handled by the company',
+                image: '/images/fetures/company/manage-audit-projects.png'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />,
                 title: 'Assign Audit Team',
-                description: 'Assign auditor teams for each project with clear roles'
+                description: 'Assign auditor teams for each project with clear roles',
+                image: '/images/fetures/company/assign-audit-team.png'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />,
                 title: 'Track Real-time Progress',
-                description: 'Monitor progress of each task in the audit workflow: Engagement, Planning, Execution, Reporting'
+                description: 'Monitor progress of each task in the audit workflow: Engagement, Planning, Execution, Reporting',
+                image: '/images/fetures/company/track-real-time-progress.png'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />,
                 title: 'Upload Documents',
-                description: 'Organized document storage system for all audit files'
+                description: 'Organized document storage system for all audit files',
+                image: '/images/fetures/company/upload-documents.png'
             }
         ],
         client: [
@@ -439,25 +450,39 @@ export default function Welcome({
                             {features[activeTab].map((feature, index) => (
                                 <div
                                     key={index}
-                                    className="group relative bg-gradient-to-br from-white to-gray-50 rounded-2xl p-8 border border-gray-200 hover:border-primary-300 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+                                    className="group relative bg-gradient-to-br from-white to-gray-50 rounded-2xl overflow-hidden border border-gray-200 hover:border-primary-300 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
                                 >
-                                    {/* Icon */}
-                                    <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-emerald-500 rounded-2xl flex items-center justify-center mb-6 transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg">
-                                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            {feature.icon}
-                                        </svg>
-                                    </div>
+                                    {/* Feature Image (if exists) */}
+                                    {feature.image && (
+                                        <div className="relative h-48 overflow-hidden bg-gradient-to-br from-emerald-50 to-green-50">
+                                            <img 
+                                                src={feature.image} 
+                                                alt={feature.title}
+                                                className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent"></div>
+                                        </div>
+                                    )}
                                     
-                                    {/* Content */}
-                                    <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-primary-600 transition-colors">
-                                        {feature.title}
-                                    </h3>
-                                    <p className="text-gray-600 leading-relaxed">
-                                        {feature.description}
-                                    </p>
+                                    <div className="p-8">
+                                        {/* Icon */}
+                                        <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-emerald-500 rounded-2xl flex items-center justify-center mb-6 transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg">
+                                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                {feature.icon}
+                                            </svg>
+                                        </div>
+                                        
+                                        {/* Content */}
+                                        <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-primary-600 transition-colors">
+                                            {feature.title}
+                                        </h3>
+                                        <p className="text-gray-600 leading-relaxed">
+                                            {feature.description}
+                                        </p>
 
-                                    {/* Hover Effect */}
-                                    <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-emerald-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                                        {/* Hover Effect */}
+                                        <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-emerald-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                                    </div>
                                 </div>
                             ))}
                         </div>

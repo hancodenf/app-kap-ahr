@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -47,8 +48,10 @@ class ClientController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'alamat' => 'required|string|max:255',
-            'kementrian' => 'required|string|max:255',
+            'kementrian' => 'required|in:Kementerian Kesehatan,Kementerian Perhubungan,Kementerian Agama,Kementerian Pendidikan,Kementerian Pertanian,Kementerian Keuangan',
             'kode_satker' => 'required|string|max:255',
+            'type' => 'required|in:BLU,BLUD,PTNBH',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
         // Generate unique slug from name
@@ -62,6 +65,12 @@ class ClientController extends Controller
             $counter++;
         }
 
+        // Handle logo upload
+        $logoPath = null;
+        if ($request->hasFile('logo')) {
+            $logoPath = $request->file('logo')->store('clients/logos', 'public');
+        }
+
         // Create client
         Client::create([
             'name' => $request->name,
@@ -69,6 +78,8 @@ class ClientController extends Controller
             'alamat' => $request->alamat,
             'kementrian' => $request->kementrian,
             'kode_satker' => $request->kode_satker,
+            'type' => $request->type,
+            'logo' => $logoPath,
         ]);
 
         return redirect()->route('admin.clients.index')
@@ -102,9 +113,22 @@ class ClientController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'alamat' => 'required|string|max:255',
-            'kementrian' => 'required|string|max:255',
+            'kementrian' => 'required|in:Kementerian Kesehatan,Kementerian Perhubungan,Kementerian Agama,Kementerian Pendidikan,Kementerian Pertanian,Kementerian Keuangan',
             'kode_satker' => 'required|string|max:255',
+            'type' => 'required|in:BLU,BLUD,PTNBH',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
+
+        // Handle logo upload
+        if ($request->hasFile('logo')) {
+            // Delete old logo if exists
+            if ($client->logo) {
+                Storage::disk('public')->delete($client->logo);
+            }
+            $logoPath = $request->file('logo')->store('clients/logos', 'public');
+        } else {
+            $logoPath = $client->logo;
+        }
 
         // Generate new slug if name changed
         $updateData = [
@@ -112,6 +136,8 @@ class ClientController extends Controller
             'alamat' => $request->alamat,
             'kementrian' => $request->kementrian,
             'kode_satker' => $request->kode_satker,
+            'type' => $request->type,
+            'logo' => $logoPath,
         ];
 
         // If name changed, regenerate slug

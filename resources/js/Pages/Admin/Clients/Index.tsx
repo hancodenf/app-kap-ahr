@@ -10,6 +10,8 @@ interface Client {
 	alamat: string;
 	kementrian: string;
 	kode_satker: string;
+	type: string;
+	logo: string | null;
 	created_at: string;
 	client_users_count?: number;
 	projects_count?: number;
@@ -170,10 +172,16 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 												No
 											</th>
 											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+												Logo
+											</th>
+											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Client
 											</th>
 											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Kementrian
+											</th>
+											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+												Type
 											</th>
 											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Kode Satker
@@ -198,6 +206,21 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
 													{(clients.current_page - 1) * clients.per_page + index + 1}
 												</td>
+												<td className="px-6 py-4 whitespace-nowrap">
+													{client.logo ? (
+														<img 
+															src={`/storage/${client.logo}`} 
+															alt={`${client.name} logo`}
+															className="w-12 h-12 object-contain rounded-lg border border-gray-200 p-1 bg-white"
+														/>
+													) : (
+														<div className="w-12 h-12 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
+															<svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+															</svg>
+														</div>
+													)}
+												</td>
 												<td className="px-6 py-4">
 													<div>
 														<div className="text-sm font-medium text-gray-900">
@@ -210,6 +233,11 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 												</td>
 												<td className="px-6 py-4 whitespace-nowrap">
 													<div className="text-sm text-gray-900">{client.kementrian}</div>
+												</td>
+												<td className="px-6 py-4 whitespace-nowrap">
+													<span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">
+														{client.type}
+													</span>
 												</td>
 												<td className="px-6 py-4 whitespace-nowrap">
 													<span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
@@ -286,9 +314,17 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 								{clients.data.map((client, index) => (
 									<div key={client.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
 										<div className="flex items-start gap-3 mb-3">
-											<div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-												{client.name.charAt(0).toUpperCase()}
-											</div>
+											{client.logo ? (
+												<img 
+													src={`/storage/${client.logo}`} 
+													alt={`${client.name} logo`}
+													className="w-12 h-12 rounded-lg object-contain border border-gray-200 p-1 bg-white flex-shrink-0"
+												/>
+											) : (
+												<div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+													{client.name.charAt(0).toUpperCase()}
+												</div>
+											)}
 											<div className="flex-1 min-w-0">
 												<div className="text-xs text-gray-500 mb-1">
 													#{(clients.current_page - 1) * clients.per_page + index + 1}
@@ -307,6 +343,14 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 												<div className="text-sm font-medium text-gray-900 truncate">{client.kementrian}</div>
 											</div>
 											<div className="bg-gray-50 rounded-lg p-2">
+												<div className="text-[10px] text-gray-500 mb-0.5">Type</div>
+												<div className="text-sm">
+													<span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+														{client.type}
+													</span>
+												</div>
+											</div>
+											<div className="bg-gray-50 rounded-lg p-2">
 												<div className="text-[10px] text-gray-500 mb-0.5">Satker Code</div>
 												<div className="text-sm">
 													<span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -318,7 +362,7 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 												<div className="text-[10px] text-gray-500 mb-0.5">Accounts</div>
 												<div className="text-sm font-medium text-gray-900">{client.client_users_count || 0} users</div>
 											</div>
-											<div className="bg-gray-50 rounded-lg p-2">
+											<div className="bg-gray-50 rounded-lg p-2 col-span-2">
 												<div className="text-[10px] text-gray-500 mb-0.5">Projects</div>
 												<div className="text-sm font-medium text-gray-900">{client.projects_count || 0} projects</div>
 											</div>

@@ -24,6 +24,8 @@ interface Client {
 	alamat: string;
 	kementrian: string;
 	kode_satker: string;
+	type: string;
+	logo: string | null;
 	client_users: ClientUser[];
 	projects: Project[];
 	created_at: string;
@@ -73,9 +75,22 @@ export default function Show(props: Props) {
 					<div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
 						<div className="p-6 border-b border-gray-200">
 							<div className="flex items-start justify-between">
-								<div>
-									<h3 className="text-2xl font-bold text-gray-900">{client.name}</h3>
-									<p className="mt-1 text-sm text-gray-500">Client ID: #{client.id}</p>
+								<div className="flex items-start gap-4">
+									{client.logo ? (
+										<img 
+											src={`/storage/${client.logo}`} 
+											alt={`${client.name} logo`}
+											className="w-20 h-20 rounded-lg object-contain border-2 border-gray-200 p-2 bg-white"
+										/>
+									) : (
+										<div className="w-20 h-20 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white font-bold text-3xl">
+											{client.name.charAt(0).toUpperCase()}
+										</div>
+									)}
+									<div>
+										<h3 className="text-2xl font-bold text-gray-900">{client.name}</h3>
+										<p className="mt-1 text-sm text-gray-500">Client ID: #{client.id}</p>
+									</div>
 								</div>
 								<div className="flex gap-2">
 									<Link
@@ -102,6 +117,14 @@ export default function Show(props: Props) {
 								<div>
 									<dt className="text-sm font-medium text-gray-500">Kementrian/Lembaga</dt>
 									<dd className="mt-1 text-sm text-gray-900">{client.kementrian}</dd>
+								</div>
+								<div>
+									<dt className="text-sm font-medium text-gray-500">Type</dt>
+									<dd className="mt-1">
+										<span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">
+											{client.type}
+										</span>
+									</dd>
 								</div>
 								<div>
 									<dt className="text-sm font-medium text-gray-500">Kode Satker</dt>

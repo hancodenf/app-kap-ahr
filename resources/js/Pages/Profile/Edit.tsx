@@ -1,13 +1,16 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 
 export default function Edit({
     mustVerifyEmail,
     status,
 }: PageProps<{ mustVerifyEmail: boolean; status?: string }>) {
+    const user = usePage().props.auth.user as any;
+    const isAdmin = user.role?.name === 'admin';
+
     return (
         <AuthenticatedLayout
             header={
@@ -20,6 +23,7 @@ export default function Edit({
 
             <div className="py-4 sm:py-6 lg:py-12">
                 <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6 px-4 sm:px-6 lg:px-8">
+                    {/* Profile Photo & Password Section */}
                     <div className="bg-white p-4 sm:p-6 lg:p-8 shadow sm:rounded-lg">
                         <UpdateProfileInformationForm
                             mustVerifyEmail={mustVerifyEmail}
@@ -28,6 +32,7 @@ export default function Edit({
                         />
                     </div>
 
+                    {/* Change Password Section */}
                     <div className="bg-white p-4 sm:p-6 lg:p-8 shadow sm:rounded-lg">
                         <UpdatePasswordForm className="max-w-2xl" />
                     </div>
