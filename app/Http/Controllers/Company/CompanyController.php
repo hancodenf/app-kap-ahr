@@ -334,6 +334,55 @@ class CompanyController extends Controller
                         // Get latest assignment for display
                         $latestAssignment = $task->taskAssignments->first();
                         
+                        // Check if task can be edited (only if status is pending at lowest approval level OR rejected)
+                        $canEdit = false;
+                        if ($myAssignment && $latestAssignment) {
+                            // Get lowest order approval (first approval in workflow)
+                            $lowestApproval = $task->taskApprovals()
+                                ->orderBy('order', 'asc')
+                                ->first();
+                            
+                            // DEBUG: Log status for debugging
+                            \Log::info('Task Can Edit Check', [
+                                'task_id' => $task->id,
+                                'task_name' => $task->name,
+                                'current_status' => $latestAssignment->status,
+                                'lowest_approval_pending' => $lowestApproval ? $lowestApproval->status_name_pending : null,
+                            ]);
+                            
+                            if ($lowestApproval) {
+                                // Can edit if:
+                                // 1. Status matches pending of lowest approval, OR
+                                // 2. Status is rejected (any reject status from any approval level)
+                                $canEdit = $latestAssignment->status === $lowestApproval->status_name_pending;
+                                
+                                // Also check if status is any reject status from any approval level
+                                if (!$canEdit) {
+                                    // Check by status_name_reject column
+                                    $isRejected = $task->taskApprovals()
+                                        ->where('status_name_reject', $latestAssignment->status)
+                                        ->exists();
+                                    
+                                    // Also check by string pattern "Returned for Revision" (legacy/hardcoded statuses)
+                                    if (!$isRejected) {
+                                        $isRejected = str_contains($latestAssignment->status, 'Returned for Revision') ||
+                                                     str_contains($latestAssignment->status, 'Rejected');
+                                    }
+                                    
+                                    \Log::info('Rejection Check', [
+                                        'task_id' => $task->id,
+                                        'is_rejected' => $isRejected,
+                                        'status' => $latestAssignment->status,
+                                    ]);
+                                    
+                                    $canEdit = $isRejected;
+                                }
+                            } else {
+                                // No approval workflow - can edit if status is Draft or Submitted
+                                $canEdit = in_array($latestAssignment->status, ['Draft', 'Submitted']);
+                            }
+                        }
+                        
                         return [
                             'id' => $task->id,
                             'name' => $task->name,
@@ -346,6 +395,7 @@ class CompanyController extends Controller
                             'multiple_files' => $task->multiple_files,
                             'is_assigned_to_me' => $myAssignment !== null,
                             'my_assignment_id' => $myAssignment ? $myAssignment->id : null,
+                            'can_edit' => $canEdit,
                             // Latest assignment info for display
                             'latest_assignment' => $latestAssignment ? [
                                 'id' => $latestAssignment->id,
@@ -354,7 +404,6 @@ class CompanyController extends Controller
                                 'comment' => $latestAssignment->comment,
                                 'client_comment' => $latestAssignment->client_comment,
                                 'status' => $latestAssignment->status,
-                                'is_approved' => $latestAssignment->is_approved,
                                 'created_at' => $latestAssignment->created_at,
                                 'documents' => $latestAssignment->documents->map(function($doc) {
                                     return [
@@ -383,7 +432,6 @@ class CompanyController extends Controller
                                     'comment' => $assignment->comment,
                                     'client_comment' => $assignment->client_comment,
                                     'status' => $assignment->status,
-                                    'is_approved' => $assignment->is_approved,
                                     'created_at' => $assignment->created_at,
                                     'documents' => $assignment->documents->map(function($doc) {
                                         return [
@@ -457,12 +505,24 @@ class CompanyController extends Controller
         ]);
 
         // Get or create TaskAssignment
-        // For editable statuses (Draft, Submitted), update existing assignment
-        // For rejected/revision statuses, create new assignment
+        // Check if task can be edited (only if at lowest approval level pending)
         $taskAssignment = $task->taskAssignments()->latest()->first();
         
         $currentStatus = $taskAssignment->status ?? 'Draft';
-        $isEditable = $currentStatus === 'Draft' || $currentStatus === 'Submitted' || $currentStatus === 'Submitted to Client';
+        
+        // Determine if this is editable (UPDATE) or new submission (CREATE)
+        $isEditable = false;
+        $lowestApproval = $task->taskApprovals()->orderBy('order', 'asc')->first();
+        
+        if ($lowestApproval) {
+            // Has approval workflow
+            // Editable (UPDATE) only if status matches lowest pending
+            // If rejected, will CREATE new assignment
+            $isEditable = $currentStatus === $lowestApproval->status_name_pending;
+        } else {
+            // No approval workflow - editable if Draft or Submitted
+            $isEditable = in_array($currentStatus, ['Draft', 'Submitted', 'Submitted to Client']);
+        }
         
         // Custom validation: at least one of files or client_documents must be provided
         // UNLESS editing existing assignment (which already has files)
@@ -516,7 +576,7 @@ class CompanyController extends Controller
                 'time' => now(),
                 'notes' => $request->notes,
                 'comment' => null, // Will be filled by reviewer if rejected
-                'is_approved' => false,
+                'status' => 'Draft', // Initial status
             ]);
         }
         
@@ -569,23 +629,29 @@ class CompanyController extends Controller
         // Get the assignment we just created/updated
         $latestAssignment = $task->taskAssignments()->latest()->first();
         
-        // AUTO-SUBMIT to approval workflow
+        // Store hasClientDocs flag in assignment for later use after approvals
+        // Note: We'll check this flag when final approval happens
+        
+        // AUTO-SUBMIT to approval workflow - ALWAYS go through approval first
         if ($currentStatus === 'Draft') {
             // Get first approval in workflow (lowest order)
             $firstApproval = $task->taskApprovals()->orderBy('order', 'asc')->first();
             
-            if ($hasClientDocs) {
-                $latestAssignment->status = 'Submitted to Client'; // Client interaction path
-            } elseif ($firstApproval) {
-                // Automatically submit to first approval level
+            if ($firstApproval) {
+                // ALWAYS submit to first approval level first, regardless of client interaction
                 $latestAssignment->status = $firstApproval->status_name_pending;
             } else {
-                // No approval workflow, mark as completed directly
-                $latestAssignment->status = 'Completed';
-                $latestAssignment->is_approved = true;
-                $task->completion_status = 'completed';
-                $task->completed_at = now();
-                $task->save();
+                // No approval workflow - check if needs client interaction
+                if ($hasClientDocs) {
+                    $latestAssignment->status = 'Submitted to Client';
+                } else {
+                    // No approval, no client interaction - mark as completed
+                    $latestAssignment->status = 'Completed';
+                    $latestAssignment->is_approved = true;
+                    $task->completion_status = 'completed';
+                    $task->completed_at = now();
+                    $task->save();
+                }
             }
             $latestAssignment->save();
         } elseif ($currentStatus === 'Client Reply') {
@@ -669,38 +735,36 @@ class CompanyController extends Controller
             abort(403, 'You are not a member of this project.');
         }
 
-        $role = $teamMember->role;
+        $role = strtolower($teamMember->role);
         
-        // Map role to status (case-insensitive)
-        $statusMap = [
-            'team leader' => 'Under Review by Team Leader',
-            'manager' => 'Under Review by Manager',
-            'supervisor' => 'Under Review by Supervisor',
-            'partner' => 'Under Review by Partner',
-        ];
-        
-        $roleLower = strtolower($role);
-        
-        if (!isset($statusMap[$roleLower])) {
-            return response()->json(['tasks' => []]);
-        }
-        
-        $targetStatus = $statusMap[$roleLower];
-        
-        // Get all tasks in this project where the LATEST ASSIGNMENT has the target status
+        // Get all tasks in this project that have approvals for this role
+        // and where the LATEST ASSIGNMENT status matches the pending status
         $tasks = Task::whereHas('workingStep', function($query) use ($project) {
                 $query->where('project_id', $project->id);
             })
-            ->whereHas('taskAssignments', function($query) use ($targetStatus) {
-                // Check if latest assignment has the target status
-                $query->whereIn('id', function($subQuery) {
-                    $subQuery->select(DB::raw('MAX(id)'))
-                        ->from('task_assignments')
-                        ->groupBy('task_id');
-                })
-                ->where('status', $targetStatus);
+            ->whereHas('taskApprovals', function($query) use ($role) {
+                // Task must have approval workflow for this role
+                $query->where('role', $role);
             })
-            ->with([
+            ->get()
+            ->filter(function($task) use ($role) {
+                // Filter tasks where latest assignment status matches this role's pending OR progress status
+                $latestAssignment = $task->taskAssignments()->latest()->first();
+                if (!$latestAssignment) {
+                    return false;
+                }
+                
+                // Get the approval for this role
+                $approval = $task->taskApprovals()->where('role', $role)->first();
+                if (!$approval) {
+                    return false;
+                }
+                
+                // Check if current status matches pending OR progress status for this role
+                return $latestAssignment->status === $approval->status_name_pending ||
+                       $latestAssignment->status === $approval->status_name_progress;
+            })
+            ->load([
                 'workingStep',
                 'taskAssignments' => function($q) {
                     $q->with(['documents', 'clientDocuments'])
@@ -708,8 +772,8 @@ class CompanyController extends Controller
                         ->limit(1); // Only get latest assignment
                 }
             ])
-            ->orderBy('created_at', 'desc')
-            ->get()
+            ->sortByDesc('created_at')
+            ->values()
             ->map(function($task) {
                 $latestAssignment = $task->taskAssignments->first();
                 
@@ -750,6 +814,229 @@ class CompanyController extends Controller
     }
 
     /**
+     * Show approval detail page for a specific task
+     */
+    public function showApprovalDetail(Task $task)
+    {
+        $user = Auth::user();
+        
+        // Get team member to verify role
+        $teamMember = ProjectTeam::where('project_id', $task->workingStep->project_id)
+            ->where('user_id', $user->id)
+            ->first();
+            
+        if (!$teamMember) {
+            abort(403, 'You are not a member of this project.');
+        }
+
+        $role = strtolower($teamMember->role);
+        
+        // Verify this task has approval for this role
+        $approval = $task->taskApprovals()->where('role', $role)->first();
+        
+        if (!$approval) {
+            abort(403, 'You are not part of the approval workflow for this task.');
+        }
+        
+        // Verify current status matches the pending OR progress status for this role
+        $latestAssignment = $task->taskAssignments()->latest()->first();
+        
+        if (!$latestAssignment || 
+            ($latestAssignment->status !== $approval->status_name_pending && 
+             $latestAssignment->status !== $approval->status_name_progress)) {
+            abort(403, 'This task is not waiting for your approval.');
+        }
+        
+        // Update status from pending to in-progress when detail page is opened (only if still pending)
+        if ($latestAssignment->status === $approval->status_name_pending) {
+            $latestAssignment->status = $approval->status_name_progress;
+            $latestAssignment->save();
+        }
+        
+        // Load task with relationships
+        $task->load([
+            'workingStep',
+            'taskAssignments' => function($q) {
+                $q->with(['documents', 'clientDocuments'])
+                    ->orderBy('created_at', 'desc')
+                    ->limit(1);
+            }
+        ]);
+        
+        $taskData = [
+            'id' => $task->id,
+            'name' => $task->name,
+            'slug' => $task->slug,
+            'status' => $latestAssignment->status,
+            'completion_status' => $task->completion_status,
+            'working_step' => [
+                'id' => $task->workingStep->id,
+                'name' => $task->workingStep->name,
+            ],
+            'latest_assignment' => $latestAssignment ? [
+                'id' => $latestAssignment->id,
+                'time' => $latestAssignment->time,
+                'notes' => $latestAssignment->notes,
+                'created_at' => $latestAssignment->created_at,
+                'documents' => $latestAssignment->documents->map(function($doc) {
+                    return [
+                        'id' => $doc->id,
+                        'name' => $doc->name,
+                        'file' => $doc->file,
+                    ];
+                }),
+                'client_documents' => $latestAssignment->clientDocuments->map(function($clientDoc) {
+                    return [
+                        'id' => $clientDoc->id,
+                        'name' => $clientDoc->name,
+                        'description' => $clientDoc->description,
+                    ];
+                }),
+            ] : null,
+        ];
+        
+        $projectData = [
+            'id' => $task->workingStep->project_id,
+            'name' => $task->project_name,
+            'slug' => $task->project->slug ?? '',
+        ];
+        
+        return Inertia::render('Company/Tasks/ApprovalDetail', [
+            'task' => $taskData,
+            'project' => $projectData,
+        ]);
+    }
+
+    /**
+     * Show task detail page
+     */
+    public function showTaskDetail(Task $task)
+    {
+        $user = Auth::user();
+        
+        // Get team member to verify access
+        $teamMember = ProjectTeam::where('project_id', $task->workingStep->project_id)
+            ->where('user_id', $user->id)
+            ->first();
+            
+        if (!$teamMember) {
+            abort(403, 'You are not a member of this project.');
+        }
+
+        // Get latest assignment
+        $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
+        
+        // Check if task can be edited
+        $canEdit = false;
+        $lowestApproval = $task->taskApprovals()->orderBy('order', 'asc')->first();
+        
+        if ($lowestApproval && $latestAssignment) {
+            // Can edit if at lowest approval pending
+            $canEdit = $latestAssignment->status === $lowestApproval->status_name_pending;
+            
+            // Or if rejected at any level
+            if (!$canEdit) {
+                $isRejected = $task->taskApprovals()
+                    ->where('status_name_reject', $latestAssignment->status)
+                    ->exists();
+                    
+                // Fallback for hardcoded statuses
+                if (!$isRejected) {
+                    $isRejected = str_contains($latestAssignment->status, 'Returned for Revision') ||
+                                 str_contains($latestAssignment->status, 'Rejected');
+                }
+                
+                $canEdit = $isRejected;
+            }
+        } elseif (!$latestAssignment) {
+            // First submission
+            $canEdit = true;
+        }
+
+        // Build task data
+        $taskData = [
+            'id' => $task->id,
+            'name' => $task->name,
+            'slug' => $task->slug,
+            'status' => $latestAssignment ? $latestAssignment->status : 'Draft',
+            'completion_status' => $task->completion_status,
+            'client_interact' => $task->client_interact,
+            'multiple_files' => $task->multiple_files,
+            'can_edit' => $canEdit,
+            'working_step' => [
+                'id' => $task->workingStep->id,
+                'name' => $task->workingStep->name,
+            ],
+            'latest_assignment' => $latestAssignment ? [
+                'id' => $latestAssignment->id,
+                'time' => $latestAssignment->time,
+                'notes' => $latestAssignment->notes,
+                'comment' => $latestAssignment->comment,
+                'client_comment' => $latestAssignment->client_comment,
+                'status' => $latestAssignment->status,
+                'created_at' => $latestAssignment->created_at,
+                'documents' => $latestAssignment->documents->map(function($doc) {
+                    return [
+                        'id' => $doc->id,
+                        'name' => $doc->name,
+                        'file' => $doc->file,
+                        'uploaded_at' => $doc->created_at,
+                    ];
+                }),
+                'client_documents' => $latestAssignment->clientDocuments->map(function($doc) {
+                    return [
+                        'id' => $doc->id,
+                        'name' => $doc->name,
+                        'description' => $doc->description,
+                        'file' => $doc->file,
+                        'uploaded_at' => $doc->updated_at,
+                    ];
+                }),
+            ] : null,
+            'assignments' => $task->taskAssignments()->orderBy('created_at', 'desc')->get()->map(function($assignment) {
+                return [
+                    'id' => $assignment->id,
+                    'time' => $assignment->time,
+                    'notes' => $assignment->notes,
+                    'comment' => $assignment->comment,
+                    'client_comment' => $assignment->client_comment,
+                    'status' => $assignment->status,
+                    'created_at' => $assignment->created_at,
+                    'documents' => $assignment->documents->map(function($doc) {
+                        return [
+                            'id' => $doc->id,
+                            'name' => $doc->name,
+                            'file' => $doc->file,
+                            'uploaded_at' => $doc->created_at,
+                        ];
+                    }),
+                    'client_documents' => $assignment->clientDocuments->map(function($doc) {
+                        return [
+                            'id' => $doc->id,
+                            'name' => $doc->name,
+                            'description' => $doc->description,
+                            'file' => $doc->file,
+                            'uploaded_at' => $doc->updated_at,
+                        ];
+                    }),
+                ];
+            }),
+        ];
+
+        // Build project data
+        $projectData = [
+            'id' => $task->workingStep->project->id,
+            'name' => $task->workingStep->project->name,
+            'slug' => $task->workingStep->project->slug,
+        ];
+
+        return Inertia::render('Company/Tasks/TaskDetail', [
+            'task' => $taskData,
+            'project' => $projectData,
+        ]);
+    }
+
+    /**
      * Approve a task and advance to next status
      */
     public function approveTask(Request $request, Task $task)
@@ -765,33 +1052,7 @@ class CompanyController extends Controller
             return response()->json(['error' => 'You are not a member of this project.'], 403);
         }
 
-        $role = $teamMember->role;
-        
-        // Define approval workflow with auto-advance to next review (case-insensitive)
-        $approvalWorkflow = [
-            'team leader' => [
-                'current' => 'Under Review by Team Leader',
-                'approved' => 'Approved by Team Leader',
-                'next_review' => 'Under Review by Manager', // Auto-advance
-            ],
-            'manager' => [
-                'current' => 'Under Review by Manager',
-                'approved' => 'Approved by Manager',
-                'next_review' => 'Under Review by Supervisor', // Auto-advance
-            ],
-            'supervisor' => [
-                'current' => 'Under Review by Supervisor',
-                'approved' => 'Approved by Supervisor',
-                'next_review' => 'Under Review by Partner', // Auto-advance
-            ],
-            'partner' => [
-                'current' => 'Under Review by Partner',
-                'approved' => 'Approved by Partner',
-                'next_review' => null, // Final approval - no next review
-            ],
-        ];
-        
-        $roleLower = strtolower($role);
+        $role = strtolower($teamMember->role);
         
         // Get latest assignment
         $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
@@ -800,29 +1061,53 @@ class CompanyController extends Controller
             return response()->json(['error' => 'No assignment found for this task.'], 404);
         }
         
-        if (!isset($approvalWorkflow[$roleLower]) || $latestAssignment->status !== $approvalWorkflow[$roleLower]['current']) {
+        // Get current approval from task_approvals based on current role
+        $currentApproval = $task->taskApprovals()
+            ->where('role', $role)
+            ->first();
+            
+        if (!$currentApproval) {
+            return response()->json(['error' => 'You are not part of the approval workflow for this task.'], 403);
+        }
+        
+        // Verify current status matches the pending OR progress status for this approval
+        if ($latestAssignment->status !== $currentApproval->status_name_pending && 
+            $latestAssignment->status !== $currentApproval->status_name_progress) {
             return response()->json(['error' => 'You cannot approve this task in its current status.'], 403);
         }
         
-        // Get workflow for current role
-        $workflow = $approvalWorkflow[$roleLower];
+        // Get next approval in workflow (higher order)
+        $nextApproval = $task->taskApprovals()
+            ->where('order', '>', $currentApproval->order)
+            ->orderBy('order', 'asc')
+            ->first();
         
-        // Update assignment status - auto-advance to next review or mark as approved
-        if ($workflow['next_review']) {
-            // Auto-advance to next reviewer in hierarchy
-            $latestAssignment->status = $workflow['next_review'];
+        if ($nextApproval) {
+            // Auto-advance to next approval level
+            $latestAssignment->status = $nextApproval->status_name_pending;
+            $latestAssignment->save();
             $message = "Task approved and forwarded to next reviewer!";
         } else {
-            // Final approval by Partner
-            $latestAssignment->status = $workflow['approved'];
-            $task->completion_status = 'completed';
-            $task->save();
-            $message = "Task approved and marked as completed!";
+            // Final approval - check if task needs client interaction
+            $hasClientDocs = $latestAssignment->clientDocuments()->count() > 0;
+            
+            if ($hasClientDocs) {
+                // Has client documents to upload - send to client
+                $latestAssignment->status = 'Submitted to Client';
+                $latestAssignment->save();
+                $message = "Task approved! Waiting for client to upload requested documents.";
+            } else {
+                // No client interaction needed - mark as completed
+                $latestAssignment->status = $currentApproval->status_name_complete;
+                $latestAssignment->save();
+                
+                $task->completion_status = 'completed';
+                $task->completed_at = now();
+                $task->save();
+                
+                $message = "Task approved and marked as completed!";
+            }
         }
-        
-        // Mark assignment as approved
-        $latestAssignment->is_approved = true;
-        $latestAssignment->save();
         
         return response()->json(['success' => true, 'message' => $message]);
     }
@@ -832,51 +1117,59 @@ class CompanyController extends Controller
      */
     public function rejectTask(Request $request, Task $task)
     {
-        $user = Auth::user();
-        
-        // Get team member to verify role
-        $teamMember = ProjectTeam::where('project_id', $task->workingStep->project_id)
-            ->where('user_id', $user->id)
-            ->first();
+        try {
+            $user = Auth::user();
             
-        if (!$teamMember) {
-            return response()->json(['error' => 'You are not a member of this project.'], 403);
-        }
+            // Get team member to verify role
+            $teamMember = ProjectTeam::where('project_id', $task->workingStep->project_id)
+                ->where('user_id', $user->id)
+                ->first();
+                
+            if (!$teamMember) {
+                return response()->json(['error' => 'You are not a member of this project.'], 403);
+            }
 
-        $role = $teamMember->role;
-        
-        // Verify user has permission to reject this status (case-insensitive)
-        $rejectionMap = [
-            'team leader' => ['current' => 'Under Review by Team Leader', 'rejected' => 'Returned for Revision by Team Leader'],
-            'manager' => ['current' => 'Under Review by Manager', 'rejected' => 'Returned for Revision by Manager'],
-            'supervisor' => ['current' => 'Under Review by Supervisor', 'rejected' => 'Returned for Revision by Supervisor'],
-            'partner' => ['current' => 'Under Review by Partner', 'rejected' => 'Returned for Revision by Partner'],
-        ];
-        
-        $roleLower = strtolower($role);
-        
-        // Get latest assignment
-        $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
-        
-        if (!$latestAssignment) {
-            return response()->json(['error' => 'No assignment found for this task.'], 404);
+            $role = strtolower($teamMember->role);
+            
+            // Get latest assignment
+            $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
+            
+            if (!$latestAssignment) {
+                return response()->json(['error' => 'No assignment found for this task.'], 404);
+            }
+            
+            // Get current approval from task_approvals based on current role
+            $currentApproval = $task->taskApprovals()
+                ->where('role', $role)
+                ->first();
+                
+            if (!$currentApproval) {
+                return response()->json(['error' => 'You are not part of the approval workflow for this task.'], 403);
+            }
+            
+            // Verify current status matches the pending OR progress status for this approval
+            if ($latestAssignment->status !== $currentApproval->status_name_pending && 
+                $latestAssignment->status !== $currentApproval->status_name_progress) {
+                return response()->json(['error' => 'You cannot reject this task in its current status.'], 403);
+            }
+            
+            $request->validate([
+                'comment' => 'required|string',
+            ]);
+            
+            // Update assignment status to rejected status
+            $latestAssignment->status = $currentApproval->status_name_reject;
+            $latestAssignment->comment = $request->comment;
+            $latestAssignment->save();
+            
+            return response()->json(['success' => true, 'message' => 'Task rejected and returned for revision.']);
+        } catch (\Exception $e) {
+            \Log::error('Error rejecting task:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-        
-        if (!isset($rejectionMap[$roleLower]) || $latestAssignment->status !== $rejectionMap[$roleLower]['current']) {
-            return response()->json(['error' => 'You cannot reject this task in its current status.'], 403);
-        }
-        
-        $request->validate([
-            'comment' => 'required|string',
-        ]);
-        
-        // Update assignment status
-        $latestAssignment->status = $rejectionMap[$roleLower]['rejected'];
-        $latestAssignment->comment = $request->comment;
-        $latestAssignment->is_approved = false;
-        $latestAssignment->save();
-        
-        return response()->json(['success' => true, 'message' => 'Task rejected and returned for revision.']);
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Models\Task;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class ClientController extends Controller
@@ -109,10 +110,10 @@ class ClientController extends Controller
                 })
             : collect([]);
         
-        // 5. Tasks Requiring Client Action (client_interact = true, latest assignment status = 'Submitted to Client')
+        // 5. Tasks Requiring Client Action (client_interact = 'upload', latest assignment status = 'Submitted to Client')
         $tasksRequiringAction = $projectIds->isNotEmpty()
             ? Task::whereIn('project_id', $projectIds)
-                ->where('client_interact', '!=', 'read only')
+                ->where('client_interact', 'upload') // Only tasks with upload permission need client action
                 ->where('completion_status', '!=', 'completed')
                 ->whereHas('taskAssignments', function($query) {
                     // Check if latest assignment has status 'Submitted to Client'
@@ -384,7 +385,7 @@ class ClientController extends Controller
                             'status' => $latestAssignment->status ?? 'Draft',
                             'client_interact' => $task->client_interact,
                             'multiple_files' => $task->multiple_files,
-                            'is_assigned_to_me' => $task->client_interact, // Client can only interact with tasks marked client_interact
+                            'is_assigned_to_me' => $task->client_interact !== 'read only', // Client can interact with 'comment' or 'upload' tasks
                             'my_assignment_id' => null,
                             'workers' => $taskWorkers, // Add workers data
                             // Latest assignment info for display
@@ -467,8 +468,7 @@ class ClientController extends Controller
                 $query->latest()
                       ->with([
                           'documents',
-                          'clientDocuments',
-                          'user' // Load user who worked on the assignment (role is a column, not relation)
+                          'clientDocuments'
                       ]);
             },
             'taskWorkers.projectTeam.user' // Load task workers
@@ -563,9 +563,9 @@ class ClientController extends Controller
             abort(403, 'Unauthorized access to this task.');
         }
 
-        // Validate that this task allows client interaction
-        if (!$task->client_interact) {
-            return back()->with('error', 'Task ini tidak memerlukan input dari client.');
+        // Validate that this task allows client upload (not 'read only' or 'comment')
+        if ($task->client_interact !== 'upload') {
+            return back()->with('error', 'Task ini tidak memerlukan upload file dari client.');
         }
 
         $request->validate([
@@ -673,8 +673,8 @@ class ClientController extends Controller
             abort(403, 'Unauthorized access to this task.');
         }
 
-        // Validate that this task allows client interaction
-        if (!$task->client_interact) {
+        // Validate that this task allows client interaction (not 'read only')
+        if ($task->client_interact === 'read only') {
             return back()->with('error', 'Task ini tidak memerlukan input dari client.');
         }
 
