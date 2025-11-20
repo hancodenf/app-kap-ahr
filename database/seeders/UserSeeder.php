@@ -67,19 +67,18 @@ class UserSeeder extends Seeder
             ["name" => "Audy Alifia Rudy", "position" => "Senior Auditor", "user_type" => "Tenaga Ahli", "email" => "audyrudy@kap-ahr.com"],
             
             // ========== NEWLY ADDED USERS ==========
-            ["name" => "Brian Pramudita", "position" => "Tenaga Ahli - Supervisor", "user_type" => "Staff", "email" => "brianpramudita@kap-ahr.com"],
+            ["name" => "Brian Pramudita", "position" => "Tenaga Ahli - Supervisor", "user_type" => "Tenaga Ahli", "email" => "brianpramudita@kap-ahr.com"],
             ["name" => "Resi Ariyasa Qadri", "position" => "Junior Auditor", "user_type" => "Staff", "email" => "resiariyasa@kap-ahr.com"],
             ["name" => "Yusar Sagara", "position" => "Junior Auditor", "user_type" => "Staff", "email" => "yusarsagara@kap-ahr.com"],
-            ["name" => "Nur Isnaini", "position" => "Junior Auditor", "user_type" => "Staff", "email" => "nurisnaini@kap-ahr.com"],
-            ["name" => "Cavin Valeri Nayotama", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "cavinvaleri@kap-ahr.com"],
+            ["name" => "Nur Isnaini", "position" => "Junior Auditor", "user_type" => "Tenaga Ahli", "email" => "nurisnaini@kap-ahr.com"],
+            ["name" => "Cavin Valeri Nayotama", "position" => "Internship Auditor", "user_type" => "Tenaga Ahli", "email" => "cavinvaleri@kap-ahr.com"],
             ["name" => "Kievo Syah Guzman", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "kievosyah@kap-ahr.com"],
             ["name" => "Mohammad Ilham Akbar", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "ilhamakbar@kap-ahr.com"],
             ["name" => "Diva Muzdalipah", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "divamuzdalipah@kap-ahr.com"],
             ["name" => "Zulya Fathul Jannah", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "zulyafathul@kap-ahr.com"],
         ];
 
-        foreach ($companyUsers as $index => $userData) { 
-            
+        foreach ($companyUsers as $index => $userData) {
             User::create([
                 'name' => $userData['name'],
                 'email' => $userData['email'],
@@ -90,7 +89,6 @@ class UserSeeder extends Seeder
                 'user_type' => $userData['user_type'],
             ]);
         }
-        
 
     }
 }

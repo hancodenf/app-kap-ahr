@@ -168,34 +168,34 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 								<table className="min-w-full divide-y divide-gray-200">
 									<thead className="bg-gray-50">
 										<tr>
-											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											<th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												No
 											</th>
-											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											<th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Logo
 											</th>
-											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											<th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Client
 											</th>
-											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											<th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Kementrian
 											</th>
-											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											<th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Type
 											</th>
-											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											<th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Kode Satker
 											</th>
-											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											<th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Accounts
 											</th>
-											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											<th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Projects
 											</th>
-											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											<th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Joined
 											</th>
-											<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+											<th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Actions
 											</th>
 										</tr>
@@ -203,48 +203,48 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 									<tbody className="bg-white divide-y divide-gray-200">
 										{clients.data.map((client, index) => (
 											<tr key={client.id} className="hover:bg-gray-50 transition-colors">
-												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+												<td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
 													{(clients.current_page - 1) * clients.per_page + index + 1}
 												</td>
-												<td className="px-6 py-4 whitespace-nowrap">
+												<td className="px-3 py-2 whitespace-nowrap">
 													{client.logo ? (
 														<img 
 															src={`/storage/${client.logo}`} 
 															alt={`${client.name} logo`}
-															className="w-12 h-12 object-contain rounded-lg border border-gray-200 p-1 bg-white"
+															className="w-10 h-10 object-contain rounded border border-gray-200 p-0.5 bg-white"
 														/>
 													) : (
-														<div className="w-12 h-12 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
-															<svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<div className="w-10 h-10 bg-gray-100 rounded border border-gray-200 flex items-center justify-center">
+															<svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 																<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
 															</svg>
 														</div>
 													)}
 												</td>
-												<td className="px-6 py-4">
+												<td className="px-3 py-2">
 													<div>
 														<div className="text-sm font-medium text-gray-900">
 															{client.name}
 														</div>
-														<div className="text-xs text-gray-400 mt-1">
+														<div className="text-xs text-gray-400 mt-0.5">
 															{client.alamat}
 														</div>
 													</div>
 												</td>
-												<td className="px-6 py-4 whitespace-nowrap">
+												<td className="px-3 py-2 whitespace-nowrap">
 													<div className="text-sm text-gray-900">{client.kementrian}</div>
 												</td>
-												<td className="px-6 py-4 whitespace-nowrap">
-													<span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">
+												<td className="px-3 py-2 whitespace-nowrap">
+													<span className="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">
 														{client.type}
 													</span>
 												</td>
-												<td className="px-6 py-4 whitespace-nowrap">
-													<span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+												<td className="px-3 py-2 whitespace-nowrap">
+													<span className="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
 														{client.kode_satker}
 													</span>
 												</td>
-												<td className="px-6 py-4 whitespace-nowrap">
+												<td className="px-3 py-2 whitespace-nowrap">
 													<div className="flex items-center gap-1 text-sm text-gray-600">
 														<svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 															<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -252,7 +252,7 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 														<span className="font-medium">{client.client_users_count || 0}</span> 
 													</div>
 												</td>
-												<td className="px-6 py-4 whitespace-nowrap">
+												<td className="px-3 py-2 whitespace-nowrap">
 													<div className="flex items-center gap-1 text-sm text-gray-600">
 														<svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 															<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -260,14 +260,14 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 														<span className="font-medium">{client.projects_count || 0}</span> 
 													</div> 
 												</td>
-												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+												<td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
 													{formatDate(client.created_at)}
 												</td>
-												<td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-													<div className="flex justify-end gap-2">
+												<td className="px-3 py-2 whitespace-nowrap text-right text-sm font-medium">
+													<div className="flex justify-end gap-1">
 														<Link
 															href={route('admin.clients.show', client.id)}
-															className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
+															className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors"
 															title="View Details"
 														>
 															<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -277,7 +277,7 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 														</Link>
 														<Link
 															href={route('admin.clients.edit', client.id)}
-															className="inline-flex items-center px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded-md hover:bg-yellow-100 transition-colors"
+															className="inline-flex items-center px-2 py-1 bg-yellow-50 text-yellow-700 rounded hover:bg-yellow-100 transition-colors"
 															title="Edit"
 														>
 															<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -286,7 +286,7 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 														</Link>
 												<button
 														onClick={() => handleDeleteClick(client)}
-														className={`inline-flex items-center px-3 py-1.5 rounded-md transition-colors ${
+														className={`inline-flex items-center px-2 py-1 rounded transition-colors ${
 															(client.client_users_count || 0) > 0 || (client.projects_count || 0) > 0
 																? 'bg-gray-100 text-gray-400 cursor-not-allowed'
 																: 'bg-red-50 text-red-700 hover:bg-red-100'

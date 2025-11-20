@@ -208,7 +208,7 @@ class ClientController extends Controller
                     'featured_image' => $news->featured_image,
                     'published_at' => $news->published_at,
                     'creator' => [
-                        'name' => $news->creator->name,
+                        'name' => $news->creator ? $news->creator->name : 'Unknown',
                     ],
                 ];
             });
