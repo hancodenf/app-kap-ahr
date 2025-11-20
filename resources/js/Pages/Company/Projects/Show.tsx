@@ -43,6 +43,7 @@ interface Task {
     multiple_files: boolean;
     is_assigned_to_me: boolean;
     my_assignment_id: number | null;
+    can_edit: boolean;
     latest_assignment: TaskAssignment | null;
     assignments: TaskAssignment[];
 }
@@ -283,79 +284,8 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
             return; // Can't interact with tasks not assigned to me
         }
 
-        setSelectedTask(task);
-        
-        // Determine if we should show form based on status
-        // Show form directly for: Draft, Submitted (editable statuses)
-        // Show history for: Under Review, Returned for Revision, Approved
-        const isEditable = task.status === 'Draft' || task.status === 'Submitted' || task.status === 'Submitted to Client';
-        const hasNoAssignments = !task.assignments || task.assignments.length === 0;
-        
-        setShowForm(isEditable || hasNoAssignments);
-        
-        // Expand latest submission by default
-        if (task.assignments && task.assignments.length > 0) {
-            setExpandedSubmissions([task.assignments[0].id]);
-        } else {
-            setExpandedSubmissions([]);
-        }
-        
-        // Initialize form inputs - loop from database records (assignments array)
-        let initialFileInputs: Array<{ 
-            id: number; 
-            label: string; 
-            file: File | null; 
-            existingDocId?: number; 
-            existingFilePath?: string;
-        }> = [{ id: 0, label: '', file: null }];
-        let initialClientDocInputs: Array<{ id: number; name: string; description: string }> = [{ id: 0, name: '', description: '' }];
-        let nextFileCounter = 1;
-        let nextClientDocCounter = 1;
-        
-        // Get latest assignment from assignments array (index 0 is latest)
-        const latestAssignment = task.assignments && task.assignments.length > 0 ? task.assignments[0] : null;
-        
-        if (latestAssignment) {
-            // Loop file inputs from existing documents in database
-            if (latestAssignment.documents && latestAssignment.documents.length > 0) {
-                initialFileInputs = latestAssignment.documents.map((doc, index) => ({
-                    id: index,
-                    label: doc.name,
-                    file: null, // Existing file from DB, no File object yet
-                    existingDocId: doc.id,
-                    existingFilePath: doc.file,
-                }));
-                nextFileCounter = latestAssignment.documents.length;
-            }
-            
-            // Loop client document inputs from existing client_documents in database
-            if (latestAssignment.client_documents && latestAssignment.client_documents.length > 0) {
-                initialClientDocInputs = latestAssignment.client_documents.map((clientDoc, index) => ({
-                    id: index,
-                    name: clientDoc.name,
-                    description: clientDoc.description || '',
-                }));
-                nextClientDocCounter = latestAssignment.client_documents.length;
-            }
-        }
-        
-        setFileInputs(initialFileInputs);
-        setClientDocInputs(initialClientDocInputs);
-        setNextFileId(nextFileCounter);
-        setNextClientDocId(nextClientDocCounter);
-        
-        setData({
-            notes: task.latest_assignment?.notes || '',
-            files: [],
-            client_documents: initialClientDocInputs
-                .filter(input => input.name.trim() !== '')
-                .map(input => ({
-                    name: input.name,
-                    description: input.description
-                })),
-            upload_mode: 'upload',
-        });
-        setShowTaskModal(true);
+        // Redirect to task detail page
+        router.visit(route('company.tasks.detail', task.id));
     };
     
     const toggleSubmission = (submissionId: number) => {
@@ -912,108 +842,58 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                         </div>
                                         
                                         {approvalTasks.map((task) => (
-                                            <div key={task.id} className="border border-gray-200 rounded-lg p-5 bg-white hover:shadow-md transition-shadow">
-                                                <div className="flex items-start justify-between mb-3">
+                                            <div 
+                                                key={task.id} 
+                                                onClick={() => router.visit(route('company.tasks.approval-detail', task.id))}
+                                                className="border border-gray-200 rounded-lg p-4 bg-white hover:shadow-lg hover:border-primary-300 transition-all cursor-pointer group"
+                                            >
+                                                <div className="flex items-start justify-between">
                                                     <div className="flex-1">
                                                         <div className="flex items-center gap-2 mb-2">
-                                                            <h4 className="text-lg font-semibold text-gray-900">{task.name}</h4>
-                                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTaskStatusBadgeClass(task.status)}`}>
+                                                            <h4 className="text-base font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
+                                                                {task.name}
+                                                            </h4>
+                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getTaskStatusBadgeClass(task.status)}`}>
                                                                 {task.status}
                                                             </span>
                                                         </div>
-                                                        {task.working_step && (
-                                                            <p className="text-sm text-gray-600">
-                                                                📁 Step: {task.working_step.name}
-                                                            </p>
-                                                        )}
-                                                        {task.latest_assignment?.created_at && (
-                                                            <p className="text-sm text-gray-500 mt-1">
-                                                                🕐 {new Date(task.latest_assignment.created_at).toLocaleDateString('id-ID', {
-                                                                    year: 'numeric',
-                                                                    month: 'long',
-                                                                    day: 'numeric',
-                                                                    hour: '2-digit',
-                                                                    minute: '2-digit'
-                                                                })}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {task.latest_assignment && (
-                                                    <div className="mt-4 space-y-3">
-                                                        {task.latest_assignment.notes && (
-                                                            <div className="p-3 bg-gray-50 rounded-lg">
-                                                                <p className="text-xs font-medium text-gray-700 mb-1">📝 Notes:</p>
-                                                                <p className="text-sm text-gray-900" style={{ whiteSpace: 'pre-line' }}>{task.latest_assignment.notes}</p>
-                                                            </div>
-                                                        )}
-
-                                                        {task.latest_assignment.documents.length > 0 && (
-                                                            <div>
-                                                                <p className="text-xs font-medium text-gray-700 mb-2">📁 Uploaded Documents ({task.latest_assignment.documents.length}):</p>
-                                                                <div className="space-y-2">
-                                                                    {task.latest_assignment.documents.map((doc) => (
-                                                                        <div key={doc.id} className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded">
-                                                                            <div className="flex items-center space-x-2">
-                                                                                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                                                </svg>
-                                                                                <span className="text-sm font-medium text-gray-900">{doc.name}</span>
-                                                                            </div>
-                                                                            <a
-                                                                                href={`/storage/${doc.file}`}
-                                                                                download
-                                                                                className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800"
-                                                                            >
-                                                                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                                                                </svg>
-                                                                                Download
-                                                                            </a>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        )}
-
-                                                        {task.latest_assignment.client_documents.length > 0 && (
-                                                            <div>
-                                                                <p className="text-xs font-medium text-gray-700 mb-2">📋 Requested Documents ({task.latest_assignment.client_documents.length}):</p>
-                                                                <div className="space-y-2">
-                                                                    {task.latest_assignment.client_documents.map((clientDoc) => (
-                                                                        <div key={clientDoc.id} className="p-2 bg-purple-50 border border-purple-200 rounded">
-                                                                            <p className="text-sm font-medium text-gray-900">{clientDoc.name}</p>
-                                                                            {clientDoc.description && (
-                                                                                <p className="text-xs text-gray-600 mt-1">{clientDoc.description}</p>
-                                                                            )}
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
+                                                        
+                                                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                                                            {task.working_step && (
+                                                                <span className="flex items-center">
+                                                                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                                                    </svg>
+                                                                    {task.working_step.name}
+                                                                </span>
+                                                            )}
+                                                            {task.latest_assignment?.created_at && (
+                                                                <span className="flex items-center">
+                                                                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                    </svg>
+                                                                    {new Date(task.latest_assignment.created_at).toLocaleDateString('id-ID', {
+                                                                        day: '2-digit',
+                                                                        month: 'short',
+                                                                        year: 'numeric'
+                                                                    })}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        
+                                                        {task.latest_assignment?.documents && task.latest_assignment.documents.length > 0 && (
+                                                            <div className="mt-2 flex items-center text-xs text-gray-500">
+                                                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                </svg>
+                                                                {task.latest_assignment.documents.length} file(s)
                                                             </div>
                                                         )}
                                                     </div>
-                                                )}
-
-                                                <div className="mt-4 flex gap-3">
-                                                    <button
-                                                        onClick={() => handleApprove(task)}
-                                                        className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                                                    >
-                                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                        Approve
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleReject(task)}
-                                                        className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                                                    >
-                                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                        Reject
-                                                    </button>
+                                                    
+                                                    <svg className="w-5 h-5 text-gray-400 group-hover:text-primary-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                    </svg>
                                                 </div>
                                             </div>
                                         ))}
@@ -1154,28 +1034,53 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                             <label className="block text-sm font-medium text-gray-700 mb-3">
                                                 Submission History ({selectedTask.assignments.length} submission{selectedTask.assignments.length > 1 ? 's' : ''})
                                             </label>
-                                            <div className="space-y-4">
+                                            <div className="space-y-3">
                                                 {selectedTask.assignments.map((assignment, index) => (
-                                                    <div key={assignment.id} className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                                                        <div className="flex items-start justify-between mb-3">
-                                                            <div>
-                                                                <p className="text-sm font-semibold text-gray-900">
-                                                                    Submission #{selectedTask.assignments.length - index}
-                                                                    {index === 0 && <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">Latest</span>}
-                                                                    {assignment.is_approved && <span className="ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">Approved</span>}
-                                                                </p>
-                                                                <p className="text-xs text-gray-500 mt-1">
-                                                                    {new Date(assignment.created_at).toLocaleDateString('id-ID', {
-                                                                        year: 'numeric',
-                                                                        month: 'long',
-                                                                        day: 'numeric',
-                                                                        hour: '2-digit',
-                                                                        minute: '2-digit'
-                                                                    })}
-                                                                </p>
+                                                    <div key={assignment.id} className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+                                                        {/* Submission Header - Always Visible */}
+                                                        <div 
+                                                            className="p-3 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                                                            onClick={() => toggleSubmission(assignment.id)}
+                                                        >
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex-1">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <p className="text-sm font-semibold text-gray-900">
+                                                                            Submission #{selectedTask.assignments.length - index}
+                                                                        </p>
+                                                                        {index === 0 && (
+                                                                            <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">Latest</span>
+                                                                        )}
+                                                                        {assignment.comment && (
+                                                                            <span className="px-2 py-0.5 text-xs bg-red-100 text-red-800 rounded-full">✗ Rejected</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <p className="text-xs text-gray-500 mt-1">
+                                                                        {new Date(assignment.created_at).toLocaleDateString('id-ID', {
+                                                                            year: 'numeric',
+                                                                            month: 'long',
+                                                                            day: 'numeric',
+                                                                            hour: '2-digit',
+                                                                            minute: '2-digit'
+                                                                        })}
+                                                                    </p>
+                                                                </div>
+                                                                <svg 
+                                                                    className={`w-5 h-5 text-gray-500 transition-transform ${
+                                                                        expandedSubmissions.includes(assignment.id) ? 'transform rotate-180' : ''
+                                                                    }`}
+                                                                    fill="none" 
+                                                                    stroke="currentColor" 
+                                                                    viewBox="0 0 24 24"
+                                                                >
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                </svg>
                                                             </div>
                                                         </div>
                                                         
+                                                        {/* Submission Details - Collapsible */}
+                                                        {expandedSubmissions.includes(assignment.id) && (
+                                                        <div className="p-3 border-t border-gray-200 bg-white space-y-3">
                                                         {assignment.notes && (
                                                             <div className="mb-3">
                                                                 <p className="text-xs font-medium text-gray-700">📝 Notes:</p>
@@ -1266,6 +1171,8 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                                                     </div>
                                                                 ))}
                                                             </div>
+                                                        )}
+                                                        </div>
                                                         )}
                                                     </div>
                                                 ))}
@@ -1762,8 +1669,8 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                             </div>
                                         )}
 
-                                        {/* Add New Submission button - only show if latest assignment is rejected */}
-                                        {selectedTask.assignments.length > 0 && selectedTask.assignments[0].comment && !selectedTask.assignments[0].is_approved && (
+                                        {/* Add New Submission button - only show if can_edit (pending at lowest approval) */}
+                                        {selectedTask.can_edit && selectedTask.assignments.length > 0 && (
                                             <div className="mt-6 flex justify-center">
                                                 <button
                                                     type="button"

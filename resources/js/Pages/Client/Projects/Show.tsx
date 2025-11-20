@@ -61,7 +61,7 @@ interface Task {
     is_required: boolean;
     completion_status: 'pending' | 'in_progress' | 'completed';
     status: string;
-    client_interact: boolean;
+    client_interact: 'read only' | 'comment' | 'upload';
     multiple_files: boolean;
     is_assigned_to_me: boolean;
     my_assignment_id: number | null;
@@ -509,15 +509,23 @@ export default function Show({ project, workingSteps, projectTeams }: Props) {
                                                                         Required
                                                                     </span>
                                                                 )}
-                                                                {task.client_interact && task.status === 'Submitted to Client' && (
+                                                                {task.client_interact === 'upload' && task.status === 'Submitted to Client' && (
                                                                     <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
                                                                         <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                                                             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                                                                         </svg>
-                                                                        Perlu Input
+                                                                        Perlu Upload File
                                                                     </span>
                                                                 )}
-                                                                {task.client_interact && task.status === 'Client Reply' && (
+                                                                {task.client_interact === 'comment' && task.status === 'Submitted to Client' && (
+                                                                    <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                                                        <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                            <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+                                                                        </svg>
+                                                                        Perlu Komentar
+                                                                    </span>
+                                                                )}
+                                                                {task.client_interact !== 'read only' && task.status === 'Client Reply' && (
                                                                     <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 border border-green-200">
                                                                         <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                                                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />

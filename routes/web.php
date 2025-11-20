@@ -235,8 +235,12 @@ Route::middleware(['auth', 'verified', 'role:company'])->prefix('company')->name
     
     // Approval workflow routes
     Route::get('/projects/{project}/approval-requests', [CompanyController::class, 'getApprovalRequests'])->name('projects.approval-requests');
+    Route::get('/tasks/{task}/approval-detail', [CompanyController::class, 'showApprovalDetail'])->name('tasks.approval-detail');
     Route::post('/tasks/{task}/approve', [CompanyController::class, 'approveTask'])->name('tasks.approve');
     Route::post('/tasks/{task}/reject', [CompanyController::class, 'rejectTask'])->name('tasks.reject');
+    
+    // Task detail page route
+    Route::get('/tasks/{task}/detail', [CompanyController::class, 'showTaskDetail'])->name('tasks.detail');
     
     // Client document validation routes
     Route::post('/tasks/{task}/accept-client-documents', [CompanyController::class, 'acceptClientDocuments'])->name('tasks.accept-client-documents');

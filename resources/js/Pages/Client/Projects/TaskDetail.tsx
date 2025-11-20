@@ -62,7 +62,7 @@ interface Task {
     is_required: boolean;
     completion_status: 'pending' | 'in_progress' | 'completed';
     status: string;
-    client_interact: boolean;
+    client_interact: 'read only' | 'comment' | 'upload';
     multiple_files: boolean;
     project_name: string;
     working_step_name: string;
@@ -113,7 +113,9 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
         });
     };
 
-    const canUpload = task.client_interact && !task.latest_assignment?.client_comment;
+    // Client can interact if permission is 'comment' or 'upload' and hasn't replied yet
+    const canInteract = task.client_interact !== 'read only' && !task.latest_assignment?.client_comment;
+    const canUploadFiles = task.client_interact === 'upload' && !task.latest_assignment?.client_comment;
 
     const getStatusBadgeClass = (status: string) => {
         switch (status) {
@@ -439,17 +441,28 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
 
                         {/* Right Column - Upload Form */}
                         <div className="lg:col-span-1">
-                            {canUpload ? (
+                            {canInteract ? (
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-6">
                                     <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                        <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                        </svg>
-                                        Kirim Balasan
+                                        {task.client_interact === 'upload' ? (
+                                            <>
+                                                <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                </svg>
+                                                Kirim Balasan
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                                                </svg>
+                                                Kirim Komentar
+                                            </>
+                                        )}
                                     </h3>
 
                                     <form onSubmit={handleSubmit} className="space-y-4">
-                                        {pendingClientDocs.length > 0 && (
+                                        {canUploadFiles && pendingClientDocs.length > 0 && (
                                             <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
                                                 <p className="text-sm font-semibold text-purple-900 mb-1">
                                                     📋 {pendingClientDocs.length} Dokumen Diminta
@@ -460,7 +473,7 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                             </div>
                                         )}
 
-                                        {pendingClientDocs.length > 0 ? (
+                                        {canUploadFiles && pendingClientDocs.length > 0 ? (
                                             <>
                                                 {pendingClientDocs.map((doc, index) => (
                                                     <div key={doc.id} className="border-2 border-purple-200 rounded-lg p-4 bg-purple-50">
