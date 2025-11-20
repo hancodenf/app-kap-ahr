@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
-import { useState, FormEventHandler } from 'react';
+import { useState, FormEventHandler, useEffect } from 'react';
 
 interface Document {
     id: number;
@@ -52,40 +52,41 @@ export default function ApprovalDetail({ auth, task, project }: Props) {
     const [processing, setProcessing] = useState(false);
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [rejectComment, setRejectComment] = useState('');
+    const { flash } = usePage<any>().props;
 
-    const handleApprove = async () => {
+    // Handle flash messages
+    useEffect(() => {
+        if (flash?.success) {
+            alert(flash.success);
+            // Redirect back to project page after showing success
+            router.visit(route('company.projects.show', project.id));
+        }
+        if (flash?.error) {
+            alert(flash.error);
+        }
+    }, [flash]);
+
+    const handleApprove = () => {
         if (!confirm('Approve this task?')) {
             return;
         }
 
         setProcessing(true);
 
-        try {
-            const response = await fetch(route('company.tasks.approve', task.id), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                alert(data.message || 'Task approved successfully!');
-                router.visit(route('company.projects.show', project.id));
-            } else {
-                alert(data.error || 'Failed to approve task');
+        router.post(route('company.tasks.approve', task.id), {}, {
+            preserveScroll: true,
+            onError: (errors) => {
+                console.error('Error approving task:', errors);
+                alert('Failed to approve task. Check console for details.');
+                setProcessing(false);
+            },
+            onFinish: () => {
+                setProcessing(false);
             }
-        } catch (error) {
-            console.error('Error approving task:', error);
-            alert('An error occurred while approving the task');
-        } finally {
-            setProcessing(false);
-        }
+        });
     };
 
-    const handleReject: FormEventHandler = async (e) => {
+    const handleReject: FormEventHandler = (e) => {
         e.preventDefault();
 
         if (!rejectComment.trim()) {
@@ -95,34 +96,23 @@ export default function ApprovalDetail({ auth, task, project }: Props) {
 
         setProcessing(true);
 
-        try {
-            const response = await fetch(route('company.tasks.reject', task.id), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-                body: JSON.stringify({
-                    comment: rejectComment,
-                }),
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                alert(data.message || 'Task rejected successfully!');
-                router.visit(route('company.projects.show', project.id));
-            } else {
-                alert(data.error || 'Failed to reject task');
+        router.post(route('company.tasks.reject', task.id), {
+            comment: rejectComment,
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowRejectModal(false);
+                setRejectComment('');
+            },
+            onError: (errors) => {
+                console.error('Error rejecting task:', errors);
+                alert('Failed to reject task. Check console for details.');
+                setProcessing(false);
+            },
+            onFinish: () => {
+                setProcessing(false);
             }
-        } catch (error) {
-            console.error('Error rejecting task:', error);
-            alert('An error occurred while rejecting the task');
-        } finally {
-            setProcessing(false);
-            setShowRejectModal(false);
-            setRejectComment('');
-        }
+        });
     };
 
     const getTaskStatusBadgeClass = (status: string) => {
