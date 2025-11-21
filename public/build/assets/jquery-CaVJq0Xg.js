@@ -1,1 +1,0 @@
-import{g as r}from"./app-BbZP3b29.js";import{r as e}from"./jquery-DKenW1nw.js";var o=e();const t=r(o),j=Object.freeze(Object.defineProperty({__proto__:null,default:t},Symbol.toStringTag,{value:"Module"}));export{j};
