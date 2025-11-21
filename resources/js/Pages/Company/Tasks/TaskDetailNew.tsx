@@ -326,8 +326,9 @@ export default function TaskDetail({ auth, task, project }: Props) {
             preserveScroll: true,
             forceFormData: true,
             onSuccess: () => {
+                alert('Task updated successfully!');
                 setShowModal(false);
-                window.location.reload();
+                router.reload({ only: ['task'] });
             },
         });
     };
@@ -340,7 +341,8 @@ export default function TaskDetail({ auth, task, project }: Props) {
         router.post(route('company.tasks.accept-client-documents', task.id), {}, {
             preserveScroll: true,
             onSuccess: () => {
-                window.location.reload();
+                alert('Client documents accepted! Task marked as completed.');
+                router.reload({ only: ['task'] });
             },
         });
     };
@@ -356,9 +358,10 @@ export default function TaskDetail({ auth, task, project }: Props) {
         }, {
             preserveScroll: true,
             onSuccess: () => {
+                alert('Re-upload request sent to client!');
                 setShowReuploadModal(false);
                 setReuploadComment('');
-                window.location.reload();
+                router.reload({ only: ['task'] });
             },
         });
     };
@@ -412,8 +415,8 @@ export default function TaskDetail({ auth, task, project }: Props) {
             <div className="py-12">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
                     
-                    {/* Add New Submission Button (show if no submissions or rejected/returned) */}
-                    {(task.assignments.length === 0 || task.latest_assignment?.comment) && (
+                    {/* Add New Submission Button (show if rejected/returned) */}
+                    {task.latest_assignment?.comment && (
                         <div className="bg-white shadow-sm sm:rounded-lg p-4">
                             <button
                                 onClick={openAddModal}
@@ -438,17 +441,16 @@ export default function TaskDetail({ auth, task, project }: Props) {
                                     </h3>
                                 </div>
                                 <div className="divide-y divide-gray-200">
-                                    {task.assignments.length > 0 ? (
-                                        task.assignments.map((assignment, index) => (
-                                            <div
-                                                key={assignment.id}
-                                                onClick={() => setSelectedSubmission(assignment)}
-                                                className={`p-4 cursor-pointer transition-colors ${
-                                                    selectedSubmission?.id === assignment.id
-                                                        ? 'bg-blue-50 border-l-4 border-blue-600'
-                                                        : 'hover:bg-gray-50'
-                                                }`}
-                                            >
+                                    {task.assignments.map((assignment, index) => (
+                                        <div
+                                            key={assignment.id}
+                                            onClick={() => setSelectedSubmission(assignment)}
+                                            className={`p-4 cursor-pointer transition-colors ${
+                                                selectedSubmission?.id === assignment.id
+                                                    ? 'bg-blue-50 border-l-4 border-blue-600'
+                                                    : 'hover:bg-gray-50'
+                                            }`}
+                                        >
                                             <div className="flex items-start justify-between mb-2">
                                                 <div className="flex items-center gap-2">
                                                     <p className="text-sm font-semibold text-gray-900">
@@ -474,16 +476,7 @@ export default function TaskDetail({ auth, task, project }: Props) {
                                                 {assignment.status}
                                             </span>
                                         </div>
-                                    ))
-                                    ) : (
-                                        <div className="p-8 text-center text-gray-500">
-                                            <svg className="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                            </svg>
-                                            <p className="text-sm">No submissions yet</p>
-                                            <p className="text-xs mt-1">Click "Add New Submission" to get started</p>
-                                        </div>
-                                    )}
+                                    ))}
                                 </div>
                             </div>
                         </div>
@@ -719,43 +712,21 @@ export default function TaskDetail({ auth, task, project }: Props) {
                                                             />
                                                             
                                                             {input.existingFilePath && !input.file ? (
-                                                                <div className="space-y-2">
-                                                                    <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded">
-                                                                        <div className="flex items-center space-x-2">
-                                                                            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                                            </svg>
-                                                                            <span className="text-sm text-gray-900">Current file</span>
-                                                                        </div>
-                                                                        <a
-                                                                            href={`/storage/${input.existingFilePath}`}
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                            className="text-xs text-blue-600 hover:text-blue-800"
-                                                                        >
-                                                                            View
-                                                                        </a>
+                                                                <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded">
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                        </svg>
+                                                                        <span className="text-sm text-gray-900">Existing file</span>
                                                                     </div>
-                                                                    <div
-                                                                        onDrop={(e) => handleFileDrop(input.id, e)}
-                                                                        onDragOver={(e) => e.preventDefault()}
-                                                                        className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-500 transition-colors cursor-pointer"
+                                                                    <a
+                                                                        href={`/storage/${input.existingFilePath}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-xs text-blue-600 hover:text-blue-800"
                                                                     >
-                                                                        <input
-                                                                            type="file"
-                                                                            id={`file-${input.id}`}
-                                                                            onChange={(e) => handleFileSelect(input.id, e)}
-                                                                            className="hidden"
-                                                                        />
-                                                                        <label htmlFor={`file-${input.id}`} className="cursor-pointer">
-                                                                            <svg className="mx-auto h-8 w-8 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                                                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                                                                            </svg>
-                                                                            <p className="mt-1 text-xs text-gray-600">
-                                                                                Click to replace file
-                                                                            </p>
-                                                                        </label>
-                                                                    </div>
+                                                                        View
+                                                                    </a>
                                                                 </div>
                                                             ) : input.file ? (
                                                                 <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded">

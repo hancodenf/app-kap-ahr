@@ -11,6 +11,7 @@ use App\Models\News;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class CompanyController extends Controller
@@ -365,7 +366,7 @@ class CompanyController extends Controller
                                 ->first();
                             
                             // DEBUG: Log status for debugging
-                            \Log::info('Task Can Edit Check', [
+                            Log::info('Task Can Edit Check', [
                                 'task_id' => $task->id,
                                 'task_name' => $task->name,
                                 'current_status' => $latestAssignment->status,
@@ -391,7 +392,7 @@ class CompanyController extends Controller
                                                      str_contains($latestAssignment->status, 'Rejected');
                                     }
                                     
-                                    \Log::info('Rejection Check', [
+                                    Log::info('Rejection Check', [
                                         'task_id' => $task->id,
                                         'is_rejected' => $isRejected,
                                         'status' => $latestAssignment->status,
@@ -1071,7 +1072,7 @@ class CompanyController extends Controller
             ->first();
             
         if (!$teamMember) {
-            return response()->json(['error' => 'You are not a member of this project.'], 403);
+            return redirect()->back()->with('error', 'You are not a member of this project.');
         }
 
         $role = strtolower($teamMember->role);
@@ -1080,7 +1081,7 @@ class CompanyController extends Controller
         $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
         
         if (!$latestAssignment) {
-            return response()->json(['error' => 'No assignment found for this task.'], 404);
+            return redirect()->back()->with('error', 'No assignment found for this task.');
         }
         
         // Get current approval from task_approvals based on current role
@@ -1089,13 +1090,13 @@ class CompanyController extends Controller
             ->first();
             
         if (!$currentApproval) {
-            return response()->json(['error' => 'You are not part of the approval workflow for this task.'], 403);
+            return redirect()->back()->with('error', 'You are not part of the approval workflow for this task.');
         }
         
         // Verify current status matches the pending OR progress status for this approval
         if ($latestAssignment->status !== $currentApproval->status_name_pending && 
             $latestAssignment->status !== $currentApproval->status_name_progress) {
-            return response()->json(['error' => 'You cannot approve this task in its current status.'], 403);
+            return redirect()->back()->with('error', 'You cannot approve this task in its current status.');
         }
         
         // Get next approval in workflow (higher order)
@@ -1131,7 +1132,10 @@ class CompanyController extends Controller
             }
         }
         
-        return response()->json(['success' => true, 'message' => $message]);
+        // Redirect to project page after successful approve
+        $projectId = $task->workingStep->project_id;
+        return redirect()->route('company.projects.show', $projectId)
+            ->with('success', $message);
     }
 
     /**
@@ -1142,22 +1146,37 @@ class CompanyController extends Controller
         try {
             $user = Auth::user();
             
+            Log::info('Reject task attempt', [
+                'user_id' => $user->id,
+                'task_id' => $task->id,
+                'task_status' => $task->taskAssignments()->latest()->first()?->status ?? 'no assignment',
+            ]);
+            
             // Get team member to verify role
             $teamMember = ProjectTeam::where('project_id', $task->workingStep->project_id)
                 ->where('user_id', $user->id)
                 ->first();
                 
             if (!$teamMember) {
-                return response()->json(['error' => 'You are not a member of this project.'], 403);
+                Log::warning('Reject denied: not a team member', [
+                    'user_id' => $user->id,
+                    'task_id' => $task->id,
+                ]);
+                return redirect()->back()->with('error', 'You are not a member of this project.');
             }
 
             $role = strtolower($teamMember->role);
+            
+            Log::info('User role', ['role' => $role]);
             
             // Get latest assignment
             $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
             
             if (!$latestAssignment) {
-                return response()->json(['error' => 'No assignment found for this task.'], 404);
+                Log::warning('Reject denied: no assignment', [
+                    'task_id' => $task->id,
+                ]);
+                return redirect()->back()->with('error', 'No assignment found for this task.');
             }
             
             // Get current approval from task_approvals based on current role
@@ -1166,13 +1185,29 @@ class CompanyController extends Controller
                 ->first();
                 
             if (!$currentApproval) {
-                return response()->json(['error' => 'You are not part of the approval workflow for this task.'], 403);
+                Log::warning('Reject denied: not in approval workflow', [
+                    'user_id' => $user->id,
+                    'task_id' => $task->id,
+                    'role' => $role,
+                ]);
+                return redirect()->back()->with('error', 'You are not part of the approval workflow for this task.');
             }
+            
+            Log::info('Current approval check', [
+                'current_status' => $latestAssignment->status,
+                'expected_pending' => $currentApproval->status_name_pending,
+                'expected_progress' => $currentApproval->status_name_progress,
+            ]);
             
             // Verify current status matches the pending OR progress status for this approval
             if ($latestAssignment->status !== $currentApproval->status_name_pending && 
                 $latestAssignment->status !== $currentApproval->status_name_progress) {
-                return response()->json(['error' => 'You cannot reject this task in its current status.'], 403);
+                Log::warning('Reject denied: wrong status', [
+                    'task_id' => $task->id,
+                    'current_status' => $latestAssignment->status,
+                    'expected_statuses' => [$currentApproval->status_name_pending, $currentApproval->status_name_progress],
+                ]);
+                return redirect()->back()->with('error', 'You cannot reject this task in its current status.');
             }
             
             $request->validate([
@@ -1184,13 +1219,21 @@ class CompanyController extends Controller
             $latestAssignment->comment = $request->comment;
             $latestAssignment->save();
             
-            return response()->json(['success' => true, 'message' => 'Task rejected and returned for revision.']);
+            Log::info('Task rejected successfully', [
+                'task_id' => $task->id,
+                'new_status' => $latestAssignment->status,
+            ]);
+            
+            // Redirect to project page after successful reject
+            $projectId = $task->workingStep->project_id;
+            return redirect()->route('company.projects.show', $projectId)
+                ->with('success', 'Task rejected and returned for revision.');
         } catch (\Exception $e) {
-            \Log::error('Error rejecting task:', [
+            Log::error('Error rejecting task:', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return response()->json(['error' => $e->getMessage()], 500);
+            return redirect()->back()->with('error', 'Failed to reject task: ' . $e->getMessage());
         }
     }
 
