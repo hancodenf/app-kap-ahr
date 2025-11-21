@@ -547,19 +547,19 @@ export default function AdminDashboard({
 								</svg>
 							</div>
 						</div>
-						{analytics.topTeamMembers && analytics.topTeamMembers.length > 0 ? (
-							<div className="overflow-x-auto">
-								<table className="w-full">
-									<thead>
-										<tr className="border-b border-gray-200">
-											<th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rank</th>
-											<th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-											<th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Position</th>
-											<th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Projects</th>
-										</tr>
-									</thead>
-									<tbody className="divide-y divide-gray-100">
-										{analytics.topTeamMembers.slice(0, 5).map((member, index) => (
+					{analytics.topTeamMembers && analytics.topTeamMembers.length > 0 ? (
+						<div className="overflow-x-auto max-h-96 overflow-y-auto">
+							<table className="w-full">
+								<thead className="sticky top-0 bg-white z-10">
+									<tr className="border-b border-gray-200">
+										<th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rank</th>
+										<th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
+										<th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Position</th>
+										<th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Projects</th>
+									</tr>
+								</thead>
+								<tbody className="divide-y divide-gray-100">
+									{analytics.topTeamMembers.map((member, index) => (
 											<tr key={index} className="hover:bg-gray-50 transition-colors">
 												<td className="py-4 px-4">
 													<div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 font-bold text-sm">
@@ -604,9 +604,9 @@ export default function AdminDashboard({
 							</div>
 						</div>
 						{analytics.projectsByClient && analytics.projectsByClient.length > 0 ? (
-							<div className="overflow-x-auto">
+							<div className="overflow-x-auto max-h-96 overflow-y-auto">
 								<table className="w-full">
-									<thead>
+									<thead className="sticky top-0 bg-white z-10">
 										<tr className="border-b border-gray-200">
 											<th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">#</th>
 											<th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Client Name</th>
@@ -614,30 +614,30 @@ export default function AdminDashboard({
 										</tr>
 									</thead>
 									<tbody className="divide-y divide-gray-100">
-										{analytics.projectsByClient.slice(0, 8).map((client, index) => (
-											<tr key={index} className="hover:bg-gray-50 transition-colors">
-												<td className="py-4 px-4 text-sm text-gray-500">
-													{index + 1}
-												</td>
-												<td className="py-4 px-4">
-													<div className="font-medium text-gray-900">{client.client_name}</div>
-												</td>
-												<td className="py-4 px-4 text-right">
-													<span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-700">
-														{client.project_count}
-													</span>
-												</td>
-											</tr>
-										))}
-									</tbody>
-								</table>
-							</div>
-						) : (
-							<div className="text-center py-8 text-gray-400">
-								<p className="text-sm">No client data available</p>
-							</div>
-						)}
-					</div>
+										{analytics.projectsByClient.map((client, index) => (
+												<tr key={index} className="hover:bg-gray-50 transition-colors">
+													<td className="py-4 px-4 text-sm text-gray-500">
+														{index + 1}
+													</td>
+													<td className="py-4 px-4">
+														<div className="font-medium text-gray-900">{client.client_name}</div>
+													</td>
+													<td className="py-4 px-4 text-right">
+														<span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-700">
+															{client.project_count}
+														</span>
+													</td>
+												</tr>
+											))}
+										</tbody>
+									</table>
+								</div>
+							) : (
+								<div className="text-center py-8 text-gray-400">
+									<p className="text-sm">No client data available</p>
+								</div>
+							)}
+						</div>
 					</div>
 
 					{/* Team Role Distribution & Task Completion */}

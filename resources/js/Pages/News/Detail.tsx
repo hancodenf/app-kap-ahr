@@ -71,62 +71,52 @@ export default function NewsDetail({ news }: NewsDetailProps) {
                     <article className="bg-white rounded-xl shadow-lg overflow-hidden">
                         {/* Featured Image */}
                         {news.featured_image ? (
-                            <div className="relative h-96 overflow-hidden">
+                            <div className="relative h-64 sm:h-80 md:h-96 overflow-hidden">
                                 <img
                                     src={`/storage/${news.featured_image}`}
                                     alt={news.title}
                                     className="w-full h-full object-cover"
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
-                                <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
-                                    <div className="flex items-center space-x-3 mb-4">
-                                        {getStatusBadge(news.status)}
-                                        <span className="text-sm opacity-90">
-                                            {formatDate(news.published_at || news.created_at)}
-                                        </span>
-                                    </div>
-                                    <h1 className="text-4xl font-bold mb-3 leading-tight">{news.title}</h1>
-                                    {news.excerpt && (
-                                        <p className="text-lg opacity-90 max-w-3xl">{news.excerpt}</p>
-                                    )}
-                                </div>
                             </div>
                         ) : (
-                            <div className="relative h-64 bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center">
-                                <div className="text-center text-white p-8">
-                                    <div className="flex items-center justify-center space-x-3 mb-4">
-                                        {getStatusBadge(news.status)}
-                                        <span className="text-sm opacity-90">
-                                            {formatDate(news.published_at || news.created_at)}
-                                        </span>
-                                    </div>
-                                    <h1 className="text-4xl font-bold mb-3 leading-tight">{news.title}</h1>
-                                    {news.excerpt && (
-                                        <p className="text-lg opacity-90 max-w-3xl mx-auto">{news.excerpt}</p>
-                                    )}
-                                </div>
+                            <div className="relative h-64 sm:h-80 bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center">
+                                <svg className="w-24 h-24 text-white opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                                </svg>
                             </div>
                         )}
 
-                        {/* Article Meta */}
-                        <div className="px-8 py-6 bg-gray-50 border-b border-gray-200">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-4">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center">
-                                            <span className="text-white font-semibold text-sm">
-                                                {news.creator.name.charAt(0).toUpperCase()}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-semibold text-gray-900">
-                                                {news.creator.name}
-                                            </p>
-                                            <p className="text-xs text-gray-500">Author</p>
-                                        </div>
+                        {/* Article Meta & Title */}
+                        <div className="px-4 sm:px-6 md:px-8 py-6 border-b border-gray-100">
+                            <div className="flex flex-wrap items-center gap-3 mb-4">
+                                {getStatusBadge(news.status)}
+                                <span className="text-sm text-gray-500">
+                                    {formatDate(news.published_at || news.created_at)}
+                                </span>
+                            </div>
+                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 leading-tight">{news.title}</h1>
+                            {news.excerpt && (
+                                <p className="text-base sm:text-lg text-gray-600 leading-relaxed border-l-4 border-green-500 pl-4 py-2">{news.excerpt}</p>
+                            )}
+                        </div>
+
+                        {/* Author Info */}
+                        <div className="px-4 sm:px-6 md:px-8 py-6 bg-gray-50 border-b border-gray-200">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                <div className="flex items-center space-x-3">
+                                    <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0">
+                                        <span className="text-white font-semibold text-sm">
+                                            {news.creator.name.charAt(0).toUpperCase()}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-semibold text-gray-900">
+                                            {news.creator.name}
+                                        </p>
+                                        <p className="text-xs text-gray-500">Author</p>
                                     </div>
                                 </div>
-                                <div className="text-right">
+                                <div className="text-left sm:text-right">
                                     <p className="text-sm font-medium text-gray-900">
                                         Published
                                     </p>
@@ -138,15 +128,15 @@ export default function NewsDetail({ news }: NewsDetailProps) {
                         </div>
 
                         {/* Article Content */}
-                        <div className="px-8 py-10">
+                        <div className="px-4 sm:px-6 md:px-8 py-8 sm:py-10">
                             <div 
-                                className="prose prose-lg max-w-none prose-headings:font-bold prose-headings:text-gray-900 prose-p:text-gray-700 prose-p:leading-relaxed prose-a:text-primary-600 prose-a:no-underline hover:prose-a:underline prose-img:rounded-lg prose-img:shadow-md"
+                                className="prose prose-sm sm:prose-base lg:prose-lg max-w-none prose-headings:font-bold prose-headings:text-gray-900 prose-p:text-gray-700 prose-p:leading-relaxed prose-a:text-primary-600 prose-a:no-underline hover:prose-a:underline prose-img:rounded-lg prose-img:shadow-md prose-img:w-full"
                                 dangerouslySetInnerHTML={{ __html: news.content }}
                             />
                         </div>
 
                         {/* Article Footer */}
-                        <div className="px-8 py-6 bg-gray-50 border-t border-gray-200">
+                        <div className="px-4 sm:px-6 md:px-8 py-6 bg-gray-50 border-t border-gray-200">
                             <div className="flex items-center justify-between"> 
                                 <Link
                                     href={route('news.index')}
