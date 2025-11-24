@@ -1329,6 +1329,18 @@ class CompanyController extends Controller
             'is_approved' => false,
         ]);
 
+        // Copy team documents to new assignment (WITH files - keep team's uploaded documents)
+        $oldDocuments = $latestAssignment->documents;
+        foreach ($oldDocuments as $oldDoc) {
+            \App\Models\Document::create([
+                'task_assignment_id' => $newAssignment->id,
+                'name' => $oldDoc->name,
+                'slug' => \Illuminate\Support\Str::slug($oldDoc->name . '-' . time() . '-' . uniqid()),
+                'file' => $oldDoc->file, // Copy same file path - team's documents preserved
+                'uploaded_at' => $oldDoc->uploaded_at,
+            ]);
+        }
+
         // Copy client document requests to new assignment (WITHOUT files - client needs to re-upload)
         $oldClientDocuments = $latestAssignment->clientDocuments;
         foreach ($oldClientDocuments as $oldDoc) {
