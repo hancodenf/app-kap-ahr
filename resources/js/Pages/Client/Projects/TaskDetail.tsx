@@ -322,26 +322,6 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                             {assignment.status === 'Client Reply' ? '✓ Sudah Dibalas' : '⏳ Menunggu'}
                                                         </span>
                                                     </div>
-
-                                                    {/* Team Member Info */}
-                                                    {assignment.user && (
-                                                        <div className="mt-3 pt-3 border-t border-gray-200">
-                                                            <p className="text-xs text-gray-500 mb-1">Dari Tim:</p>
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
-                                                                    <span className="text-sm font-medium text-primary-700">
-                                                                        {assignment.user.name.charAt(0)}
-                                                                    </span>
-                                                                </div>
-                                                                <div>
-                                                                    <p className="text-sm font-medium text-gray-900">{assignment.user.name}</p>
-                                                                    {assignment.user.role && (
-                                                                        <p className="text-xs text-gray-500">{assignment.user.role.name}</p>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    )}
                                                 </div>
 
                                                 <div className="p-4 space-y-4">

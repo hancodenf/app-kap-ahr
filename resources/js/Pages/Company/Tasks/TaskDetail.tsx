@@ -381,7 +381,10 @@ export default function TaskDetail({ auth, task, project }: Props) {
     };
 
     // Check if we should show client document validation actions
-    const showClientDocActions = task.latest_assignment?.client_documents?.some(doc => doc.file && doc.uploaded_at);
+    // Only show if status is "Client Reply" (not Completed)
+    const showClientDocActions = 
+        task.latest_assignment?.status === 'Client Reply' &&
+        task.latest_assignment?.client_documents?.some(doc => doc.file && doc.uploaded_at);
 
     return (
         <AuthenticatedLayout
