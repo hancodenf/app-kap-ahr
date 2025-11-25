@@ -114,11 +114,17 @@ class NewsController extends Controller
             'status' => 'required|in:draft,published',
         ]);
 
+        // Remove featured_image from validated data if no new file uploaded
+        // This prevents overwriting existing image with null
+        if (!$request->hasFile('featured_image')) {
+            unset($validated['featured_image']);
+        }
+
         if ($request->status === 'published' && $news->status === 'draft') {
             $validated['published_at'] = now();
         }
 
-        // Handle image upload
+        // Handle image upload only if new file exists
         if ($request->hasFile('featured_image')) {
             // Delete old image
             if ($news->featured_image) {

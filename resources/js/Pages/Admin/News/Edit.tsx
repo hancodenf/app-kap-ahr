@@ -17,7 +17,7 @@ interface News {
 }
 
 export default function Edit({ auth, news }: PageProps<{ news: News }>) {
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, transform } = useForm({
         title: news.title,
         excerpt: news.excerpt || '',
         content: news.content,
@@ -27,6 +27,24 @@ export default function Edit({ auth, news }: PageProps<{ news: News }>) {
     });
 
     const editorRef = useRef<HTMLTextAreaElement>(null);
+
+    // Transform data before sending - only include featured_image if it's not null
+    transform((data) => {
+        const formData: any = {
+            title: data.title,
+            excerpt: data.excerpt,
+            content: data.content,
+            status: data.status,
+            _method: 'PUT',
+        };
+            
+        // Only include featured_image if a new file was selected
+        if (data.featured_image) {
+            formData.featured_image = data.featured_image;
+        }
+        
+        return formData;
+    });
 
     useEffect(() => {
         // Dynamically import Summernote
