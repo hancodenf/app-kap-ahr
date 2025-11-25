@@ -1278,7 +1278,7 @@ class CompanyController extends Controller
         }
 
         // Update assignment status to "Submitted" (ready for approval workflow)
-        $latestAssignment->status = 'Submitted';
+        $latestAssignment->status = 'Completed';
         $latestAssignment->save();
         
         // Mark task as completed
@@ -1296,7 +1296,7 @@ class CompanyController extends Controller
             'meta' => json_encode([
                 'task_id' => $task->id,
                 'previous_status' => 'Client Reply',
-                'new_status' => 'Submitted',
+                'new_status' => 'Completed',
             ]),
         ]);
 
@@ -1350,6 +1350,18 @@ class CompanyController extends Controller
             'status' => 'Submitted to Client', // Set status to request re-upload from client
             'is_approved' => false,
         ]);
+
+        // Copy team documents to new assignment (WITH files - keep team's uploaded documents)
+        $oldDocuments = $latestAssignment->documents;
+        foreach ($oldDocuments as $oldDoc) {
+            \App\Models\Document::create([
+                'task_assignment_id' => $newAssignment->id,
+                'name' => $oldDoc->name,
+                'slug' => \Illuminate\Support\Str::slug($oldDoc->name . '-' . time() . '-' . uniqid()),
+                'file' => $oldDoc->file, // Copy same file path - team's documents preserved
+                'uploaded_at' => $oldDoc->uploaded_at,
+            ]);
+        }
 
         // Copy client document requests to new assignment (WITHOUT files - client needs to re-upload)
         $oldClientDocuments = $latestAssignment->clientDocuments;

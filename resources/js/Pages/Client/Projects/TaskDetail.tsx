@@ -26,17 +26,11 @@ interface TaskAssignment {
     comment: string | null;
     client_comment: string | null;
     is_approved: boolean;
+    status: string;
     created_at: string;
     documents: Document[];
     client_documents: ClientDocument[];
-    user?: {
-        id: number;
-        name: string;
-        email: string;
-        role?: {
-            name: string;
-        };
-    };
+    // No user relation in TaskAssignment model
 }
 
 interface TaskWorker {
@@ -68,7 +62,7 @@ interface Task {
     working_step_name: string;
     workers: TaskWorker[];
     latest_assignment: TaskAssignment | null;
-    assignments: TaskAssignment[];
+    assignments: TaskAssignment[]; // All assignments with status "Submitted to Client" or "Client Reply"
 }
 
 interface Props extends PageProps {
@@ -285,14 +279,14 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Left Column - Submission History & Team */}
                         <div className="lg:col-span-2 space-y-6">
-                            {/* Assignment History */}
+                            {/* Client Interaction History (Submitted to Client & Client Reply only) */}
                             {task.assignments && task.assignments.length > 0 && (
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                                     <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                                         <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                         </svg>
-                                        Riwayat Submission ({task.assignments.length})
+                                        Riwayat Interaksi ({task.assignments.length})
                                     </h3>
                                     
                                     <div className="space-y-4">
@@ -306,7 +300,8 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                             </span>
                                                             <div>
                                                                 <p className="font-semibold text-gray-900">
-                                                                    Submission {index === 0 && <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">Terbaru</span>}
+                                                                    {assignment.status === 'Submitted to Client' ? 'Permintaan Dokumen' : 'Balasan Anda'}
+                                                                    {index === 0 && <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">Terbaru</span>}
                                                                 </p>
                                                                 <p className="text-xs text-gray-500">
                                                                     {new Date(assignment.created_at).toLocaleDateString('id-ID', {
@@ -319,17 +314,19 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                                 </p>
                                                             </div>
                                                         </div>
-                                                        {assignment.is_approved && (
-                                                            <span className="px-3 py-1 text-xs bg-green-100 text-green-800 rounded-full font-medium">
-                                                                ✓ Disetujui
-                                                            </span>
-                                                        )}
+                                                        <span className={`px-3 py-1 text-xs rounded-full font-medium ${
+                                                            assignment.status === 'Client Reply' 
+                                                                ? 'bg-green-100 text-green-800' 
+                                                                : 'bg-purple-100 text-purple-800'
+                                                        }`}>
+                                                            {assignment.status === 'Client Reply' ? '✓ Sudah Dibalas' : '⏳ Menunggu'}
+                                                        </span>
                                                     </div>
 
                                                     {/* Team Member Info */}
                                                     {assignment.user && (
                                                         <div className="mt-3 pt-3 border-t border-gray-200">
-                                                            <p className="text-xs text-gray-500 mb-1">Dikerjakan oleh:</p>
+                                                            <p className="text-xs text-gray-500 mb-1">Dari Tim:</p>
                                                             <div className="flex items-center gap-2">
                                                                 <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
                                                                     <span className="text-sm font-medium text-primary-700">

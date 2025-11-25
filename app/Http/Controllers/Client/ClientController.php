@@ -487,7 +487,9 @@ class ClientController extends Controller
             'workingStep',
             'project',
             'taskAssignments' => function ($query) {
-                $query->latest()
+                // Filter only assignments with status "Submitted to Client" or "Client Reply"
+                $query->whereIn('status', ['Submitted to Client', 'Client Reply'])
+                      ->latest()
                       ->with([
                           'documents',
                           'clientDocuments'
@@ -496,15 +498,16 @@ class ClientController extends Controller
             'taskWorkers.projectTeam.user' // Load task workers
         ]);
 
-        // Find ALL pending client documents across ALL assignments
+        // Get latest assignment from filtered results (should be "Submitted to Client" or "Client Reply")
+        $latestAssignment = $task->taskAssignments->first();
+        
+        // Find pending client documents from LATEST filtered assignment ONLY
         $pendingClientDocs = [];
-        foreach ($task->taskAssignments as $assignment) {
-            if ($assignment->clientDocuments) {
-                $pending = $assignment->clientDocuments->filter(function ($doc) {
-                    return !$doc->file; // Only docs without uploaded files
-                });
-                $pendingClientDocs = array_merge($pendingClientDocs, $pending->toArray());
-            }
+        if ($latestAssignment && $latestAssignment->clientDocuments) {
+            $pending = $latestAssignment->clientDocuments->filter(function ($doc) {
+                return !$doc->file; // Only docs without uploaded files
+            });
+            $pendingClientDocs = $pending->toArray();
         }
 
         // Format workers data
@@ -527,8 +530,7 @@ class ClientController extends Controller
             ];
         });
 
-        // Format task data for React component
-        $latestAssignment = $task->taskAssignments->first();
+        // Format task data for React component (filtered assignments only)
         $taskData = [
             'id' => $task->id,
             'name' => $task->name,
@@ -542,7 +544,19 @@ class ClientController extends Controller
             'project_name' => $task->project->name,
             'working_step_name' => $task->workingStep->name,
             'workers' => $workers,
-            'latest_assignment' => $task->taskAssignments->first(),
+            'latest_assignment' => $latestAssignment ? [
+                'id' => $latestAssignment->id,
+                'time' => $latestAssignment->time,
+                'notes' => $latestAssignment->notes,
+                'comment' => $latestAssignment->comment,
+                'client_comment' => $latestAssignment->client_comment,
+                'is_approved' => $latestAssignment->is_approved,
+                'created_at' => $latestAssignment->created_at,
+                'documents' => $latestAssignment->documents,
+                'client_documents' => $latestAssignment->clientDocuments,
+                // No user relation in TaskAssignment model
+            ] : null,
+            // Include filtered assignments (only "Submitted to Client" and "Client Reply")
             'assignments' => $task->taskAssignments->map(function ($assignment) {
                 return [
                     'id' => $assignment->id,
@@ -552,16 +566,12 @@ class ClientController extends Controller
                     'client_comment' => $assignment->client_comment,
                     'is_approved' => $assignment->is_approved,
                     'created_at' => $assignment->created_at,
+                    'status' => $assignment->status,
                     'documents' => $assignment->documents,
                     'client_documents' => $assignment->clientDocuments,
-                    'user' => $assignment->user ? [
-                        'id' => $assignment->user->id,
-                        'name' => $assignment->user->name,
-                        'email' => $assignment->user->email,
-                        'role' => $assignment->user->role
-                    ] : null
+                    // No user relation in TaskAssignment model
                 ];
-            })
+            }),
         ];
 
         return Inertia::render('Client/Projects/TaskDetail', [
