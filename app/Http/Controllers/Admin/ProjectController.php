@@ -221,6 +221,9 @@ class ProjectController extends Controller
             ->with(['tasks' => function($query) {
                 $query->with([
                     'taskWorkers',
+                    'taskApprovals' => function($q) {
+                        $q->orderBy('order');
+                    },
                     'taskAssignments' => function($q) {
                         $q->with(['documents', 'clientDocuments'])->orderBy('created_at', 'desc');
                     }
@@ -253,11 +256,24 @@ class ProjectController extends Controller
                             'multiple_files' => $task->multiple_files,
                             'is_assigned_to_me' => true, // Admin can edit all tasks
                             'my_assignment_id' => null,
+                            // Task approvals configuration (for dynamic dropdown)
+                            'task_approvals' => $task->taskApprovals->map(function($approval) {
+                                return [
+                                    'id' => $approval->id,
+                                    'role' => $approval->role,
+                                    'order' => $approval->order,
+                                    'status_name_pending' => $approval->status_name_pending,
+                                    'status_name_progress' => $approval->status_name_progress,
+                                    'status_name_complete' => $approval->status_name_complete,
+                                    'status_name_reject' => $approval->status_name_reject,
+                                ];
+                            }),
                             // Latest assignment info for display
                             'latest_assignment' => $latestAssignment ? [
                                 'id' => $latestAssignment->id,
                                 'time' => $latestAssignment->time,
                                 'notes' => $latestAssignment->notes,
+                                'status' => $latestAssignment->status,
                                 'comment' => $latestAssignment->comment,
                                 'client_comment' => $latestAssignment->client_comment,
                                 'is_approved' => $latestAssignment->is_approved,
@@ -862,7 +878,9 @@ class ProjectController extends Controller
         $request->validate([
             'notes' => 'nullable|string',
             'upload_mode' => 'required|in:upload,request',
-            'task_status' => 'required|string', // Admin can set status manually
+            // TWO separate status fields - Admin can override both
+            'completion_status' => 'required|string|in:pending,in_progress,completed', // for tasks table
+            'assignment_status' => 'required|string', // for task_assignments table
             'files.*' => 'nullable|file|max:10240', // Max 10MB per file
             'file_labels' => 'nullable|array',
             'file_labels.*' => 'nullable|string|max:255',
@@ -950,19 +968,20 @@ class ProjectController extends Controller
             }
         }
         
-        // Admin can manually set task assignment status (including "Submitted to Client")
+        // Admin can manually set BOTH status fields
+        // 1. Update task_assignments.status (assignment workflow status)
         $latestAssignment = $task->taskAssignments()->latest()->first();
-        if ($latestAssignment && $request->has('task_status')) {
-            $latestAssignment->status = $request->task_status;
+        if ($latestAssignment && $request->has('assignment_status')) {
+            $latestAssignment->status = $request->assignment_status;
             $latestAssignment->save();
         }
         
-        // Update completion_status to in_progress when first submission is made
-        if ($task->completion_status === 'pending') {
-            $task->completion_status = 'in_progress';
+        // 2. Update tasks.completion_status (overall task progress)
+        if ($request->has('completion_status')) {
+            $task->completion_status = $request->completion_status;
             $task->save();
         }
         
-        return back()->with('success', 'Task updated successfully with status: ' . ($request->task_status ?? 'unchanged'));
+        return back()->with('success', 'Task updated successfully - Completion: ' . $request->completion_status . ', Assignment: ' . $request->assignment_status);
     }
 }
