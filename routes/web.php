@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Client\ClientController;
 use App\Http\Controllers\Admin\ClientController as AdminClientController;
 use App\Http\Controllers\Admin\ProjectController;
+use App\Http\Controllers\Admin\RegisteredApController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Company\StaffController;
 use App\Http\Controllers\Company\CompanyController;
@@ -72,8 +73,62 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::resource('users', UserController::class);
     Route::post('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
 
+    // Registered APs Management Routes
+    Route::resource('registered-aps', RegisteredApController::class);
+
+    // Login Security Monitoring Routes (Protected with unlock key)
+    Route::prefix('login-security')->name('login-security.')->middleware('security.unlock')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\LoginSecurityController::class, 'index'])->name('index');
+        Route::get('/{attempt}', [\App\Http\Controllers\Admin\LoginSecurityController::class, 'show'])->name('show');
+        Route::post('/unsuspend/{user}', [\App\Http\Controllers\Admin\LoginSecurityController::class, 'unsuspend'])->name('unsuspend');
+        Route::delete('/{attempt}', [\App\Http\Controllers\Admin\LoginSecurityController::class, 'destroy'])->name('destroy');
+    });
+
+    // Security Unlock API
+    Route::post('/security-unlock', function(\Illuminate\Http\Request $request) {
+        $key = $request->input('key');
+        $envKeyHash = env('SECURITY_UNLOCK_KEY', 'f7b0bed5e6734693069a163b0b3e196a572001a8c9f727f4e4797c84344a03ac');
+        
+        // Hash the input key using SHA256
+        $inputKeyHash = hash('sha256', $key);
+        
+        // Debug logging
+        \Log::info('Security unlock attempt', [
+            'input_key_hash' => $inputKeyHash,
+            'env_key_hash' => $envKeyHash,
+            'match' => $inputKeyHash === $envKeyHash
+        ]);
+        
+        if ($inputKeyHash === $envKeyHash) {
+            $request->session()->put('security_unlocked', true);
+            return response()->json(['success' => true, 'message' => 'Security monitoring unlocked']);
+        }
+        
+        return response()->json(['success' => false, 'message' => 'Invalid key'], 403);
+    })->name('security.unlock');
+
+    // Security Lock - GET route that clears session and redirects
+    Route::get('/security-lock', function(\Illuminate\Http\Request $request) {
+        // Debug logging
+        \Log::info('Security lock requested', [
+            'session_id' => $request->session()->getId(),
+            'user_id' => auth()->id(),
+        ]);
+        
+        // Remove the security_unlocked flag from session
+        $request->session()->forget('security_unlocked');
+        
+        \Log::info('Security locked successfully - session cleared');
+        
+        // Redirect to dashboard
+        return redirect()->route('admin.dashboard')->with('success', 'Security monitoring has been locked');
+    })->name('security.lock');
+
     // Client Management Routes  
     Route::resource('clients', AdminClientController::class);
+
+    // News Management Routes
+    Route::resource('news', \App\Http\Controllers\Admin\NewsController::class);
 
     // Project Bundles Management Routes (CRUD for projects themselves)
     Route::prefix('projects')->name('projects.')->group(function () {
@@ -214,6 +269,12 @@ Route::middleware(['auth', 'verified', 'role:klien'])->prefix('klien')->name('kl
     Route::get('/tasks/{task}', [ClientController::class, 'viewTask'])->name('tasks.show');
     Route::post('/tasks/{task}/submit-reply', [ClientController::class, 'submitTaskReply'])->name('tasks.submit-reply');
     Route::post('/tasks/{task}/upload-client-documents', [ClientController::class, 'uploadClientDocuments'])->name('client-documents.upload');
+});
+
+// Public News Route (accessible by all authenticated users)
+Route::middleware('auth')->group(function () {
+    Route::get('/news', [\App\Http\Controllers\Admin\NewsController::class, 'indexPublic'])->name('news.index');
+    Route::get('/news/{news:slug}', [\App\Http\Controllers\Admin\NewsController::class, 'showPublic'])->name('news.show');
 });
 
 require __DIR__ . '/auth.php';

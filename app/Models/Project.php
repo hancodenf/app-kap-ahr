@@ -23,6 +23,7 @@ class Project extends Model
         'slug',
         'status',
         'client_id',
+        'year',
         'client_name',
         'client_alamat',
         'client_kementrian',

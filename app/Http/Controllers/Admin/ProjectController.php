@@ -22,23 +22,60 @@ class ProjectController extends Controller
 {
     // ==================== BUNDLE MANAGEMENT ====================
     
-    public function index()
+    public function index(Request $request)
     {
-        $projects = Project::with('client:id,name')
-            ->orderBy('name')
-            ->get();
+        $search = $request->input('search', '');
+        $year = $request->input('year', '');
+        
+        $query = Project::with(['client:id,name', 'projectTeams' => function($q) {
+            $q->where('role', 'partner')->select('id', 'project_id', 'user_id', 'user_name', 'role');
+        }]);
+
+        // Search filter
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('client_name', 'like', "%{$search}%");
+            });
+        }
+
+        // Year filter - use year column instead of created_at
+        if ($year) {
+            $query->where('year', $year);
+        }
+
+        $projects = $query->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->withQueryString();
+
+        // Get available years from year column
+        $availableYears = Project::select('year')
+            ->distinct()
+            ->orderBy('year', 'desc')
+            ->pluck('year');
 
         return Inertia::render('Admin/Project/Index', [
             'bundles' => $projects,
+            'filters' => [
+                'search' => $search,
+                'year' => $year,
+            ],
+            'availableYears' => $availableYears,
         ]);
     }
 
     public function createBundle()
     {
-        // Get all clients
-        $clients = \App\Models\Client::with('user:id,name,email')
-            ->orderBy('name')
-            ->get(['id', 'user_id', 'name', 'alamat', 'kementrian']);
+        // Get all clients with their used years
+        $clients = \App\Models\Client::orderBy('name')
+            ->get(['id', 'name', 'alamat', 'kementrian', 'kode_satker'])
+            ->map(function ($client) {
+                $usedYears = Project::where('client_id', $client->id)
+                    ->pluck('year')
+                    ->toArray();
+                $client->used_years = $usedYears;
+                return $client;
+            });
 
         // Get all users (company role only)
         $availableUsers = User::where('role', 'company')
@@ -61,11 +98,23 @@ class ProjectController extends Controller
         $request->validate([
             'name' => 'required|string|max:255|unique:projects,name',
             'client_id' => 'required|exists:clients,id',
+            'year' => 'required|integer|min:2000|max:' . date('Y'),
             'team_members' => 'nullable|array',
             'team_members.*.user_id' => 'required|exists:users,id',
             'team_members.*.role' => 'required|in:partner,manager,supervisor,team leader,member',
             'template_id' => 'nullable|exists:project_templates,id',
         ]);
+
+        // Check if project with same client and year already exists
+        $existingProject = Project::where('client_id', $request->client_id)
+            ->where('year', $request->year)
+            ->first();
+        
+        if ($existingProject) {
+            return back()->withErrors([
+                'year' => 'A project for this client in year ' . $request->year . ' already exists: ' . $existingProject->name
+            ])->withInput();
+        }
 
         // Get client data
         $client = \App\Models\Client::find($request->client_id);
@@ -73,7 +122,9 @@ class ProjectController extends Controller
         // Create project with denormalized client data
         $project = Project::create([
             'name' => $request->name,
+            'slug' => \Str::slug($request->name . '-' . now()->timestamp),
             'client_id' => $request->client_id,
+            'year' => $request->year,
             'client_name' => $client->name,
             'client_alamat' => $client->alamat,
             'client_kementrian' => $client->kementrian,
@@ -289,8 +340,16 @@ class ProjectController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'position']);
 
-        // Get clients with their users
-        $clients = Client::with('clientUsers')->orderBy('name')->get();
+        // Get clients with their used years
+        $clients = Client::with('clientUsers')->orderBy('name')->get()
+            ->map(function ($client) use ($bundle) {
+                $usedYears = Project::where('client_id', $client->id)
+                    ->where('id', '!=', $bundle->id) // Exclude current project
+                    ->pluck('year')
+                    ->toArray();
+                $client->used_years = $usedYears;
+                return $client;
+            });
 
         return Inertia::render('Admin/Project/Edit', [
             'bundle' => $bundle,
@@ -306,8 +365,21 @@ class ProjectController extends Controller
         $request->validate([
             'name' => 'required|string|max:255|unique:projects,name,' . $bundle->id,
             'client_id' => 'required|exists:clients,id',
+            'year' => 'required|integer|min:2000|max:' . date('Y'),
             'status' => 'required|in:open,closed',
         ]);
+
+        // Check if project with same client and year already exists (excluding current project)
+        $existingProject = Project::where('client_id', $request->client_id)
+            ->where('year', $request->year)
+            ->where('id', '!=', $bundle->id)
+            ->first();
+        
+        if ($existingProject) {
+            return back()->withErrors([
+                'year' => 'A project for this client in year ' . $request->year . ' already exists: ' . $existingProject->name
+            ])->withInput();
+        }
 
         // Get client for denormalized data
         $client = Client::findOrFail($request->client_id);
@@ -315,6 +387,7 @@ class ProjectController extends Controller
         // Update project with denormalized client data
         $bundle->update([
             'name' => $request->name,
+            'year' => $request->year,
             'status' => $request->status,
             'client_id' => $client->id,
             'client_name' => $client->name,

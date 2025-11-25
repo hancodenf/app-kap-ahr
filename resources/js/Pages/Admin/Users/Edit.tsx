@@ -271,7 +271,7 @@ export default function Edit({ user, roles, positions, userTypes, clients }: Edi
                         href={route('admin.users.index')}
                         className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                     >
-                        Kembali
+                        Back
                     </Link>
                 </div>
             }
@@ -285,8 +285,8 @@ export default function Edit({ user, roles, positions, userTypes, clients }: Edi
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
                             <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
                                 <div className="p-4 border-b border-gray-200">
-                                    <h3 className="text-lg font-semibold text-gray-900">Crop Foto Profil</h3>
-                                    <p className="text-sm text-gray-500 mt-1">Sesuaikan posisi dan ukuran foto (Rasio 1:1)</p>
+                                    <h3 className="text-lg font-semibold text-gray-900">Crop Profile Photo</h3>
+                                    <p className="text-sm text-gray-500 mt-1">Adjust photo position and size (1:1 Ratio)</p>
                                 </div>
                                 
                                 <div className="p-4">
@@ -418,7 +418,7 @@ export default function Edit({ user, roles, positions, userTypes, clients }: Edi
                                         className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                                             errors.name ? 'border-red-500' : 'border-gray-300'
                                         }`}
-                                        placeholder="Masukkan nama lengkap"
+                                        placeholder="Enter full name"
                                         required
                                     />
                                     {errors.name && (
@@ -439,7 +439,7 @@ export default function Edit({ user, roles, positions, userTypes, clients }: Edi
                                         className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                                             errors.email ? 'border-red-500' : 'border-gray-300'
                                         }`}
-                                        placeholder="Masukkan email"
+                                        placeholder="Enter email"
                                         required
                                     />
                                     {errors.email && (

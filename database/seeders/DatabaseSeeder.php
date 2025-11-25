@@ -35,10 +35,11 @@ class DatabaseSeeder extends Seeder
             TaskSeeder::class,
             
             // Create task workers (needs tasks and project teams)
-            TaskWorkerSeeder::class,
+            // TaskWorkerSeeder::class,
             
             // Other seeders
             RegisteredApSeeder::class,
+            NewsSeeder::class,
         ]);
     }
 }

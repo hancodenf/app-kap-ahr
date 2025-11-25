@@ -47,71 +47,82 @@ export default function Welcome({
         };
     }, []);
 
-    const features = {
+    interface Feature {
+        icon: React.ReactElement;
+        title: string;
+        description: string;
+        image?: string;
+    }
+
+    const features: Record<'admin' | 'company' | 'client', Feature[]> = {
         admin: [
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13.5 3.03V5.25M6.75 15.75l-2.197 2.197M17.25 15.75l2.197 2.197" />,
-                title: 'Manajemen User & Role',
-                description: 'Kelola admin, partner, staff, dan klien dengan sistem role-based access control yang powerful'
+                title: 'User & Role Management',
+                description: 'Manage admins, partners, staff, and clients with a powerful role-based access control system'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />,
-                title: 'Manajemen Klien & Proyek',
-                description: 'Sistem lengkap untuk mengelola klien, proyek audit, dan dokumen dengan terstruktur'
+                title: 'Client & Project Management',
+                description: 'Complete system to manage clients, audit projects, and documents in a structured way'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
                 title: 'Template Management',
-                description: 'Buat dan kelola template audit dengan sistem level & sub-level yang fleksibel'
+                description: 'Create and manage audit templates with a flexible level & sub-level system'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />,
-                title: 'Dashboard Analytics',
-                description: 'Monitoring real-time semua aktivitas, statistik user, proyek, dan tasks'
+                title: 'Analytics Dashboard',
+                description: 'Real-time monitoring of all activities, user statistics, projects, and tasks'
             }
         ],
         company: [
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />,
-                title: 'Kelola Proyek Audit',
-                description: 'Akses penuh untuk mengelola semua proyek audit yang ditangani perusahaan'
+                title: 'Manage Audit Projects',
+                description: 'Full access to manage all audit projects handled by the company',
+                image: '/images/fetures/company/manage-audit-projects.png'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />,
-                title: 'Assign Tim Audit',
-                description: 'Tentukan tim auditor untuk setiap proyek dengan role yang jelas'
+                title: 'Assign Audit Team',
+                description: 'Assign auditor teams for each project with clear roles',
+                image: '/images/fetures/company/assign-audit-team.png'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />,
-                title: 'Track Progress Real-time',
-                description: 'Monitor progress setiap task di workflow audit: Perikatan, Perencanaan, Pelaksanaan, Pelaporan'
+                title: 'Track Real-time Progress',
+                description: 'Monitor progress of each task in the audit workflow: Engagement, Planning, Execution, Reporting',
+                image: '/images/fetures/company/track-real-time-progress.png'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />,
-                title: 'Upload Dokumen',
-                description: 'Sistem penyimpanan dokumen terorganisir untuk semua file audit'
+                title: 'Upload Documents',
+                description: 'Organized document storage system for all audit files',
+                image: '/images/fetures/company/upload-documents.png'
             }
         ],
         client: [
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />,
-                title: 'Lihat Progress Audit',
-                description: 'Monitor perkembangan proyek audit perusahaan Anda secara real-time'
+                title: 'View Audit Progress',
+                description: 'Monitor the progress of your company\'s audit project in real-time'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13.5 3.03V5.25" />,
-                title: 'Info Tim Auditor',
-                description: 'Lihat siapa saja tim auditor yang menangani proyek Anda lengkap dengan kontak WhatsApp'
+                title: 'Auditor Team Info',
+                description: 'View the auditor team handling your project, complete with WhatsApp contacts'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
-                title: 'Detail Task & Dokumen',
-                description: 'Akses detail setiap task dan dokumen yang terkait dengan audit perusahaan'
+                title: 'Task & Document Details',
+                description: 'Access detailed information about each task and documents related to the audit'
             },
             {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />,
-                title: 'Timeline Proyek',
-                description: 'Pantau timeline dan deadline setiap tahapan audit dengan jelas'
+                title: 'Project Timeline',
+                description: 'Monitor the timeline and deadlines of each audit stage clearly'
             }
         ]
     };
@@ -121,28 +132,28 @@ export default function Welcome({
             name: 'Budi Santoso',
             position: 'Finance Director',
             company: 'PT Maju Jaya',
-            text: 'AURA mengubah cara kami berkolaborasi dengan auditor. Transparansi penuh dan real-time updates membuat proses audit jauh lebih efisien.',
+            text: 'AURA has transformed the way we collaborate with auditors. Full transparency and real-time updates make the audit process much more efficient.',
             rating: 5
         },
         {
             name: 'Siti Nurhaliza',
             position: 'CEO',
             company: 'CV Berkah Sejahtera',
-            text: 'Sistem yang sangat membantu! Kami bisa track progress audit kapan saja dan komunikasi dengan tim auditor jadi lebih mudah.',
+            text: 'Very helpful system! We can track audit progress anytime and communication with the audit team is much easier.',
             rating: 5
         },
         {
             name: 'Ahmad Wijaya',
             position: 'Managing Partner',
             company: 'KAP Internal Team',
-            text: 'AURA membuat pekerjaan tim audit kami lebih terstruktur. Template yang fleksibel dan sistem role yang jelas sangat membantu.',
+            text: 'AURA makes our audit team\'s work more structured. Flexible templates and clear role system are very helpful.',
             rating: 5
         }
     ];
 
     return (
         <>
-            <Head title="AURA - Sistem Manajemen Audit Profesional" />
+            <Head title="AURA - Professional Audit Management System" />
             <div className="bg-white min-h-screen overflow-hidden">
                 {/* Floating Header */}
                 <header 
@@ -158,22 +169,38 @@ export default function Welcome({
                         <div className="flex justify-between items-center py-4">
                             <Link href="/" className="flex items-center space-x-3 group">
                                 <div className="relative">
-                                    <div className="absolute inset-0 bg-primary-500/20 blur-xl rounded-full group-hover:bg-primary-500/30 transition-all duration-300"></div>
+                                    <div className={`absolute inset-0 blur-xl rounded-full transition-all duration-300 ${
+                                        scrollY > 50 ? 'bg-primary-500/20 group-hover:bg-primary-500/30' : 'bg-white/20 group-hover:bg-white/30'
+                                    }`}></div>
                                     <ApplicationLogo className="h-12 w-12 relative transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-300" />
                                 </div>
                                 <div>
-                                    <h1 className="text-2xl font-black bg-gradient-to-r from-primary-600 via-primary-500 to-emerald-500 bg-clip-text text-transparent">
+                                    <h1 className={`text-2xl font-black transition-all duration-300 ${
+                                        scrollY > 50 
+                                            ? 'bg-gradient-to-r from-primary-600 via-primary-500 to-emerald-500 bg-clip-text text-transparent' 
+                                            : 'text-white drop-shadow-lg'
+                                    }`}>
                                         AURA
                                     </h1>
-                                    <p className="text-xs text-gray-600 font-medium">Audit Management System</p>
+                                    <p className={`text-xs font-medium transition-colors duration-300 ${
+                                        scrollY > 50 ? 'text-gray-600' : 'text-white/90 drop-shadow'
+                                    }`}>Audit Management System</p>
                                 </div>
                             </Link>
                             
                             <nav className="hidden md:flex items-center space-x-8">
-                                <a href="#features" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">Fitur</a>
-                                <a href="#workflow" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">Workflow</a>
-                                <a href="#testimonials" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">Testimoni</a>
-                                <a href="#contact" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">Kontak</a>
+                                <a href="#features" className={`font-medium transition-colors ${
+                                    scrollY > 50 ? 'text-gray-700 hover:text-primary-600' : 'text-white/90 hover:text-white drop-shadow'
+                                }`}>Features</a>
+                                <a href="#workflow" className={`font-medium transition-colors ${
+                                    scrollY > 50 ? 'text-gray-700 hover:text-primary-600' : 'text-white/90 hover:text-white drop-shadow'
+                                }`}>Workflow</a>
+                                <a href="#testimonials" className={`font-medium transition-colors ${
+                                    scrollY > 50 ? 'text-gray-700 hover:text-primary-600' : 'text-white/90 hover:text-white drop-shadow'
+                                }`}>Testimonials</a>
+                                <a href="#contact" className={`font-medium transition-colors ${
+                                    scrollY > 50 ? 'text-gray-700 hover:text-primary-600' : 'text-white/90 hover:text-white drop-shadow'
+                                }`}>Contact</a>
                             </nav>
 
                             <div className="flex items-center space-x-3">
@@ -194,7 +221,7 @@ export default function Welcome({
                                         href={route('login')}
                                         className="group relative bg-gradient-to-r from-primary-600 via-primary-500 to-emerald-600 hover:from-primary-700 hover:via-primary-600 hover:to-emerald-700 text-white px-6 py-2.5 rounded-full font-semibold shadow-lg shadow-primary-500/30 hover:shadow-xl hover:shadow-primary-500/40 transition-all duration-300 transform hover:scale-105"
                                     >
-                                        <span className="relative z-10">Masuk</span>
+                                        <span className="relative z-10">Login</span>
                                     </Link>
                                 )}
                             </div>
@@ -202,16 +229,19 @@ export default function Welcome({
                     </div>
                 </header>
 
-                {/* Hero Section - Powerful & Visual */}
-                <main className="relative pt-20">
-                    {/* Animated Background */}
-                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                        <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-primary-400/30 to-emerald-400/20 rounded-full blur-3xl animate-pulse"></div>
-                        <div className="absolute top-1/2 -left-40 w-96 h-96 bg-gradient-to-tr from-emerald-400/20 to-primary-400/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-                        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-gradient-to-tl from-primary-300/20 to-emerald-300/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-                    </div>
+                {/* Hero Section - Powerful & Visual with Background Image */}
+                <main className="relative">
+                    {/* Hero Banner with Background Image */}
+                    <div className="relative overflow-hidden pt-20">
+                        {/* Background Image */}
+                        <div 
+                            className="absolute inset-0 bg-cover bg-center"
+                            style={{ backgroundImage: 'url(/AHR-horizontal.jpg)' }}
+                        ></div>
+                        {/* Overlay Gradient untuk readability */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/60 to-black/70"></div>
 
-                    <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+                        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
                         {/* Hero Content */}
                         <div 
                             className="text-center mb-16"
@@ -223,29 +253,29 @@ export default function Welcome({
                                 transition: 'all 1s cubic-bezier(0.4, 0, 0.2, 1)'
                             }}
                         >
-                            {/* Badge */}
-                            <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-primary-50 to-emerald-50 border border-primary-200 rounded-full px-4 py-2 mb-8">
-                                <span className="relative flex h-3 w-3">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-primary-500"></span>
-                                </span>
-                                <span className="text-sm font-semibold bg-gradient-to-r from-primary-600 to-emerald-600 bg-clip-text text-transparent">
-                                    Trusted by 500+ Clients
-                                </span>
-                            </div>
+                                {/* Badge */}
+                                <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 mb-8">
+                                    <span className="relative flex h-3 w-3">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                    </span>
+                                    <span className="text-sm font-semibold text-white drop-shadow-lg">
+                                        Trusted by 500+ Clients
+                                    </span>
+                                </div>
 
-                            <h1 className="text-5xl md:text-7xl font-black text-gray-900 mb-6 leading-tight">
-                                Sistem Manajemen Audit
-                                <br />
-                                <span className="bg-gradient-to-r from-primary-600 via-primary-500 to-emerald-500 bg-clip-text text-transparent">
-                                    Paling Modern di Indonesia
-                                </span>
-                            </h1>
-                            
-                            <p className="text-xl md:text-2xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
-                                Platform digital end-to-end untuk <span className="font-bold text-primary-600">KAP Abdul Hamid dan Rekan</span>. 
-                                Kelola audit dari perencanaan hingga pelaporan dengan efisien, transparan, dan terstruktur.
-                            </p>
+                                <h1 className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight drop-shadow-2xl">
+                                    Professional Audit
+                                    <br />
+                                    <span className="text-emerald-400 drop-shadow-2xl">
+                                        Management System
+                                    </span>
+                                </h1>
+                                
+                                <p className="text-xl md:text-2xl text-white/90 mb-10 max-w-3xl mx-auto leading-relaxed drop-shadow-lg">
+                                    End-to-end digital platform for <span className="font-bold text-emerald-400">KAP Abdul Hamid dan Rekan</span>. 
+                                    Manage audits from planning to reporting efficiently, transparently, and systematically.
+                                </p>
                             
                             {/* CTA Buttons */}
                             <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-16">
@@ -257,7 +287,7 @@ export default function Welcome({
                                         <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                         </svg>
-                                        Buka Dashboard
+                                        Open Dashboard
                                         <svg className="w-5 h-5 ml-3 transform group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                         </svg>
@@ -271,7 +301,7 @@ export default function Welcome({
                                             <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                             </svg>
-                                            Mulai Gratis Sekarang
+                                            Start Free Now
                                             <svg className="w-5 h-5 ml-3 transform group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                             </svg>
@@ -283,7 +313,7 @@ export default function Welcome({
                                             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
                                             </svg>
-                                            Lihat Fitur Lengkap
+                                            View Full Features
                                             <svg className="w-5 h-5 ml-3 transform group-hover:translate-y-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                                             </svg>
@@ -293,28 +323,33 @@ export default function Welcome({
                             </div>
 
                             {/* Trust Indicators */}
-                            <div className="flex flex-wrap justify-center items-center gap-8 text-sm text-gray-600">
+                            <div className="flex flex-wrap justify-center items-center gap-8 text-sm text-white/90">
                                 <div className="flex items-center space-x-2">
-                                    <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg className="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                     </svg>
-                                    <span className="font-medium">No Credit Card Required</span>
+                                    <span className="font-medium drop-shadow">No Credit Card Required</span>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                    <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg className="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                     </svg>
-                                    <span className="font-medium">Setup in 5 Minutes</span>
+                                    <span className="font-medium drop-shadow">Setup in 5 Minutes</span>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                    <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg className="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                     </svg>
-                                    <span className="font-medium">24/7 Support</span>
+                                    <span className="font-medium drop-shadow">24/7 Support</span>
                                 </div>
                             </div>
                         </div>
+                        </div>
+                    </div>
 
+                    {/* Dashboard Preview Section - White Background */}
+                    <div className="bg-white py-20">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         {/* Dashboard Preview */}
                         <div 
                             className="relative"
@@ -353,10 +388,12 @@ export default function Welcome({
                                 </div>
                             </div>
                         </div>
+                        </div>
                     </div>
 
-                    {/* Features by Role - Interactive Tabs */}
-                    <div id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
+                    {/* Features Section - White Background */}
+                    <div id="features" className="bg-white py-32">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div 
                             className="text-center mb-16"
                             id="features-header"
@@ -368,13 +405,13 @@ export default function Welcome({
                             }}
                         >
                             <div className="inline-block bg-primary-50 border border-primary-200 rounded-full px-5 py-2 mb-6">
-                                <span className="text-sm font-bold text-primary-600">FITUR LENGKAP</span>
+                                <span className="text-sm font-bold text-primary-600">COMPLETE FEATURES</span>
                             </div>
                             <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-6">
-                                Solusi untuk <span className="bg-gradient-to-r from-primary-600 to-emerald-600 bg-clip-text text-transparent">Semua Role</span>
+                                Solutions for <span className="bg-gradient-to-r from-primary-600 to-emerald-600 bg-clip-text text-transparent">All Roles</span>
                             </h2>
                             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                                Sistem yang dirancang khusus untuk kebutuhan Admin, Company Staff, dan Client dengan fitur yang powerful
+                                System designed specifically for Admin, Company Staff, and Client needs with powerful features
                             </p>
                         </div>
 
@@ -413,34 +450,57 @@ export default function Welcome({
                             {features[activeTab].map((feature, index) => (
                                 <div
                                     key={index}
-                                    className="group relative bg-gradient-to-br from-white to-gray-50 rounded-2xl p-8 border border-gray-200 hover:border-primary-300 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+                                    className="group relative bg-gradient-to-br from-white to-gray-50 rounded-2xl overflow-hidden border border-gray-200 hover:border-primary-300 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
                                 >
-                                    {/* Icon */}
-                                    <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-emerald-500 rounded-2xl flex items-center justify-center mb-6 transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg">
-                                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            {feature.icon}
-                                        </svg>
-                                    </div>
+                                    {/* Feature Image (if exists) */}
+                                    {feature.image && (
+                                        <div className="relative h-48 overflow-hidden bg-gradient-to-br from-emerald-50 to-green-50">
+                                            <img 
+                                                src={feature.image} 
+                                                alt={feature.title}
+                                                className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent"></div>
+                                        </div>
+                                    )}
                                     
-                                    {/* Content */}
-                                    <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-primary-600 transition-colors">
-                                        {feature.title}
-                                    </h3>
-                                    <p className="text-gray-600 leading-relaxed">
-                                        {feature.description}
-                                    </p>
+                                    <div className="p-8">
+                                        {/* Icon */}
+                                        <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-emerald-500 rounded-2xl flex items-center justify-center mb-6 transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg">
+                                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                {feature.icon}
+                                            </svg>
+                                        </div>
+                                        
+                                        {/* Content */}
+                                        <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-primary-600 transition-colors">
+                                            {feature.title}
+                                        </h3>
+                                        <p className="text-gray-600 leading-relaxed">
+                                            {feature.description}
+                                        </p>
 
-                                    {/* Hover Effect */}
-                                    <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-emerald-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                                        {/* Hover Effect */}
+                                        <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-emerald-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                                    </div>
                                 </div>
                             ))}
                         </div>
+                        </div>
                     </div>
 
-                    {/* Workflow Section */}
-                    <div id="workflow" className="bg-gradient-to-br from-gray-50 to-white py-32">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <div 
+                    {/* Workflow Section - Background Image */}
+                    <div id="workflow" className="relative py-32 overflow-hidden">
+                        {/* Background Image */}
+                        <div 
+                            className="absolute inset-0 bg-cover bg-center"
+                            style={{ backgroundImage: 'url(/AHR-horizontal.jpg)' }}
+                        ></div>
+                        {/* Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/85 via-emerald-800/80 to-emerald-900/85"></div>
+                        
+                        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div
                                 className="text-center mb-16"
                                 id="workflow-header"
                                 data-animate
@@ -450,14 +510,14 @@ export default function Welcome({
                                     transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
                                 }}
                             >
-                                <div className="inline-block bg-emerald-50 border border-emerald-200 rounded-full px-5 py-2 mb-6">
-                                    <span className="text-sm font-bold text-emerald-600">WORKFLOW AUDIT</span>
+                                <div className="inline-block bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-5 py-2 mb-6">
+                                    <span className="text-sm font-bold text-white drop-shadow">AUDIT WORKFLOW</span>
                                 </div>
-                                <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-6">
-                                    4 Tahapan Audit yang <span className="bg-gradient-to-r from-primary-600 to-emerald-600 bg-clip-text text-transparent">Terstruktur</span>
+                                <h2 className="text-4xl md:text-5xl font-black text-white mb-6 drop-shadow-xl">
+                                    4 <span className="text-emerald-400 drop-shadow-xl">Structured</span> Audit Stages
                                 </h2>
-                                <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                                    Sistem workflow yang mengikuti standar audit profesional: Perikatan → Perencanaan → Pelaksanaan → Pelaporan
+                                <p className="text-xl text-white/90 max-w-3xl mx-auto drop-shadow-lg">
+                                    Workflow system following professional audit standards: Engagement → Planning → Execution → Reporting
                                 </p>
                             </div>
 
@@ -484,10 +544,10 @@ export default function Welcome({
                             {/* Workflow Stats */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16">
                                 {[
-                                    { number: '1', label: 'Perikatan', desc: 'Penetapan KAP & Kontrak' },
-                                    { number: '2', label: 'Perencanaan', desc: 'Risk Assessment & Planning' },
-                                    { number: '3', label: 'Pelaksanaan', desc: 'Field Work & Testing' },
-                                    { number: '4', label: 'Pelaporan', desc: 'Audit Report & Delivery' }
+                                    { number: '1', label: 'Engagement', desc: 'KAP Assignment & Contract' },
+                                    { number: '2', label: 'Planning', desc: 'Risk Assessment & Planning' },
+                                    { number: '3', label: 'Execution', desc: 'Field Work & Testing' },
+                                    { number: '4', label: 'Reporting', desc: 'Audit Report & Delivery' }
                                 ].map((step, index) => (
                                     <div 
                                         key={index}
@@ -500,13 +560,13 @@ export default function Welcome({
                                             transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${index * 0.1 + 0.4}s`
                                         }}
                                     >
-                                        <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary-500 to-emerald-500 rounded-2xl flex items-center justify-center text-3xl font-black text-white shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                                        <div className="w-16 h-16 mx-auto mb-4 bg-white/95 backdrop-blur-sm rounded-2xl flex items-center justify-center text-3xl font-black text-emerald-600 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
                                             {step.number}
                                         </div>
-                                        <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-primary-600 transition-colors">
+                                        <h3 className="text-lg font-bold text-white mb-2 drop-shadow group-hover:text-emerald-400 transition-colors">
                                             {step.label}
                                         </h3>
-                                        <p className="text-sm text-gray-600">
+                                        <p className="text-sm text-white/80 drop-shadow">
                                             {step.desc}
                                         </p>
                                     </div>
@@ -515,8 +575,9 @@ export default function Welcome({
                         </div>
                     </div>
 
-                    {/* Testimonials Section */}
-                    <div id="testimonials" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
+                    {/* Testimonials Section - White Background */}
+                    <div id="testimonials" className="bg-white py-32">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="text-center mb-16"
                             id="testimonials-header"
                             data-animate
@@ -527,13 +588,13 @@ export default function Welcome({
                             }}
                         >
                             <div className="inline-block bg-amber-50 border border-amber-200 rounded-full px-5 py-2 mb-6">
-                                <span className="text-sm font-bold text-amber-600">TESTIMONI</span>
+                                <span className="text-sm font-bold text-amber-600">TESTIMONIALS</span>
                             </div>
                             <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-6">
-                                Dipercaya oleh <span className="bg-gradient-to-r from-primary-600 to-emerald-600 bg-clip-text text-transparent">500+ Klien</span>
+                                Trusted by <span className="bg-gradient-to-r from-primary-600 to-emerald-600 bg-clip-text text-transparent">500+ Clients</span>
                             </h2>
                             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                                Lihat apa kata mereka tentang pengalaman menggunakan AURA
+                                See what they say about their experience using AURA
                             </p>
                         </div>
 
@@ -586,16 +647,25 @@ export default function Welcome({
                                 ))}
                             </div>
                         </div>
+                        </div>
                     </div>
 
-                    {/* CTA Section */}
-                    <div className="bg-gradient-to-br from-primary-600 via-primary-500 to-emerald-600 py-24">
-                        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                            <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
-                                Siap Mengoptimalkan Proses Audit Anda?
+                    {/* CTA Section - Background Image */}
+                    <div className="relative py-24 overflow-hidden">
+                        {/* Background Image */}
+                        <div 
+                            className="absolute inset-0 bg-cover bg-center"
+                            style={{ backgroundImage: 'url(/AHR-horizontal.jpg)' }}
+                        ></div>
+                        {/* Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/90 via-emerald-800/85 to-emerald-900/90"></div>
+                        
+                        <div className="relative max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+                            <h2 className="text-4xl md:text-5xl font-black text-white mb-6 drop-shadow-xl">
+                                Ready to Optimize Your Audit Management?
                             </h2>
-                            <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto">
-                                Bergabunglah dengan 500+ klien yang telah mempercayai AURA untuk mengelola audit mereka
+                            <p className="text-xl text-white/90 mb-10 drop-shadow-lg">
+                                Join hundreds of audit professionals who trust AURA for their workflow
                             </p>
                             {!auth.user && (
                                 <Link
@@ -605,7 +675,7 @@ export default function Welcome({
                                     <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                     </svg>
-                                    Mulai Sekarang - Gratis!
+                                    Start Now - Free!
                                 </Link>
                             )}
                         </div>
@@ -639,7 +709,7 @@ export default function Welcome({
                                     </div>
                                 </Link>
                                 <p className="text-gray-400 leading-relaxed mb-6 max-w-md">
-                                    Platform audit digital profesional yang mengintegrasikan keahlian dengan teknologi modern untuk layanan audit yang lebih efisien dan akurat.
+                                    Professional digital audit platform that integrates expertise with modern technology for more efficient and accurate audit services.
                                 </p>
                                 <div className="flex space-x-4">
                                     {[
@@ -663,7 +733,7 @@ export default function Welcome({
                             
                             {/* Contact Column */}
                             <div>
-                                <h4 className="font-bold text-lg mb-6 text-white">Kontak</h4>
+                                <h4 className="font-bold text-lg mb-6 text-white">Contact</h4>
                                 <div className="space-y-4">
                                     <a href="mailto:abdulhamidkap@gmail.com" className="flex items-start space-x-3 text-gray-400 hover:text-primary-400 transition-colors group">
                                         <svg className="w-5 h-5 mt-0.5 flex-shrink-0 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -694,11 +764,11 @@ export default function Welcome({
                                 <h4 className="font-bold text-lg mb-6 text-white">Quick Links</h4>
                                 <ul className="space-y-3">
                                     {[
-                                        { label: 'Tentang Kami', href: '#about' },
-                                        { label: 'Fitur', href: '#features' },
+                                        { label: 'About Us', href: '#about' },
+                                        { label: 'Features', href: '#features' },
                                         { label: 'Workflow', href: '#workflow' },
-                                        { label: 'Testimoni', href: '#testimonials' },
-                                        { label: 'Kontak', href: '#contact' }
+                                        { label: 'Testimonials', href: '#testimonials' },
+                                        { label: 'Contact', href: '#contact' }
                                     ].map((link, index) => (
                                         <li key={index}>
                                             <a href={link.href} className="flex items-center space-x-2 text-gray-400 hover:text-primary-400 transition-colors group text-sm">

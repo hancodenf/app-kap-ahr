@@ -1,6 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 import { PageProps } from '@/types';
+import NewsCard from '@/Components/NewsCard';
 
 interface ProjectStats {
 	total: number;
@@ -49,6 +50,18 @@ interface UpcomingDeadline {
 	status: string;
 }
 
+interface NewsItem {
+	id: number;
+	title: string;
+	slug: string;
+	excerpt: string;
+	featured_image?: string | null;
+	published_at: string;
+	creator: {
+		name: string;
+	};
+}
+
 interface CompanyDashboardProps extends PageProps {
 	user: {
 		id: number;
@@ -70,6 +83,7 @@ interface CompanyDashboardProps extends PageProps {
 	myActiveTasks: ActiveTask[];
 	taskTrend: TaskTrendItem[];
 	upcomingDeadlines: UpcomingDeadline[];
+	latestNews: NewsItem[];
 }
 
 export default function CompanyDashboard({
@@ -79,6 +93,7 @@ export default function CompanyDashboard({
 	myActiveTasks,
 	taskTrend,
 	upcomingDeadlines,
+	latestNews,
 }: CompanyDashboardProps) {
 	const formatDate = (dateString: string) => {
 		return new Date(dateString).toLocaleDateString('id-ID', {
@@ -167,24 +182,29 @@ export default function CompanyDashboard({
             <div className="py-6">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
                     {/* Welcome Section */}
-                    <div className="overflow-hidden bg-gradient-to-r from-primary-600 to-primary-700 shadow-xl rounded-xl">
-						<div className="p-6 text-white">
+                    <div className="overflow-hidden shadow-xl rounded-xl relative">
+                        <div 
+                            className="absolute inset-0 bg-cover bg-center"
+                            style={{ backgroundImage: 'url(/AHR-horizontal.jpg)' }}
+                        ></div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-black/10 to-black/20"></div>
+						<div className="relative p-6 text-white">
 							<div className="flex items-center justify-between">
 								<div>
-									<h3 className="text-2xl font-bold mb-2">Welcome back, {user.name}! 👋</h3>
-									<p className="text-primary-100 text-sm">{user.position} • {user.role.description}</p>
+									<h3 className="text-2xl font-bold mb-2 drop-shadow-lg">Welcome back, {user.name}! 👋</h3>
+									<p className="text-white/90 text-sm drop-shadow">{user.position} • {user.role.description}</p>
 								</div>
 								<div className="hidden md:flex gap-4">
-									<div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+									<div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 shadow-xl">
 										<div className="text-center">
-											<p className="text-3xl font-bold">{statistics.projects.active}</p>
-											<p className="text-xs text-primary-100 mt-1">Active Projects</p>
+											<p className="text-3xl font-bold drop-shadow-lg">{statistics.projects.active}</p>
+											<p className="text-xs text-white/80 mt-1">Active Projects</p>
 										</div>
 									</div>
-									<div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+									<div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 shadow-xl">
 										<div className="text-center">
-											<p className="text-3xl font-bold">{statistics.tasks.pending + statistics.tasks.in_progress}</p>
-											<p className="text-xs text-primary-100 mt-1">Pending Tasks</p>
+											<p className="text-3xl font-bold drop-shadow-lg">{statistics.tasks.pending + statistics.tasks.in_progress}</p>
+											<p className="text-xs text-white/80 mt-1">Pending Tasks</p>
 										</div>
 									</div>
 								</div>
@@ -420,7 +440,28 @@ export default function CompanyDashboard({
                             </Link>
                         </div>
                     </div>
+					
+					{/* Latest News Section */}
+					{latestNews && latestNews.length > 0 && (
+						<div className="mt-8">
+							<div className="flex items-center justify-between mb-6">
+								<h2 className="text-2xl font-bold text-gray-900">Latest News</h2>
+								<Link href={route('news.index')} className="flex items-center text-primary-600 hover:text-primary-700 transition-colors">
+									<span className="text-sm font-medium">View All</span>
+									<svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+									</svg>
+								</Link>
+							</div>
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+								{latestNews.map((news) => (
+									<NewsCard key={news.id} {...news} />
+								))}
+							</div>
+						</div>
+					)}
                 </div>
+
             </div>
         </AuthenticatedLayout>
     );

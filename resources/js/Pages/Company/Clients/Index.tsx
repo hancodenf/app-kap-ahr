@@ -91,7 +91,7 @@ export default function Index({ clients, filters }: Props) {
                             <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2">
                                 <input
                                     type="text"
-                                    placeholder="Cari nama klien, alamat, atau kementrian..."
+                                    placeholder="Search client name, address, or ministry..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -102,7 +102,7 @@ export default function Index({ clients, filters }: Props) {
                                         onClick={handleSearch}
                                         className="flex-1 sm:flex-none bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md transition-colors text-sm font-medium"
                                     >
-                                        Cari
+                                        Search
                                     </button>
                                     {filters.search && (
                                         <button
@@ -124,19 +124,19 @@ export default function Index({ clients, filters }: Props) {
                                                 No
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Nama Klien
+                                                Client Name
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Kementrian
+                                                Ministry
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Kode Satker
+                                                Satker Code
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Projects
                                             </th>
                                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Aksi
+                                                Actions
                                             </th>
                                         </tr>
                                     </thead>
@@ -205,12 +205,17 @@ export default function Index({ clients, filters }: Props) {
 
                                         <div className="grid grid-cols-2 gap-2 mb-3">
                                             <div className="bg-gray-50 rounded-lg p-2">
-                                                <div className="text-[10px] text-gray-500 mb-0.5">Kementrian</div>
+                                                <div className="text-[10px] text-gray-500 mb-0.5">Ministry</div>
                                                 <div className="text-sm font-medium text-gray-900 truncate">{client.kementrian}</div>
                                             </div>
 
                                             <div className="bg-gray-50 rounded-lg p-2">
-                                                {client.kode_satker}
+                                                <div className="text-[10px] text-gray-500 mb-0.5">Satker Code</div>
+                                                <div className="text-sm">
+                                                    <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                        {client.kode_satker}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -247,10 +252,10 @@ export default function Index({ clients, filters }: Props) {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                     </svg>
                                     <h3 className="mt-2 text-sm font-medium text-gray-900">
-                                        {filters.search ? 'Tidak ada klien yang ditemukan' : 'Belum ada klien'}
+                                        {filters.search ? 'No clients found' : 'No clients yet'}
                                     </h3>
                                     <p className="mt-1 text-sm text-gray-500">
-                                        {filters.search ? 'Coba ubah kata kunci pencarian Anda.' : 'Klien dari project yang Anda tangani akan muncul di sini.'}
+                                        {filters.search ? 'Try changing your search keywords.' : 'Clients from projects you handle will appear here.'}
                                     </p>
                                 </div>
                             )}

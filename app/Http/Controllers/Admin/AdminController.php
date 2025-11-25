@@ -17,6 +17,7 @@ use App\Models\Task;
 use App\Models\Document;
 use App\Models\ActivityLog;
 use App\Models\RegisteredAp;
+use App\Models\News;
 use Carbon\Carbon;
 
 class AdminController extends Controller
@@ -219,6 +220,129 @@ class AdminController extends Controller
                 ];
             });
 
+        // =============================================
+        // 11. ADVANCED ANALYTICS
+        // =============================================
+        
+        // Projects by Year (untuk chart)
+        $projectsByYear = Project::select('year', DB::raw('count(*) as count'))
+            ->groupBy('year')
+            ->orderBy('year', 'desc')
+            ->get()
+            ->map(function($item) {
+                return [
+                    'year' => $item->year,
+                    'count' => $item->count,
+                ];
+            });
+
+        // Top Team Members by Project Count (user yang paling banyak handle projects)
+        $topTeamMembers = ProjectTeam::select('user_id', 'user_name', 'user_position', DB::raw('count(DISTINCT project_id) as project_count'))
+            ->whereNotNull('user_id')
+            ->groupBy('user_id', 'user_name', 'user_position')
+            ->orderByDesc('project_count')
+            ->take(10)
+            ->get()
+            ->map(function($member) {
+                return [
+                    'user_id' => $member->user_id,
+                    'user_name' => $member->user_name,
+                    'user_position' => $member->user_position ?? 'N/A',
+                    'project_count' => $member->project_count,
+                ];
+            });
+
+        // Team Role Distribution in Projects
+        $teamRoleDistribution = ProjectTeam::select('role', DB::raw('count(*) as count'))
+            ->groupBy('role')
+            ->orderByDesc('count')
+            ->get()
+            ->map(function($item) {
+                return [
+                    'role' => ucfirst(str_replace('_', ' ', $item->role)),
+                    'count' => $item->count,
+                ];
+            });
+
+        // Projects by Client (top 10 clients with most projects)
+        $projectsByClient = Project::select('client_name', DB::raw('count(*) as project_count'))
+            ->groupBy('client_name')
+            ->orderByDesc('project_count')
+            ->take(10)
+            ->get()
+            ->map(function($item) {
+                return [
+                    'client_name' => $item->client_name,
+                    'project_count' => $item->project_count,
+                ];
+            });
+
+        // Project Status by Year
+        $projectStatusByYear = Project::select('year', 'status', DB::raw('count(*) as count'))
+            ->groupBy('year', 'status')
+            ->orderBy('year', 'desc')
+            ->get()
+            ->groupBy('year')
+            ->map(function($yearProjects, $year) {
+                return [
+                    'year' => $year,
+                    'open' => $yearProjects->where('status', 'open')->sum('count'),
+                    'closed' => $yearProjects->where('status', 'closed')->sum('count'),
+                ];
+            })
+            ->values();
+
+        // Monthly Project Creation Trend (last 12 months)
+        $projectCreationTrend = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $month = Carbon::now()->subMonths($i);
+            $projectCreationTrend[] = [
+                'month' => $month->format('M Y'),
+                'count' => Project::whereYear('created_at', $month->year)
+                    ->whereMonth('created_at', $month->month)
+                    ->count()
+            ];
+        }
+
+        // Task completion by working step (to see which steps have most completed tasks)
+        $taskCompletionByStep = Task::select('working_step_name', 
+                DB::raw('count(*) as total_tasks'),
+                DB::raw('SUM(CASE WHEN completion_status = "completed" THEN 1 ELSE 0 END) as completed_tasks')
+            )
+            ->whereNotNull('working_step_name')
+            ->groupBy('working_step_name')
+            ->orderByDesc('total_tasks')
+            ->take(10)
+            ->get()
+            ->map(function($item) {
+                return [
+                    'step_name' => $item->working_step_name,
+                    'total_tasks' => $item->total_tasks,
+                    'completed_tasks' => $item->completed_tasks,
+                    'completion_rate' => $item->total_tasks > 0 ? round(($item->completed_tasks / $item->total_tasks) * 100, 1) : 0,
+                ];
+            });
+
+        // =============================================
+        // LATEST NEWS
+        // =============================================
+        $latestNews = News::published()
+            ->with('creator')
+            ->orderBy('published_at', 'desc')
+            ->take(3)
+            ->get()
+            ->map(function ($news) {
+                return [
+                    'id' => $news->id,
+                    'title' => $news->title,
+                    'slug' => $news->slug,
+                    'excerpt' => $news->excerpt,
+                    'featured_image' => $news->featured_image,
+                    'published_at' => $news->published_at,
+                    'creator' => ['name' => $news->creator->name],
+                ];
+            });
+
         return Inertia::render('Admin/Dashboard', [
             'user' => [
                 'id' => Auth::user()->id,
@@ -280,6 +404,17 @@ class AdminController extends Controller
             'recentUsers' => $recentUsers,
             'topActiveUsers' => $topActiveUsers,
             'topActiveProjects' => $topActiveProjects,
+            'latestNews' => $latestNews,
+            // Advanced Analytics
+            'analytics' => [
+                'projectsByYear' => $projectsByYear,
+                'topTeamMembers' => $topTeamMembers,
+                'teamRoleDistribution' => $teamRoleDistribution,
+                'projectsByClient' => $projectsByClient,
+                'projectStatusByYear' => $projectStatusByYear,
+                'projectCreationTrend' => $projectCreationTrend,
+                'taskCompletionByStep' => $taskCompletionByStep,
+            ],
         ]);
     }
 }

@@ -20,6 +20,8 @@ class Client extends Model
         'name',
         'slug',
         'alamat',
+        'type',
+        'logo',
         'kementrian',
         'kode_satker',
     ];

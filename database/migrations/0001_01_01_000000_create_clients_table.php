@@ -16,8 +16,17 @@ return new class extends Migration
             $table->string('slug')->unique();
             $table->string('name');
             $table->string('alamat');
-            $table->string('kementrian');
+            $table->enum('kementrian', [
+                'Kementerian Kesehatan',
+                'Kementerian Perhubungan',
+                'Kementerian Agama',
+                'Kementerian Pendidikan',
+                'Kementerian Pertanian',
+                'Kementerian Keuangan'
+            ]);
             $table->string('kode_satker');
+            $table->enum('type', ['BLU', 'BLUD', 'PTNBH']);
+            $table->string('logo')->nullable();
             $table->timestamps();
         });
     }

@@ -44,4 +44,71 @@ class RegisteredAp extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Get the status badge color
+     */
+    public function getStatusColorAttribute(): string
+    {
+        return match($this->status) {
+            'active' => 'green',
+            'inactive' => 'gray',
+            'expired' => 'red',
+            default => 'gray',
+        };
+    }
+
+    /**
+     * Get formatted registration date
+     */
+    public function getFormattedRegistrationDateAttribute(): string
+    {
+        return $this->registration_date?->format('d M Y') ?? '-';
+    }
+
+    /**
+     * Get formatted expiry date
+     */
+    public function getFormattedExpiryDateAttribute(): string
+    {
+        return $this->expiry_date?->format('d M Y') ?? '-';
+    }
+
+    /**
+     * Check if AP is expired
+     */
+    public function isExpired(): bool
+    {
+        return $this->expiry_date && $this->expiry_date->isPast();
+    }
+
+    /**
+     * Scope for active APs
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
+    /**
+     * Scope for expired APs
+     */
+    public function scopeExpired($query)
+    {
+        return $query->where('status', 'expired');
+    }
+
+    /**
+     * Scope for search
+     */
+    public function scopeSearch($query, $search)
+    {
+        return $query->when($search, function ($query, $search) {
+            $query->where('ap_number', 'like', "%{$search}%")
+                ->orWhereHas('user', function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+                });
+        });
+    }
 }

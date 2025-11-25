@@ -2,7 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import ConfirmDialog from '@/Components/ConfirmDialog';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import SearchableSelect from '@/Components/SearchableSelect';
 import axios from 'axios';
 import {
@@ -67,6 +67,7 @@ interface TaskWorker {
 interface ProjectBundle {
     id: number;
     name: string;
+    year: number;
     status: 'open' | 'closed';
     client_id: number | null;
     client_name: string | null;
@@ -106,6 +107,7 @@ interface Client {
     alamat: string;
     kementrian: string;
     kode_satker: string;
+    used_years?: number[];
 }
 
 interface Props extends PageProps {
@@ -420,8 +422,25 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     const { data: editTemplateData, setData: setEditTemplateData, put: putTemplate, processing: editTemplateProcessing, errors: editTemplateErrors, reset: resetEditTemplate } = useForm({
         name: '',
         client_id: 0,
+        year: new Date().getFullYear(),
         status: 'closed' as 'open' | 'closed',
     });
+
+    // Get year options with disabled status for used years
+    const yearOptions = useMemo(() => {
+        const currentYear = new Date().getFullYear();
+        const selectedClient = clients.find(c => c.id === editTemplateData.client_id);
+        const usedYears = (selectedClient?.used_years || []).map(y => Number(y)); // Convert to numbers
+        
+        return Array.from({ length: currentYear - 1999 }, (_, i) => {
+            const year = currentYear - i;
+            return {
+                value: year,
+                label: year.toString(),
+                isDisabled: usedYears.includes(year)
+            };
+        });
+    }, [editTemplateData.client_id, clients]);
 
     const { data: editTaskData, setData: setEditTaskData, put: putTask, reset: resetEditTask } = useForm({
         name: '',
@@ -546,6 +565,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         setEditTemplateData({
             name: bundle.name,
             client_id: bundle.client_id || 0,
+            year: bundle.year || new Date().getFullYear(),
             status: bundle.status || 'closed',
         });
         setShowEditTemplateModal(true);
@@ -1405,6 +1425,21 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                             </div>
 
                             <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Project Year
+                                </label>
+                                <SearchableSelect
+                                    options={yearOptions}
+                                    value={editTemplateData.year}
+                                    onChange={(value) => setEditTemplateData('year', value as number)}
+                                    placeholder="Select project year..."
+                                />
+                                {editTemplateErrors.year && (
+                                    <p className="mt-1 text-sm text-red-600">{editTemplateErrors.year}</p>
+                                )}
+                            </div>
+
+                            <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-3">
                                     Project Status
                                 </label>
@@ -1722,20 +1757,16 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         <label htmlFor="user_id" className="block text-sm font-medium text-gray-700 mb-2">
                                             Select User
                                         </label>
-                                        <select
-                                            id="user_id"
+                                        <SearchableSelect
+                                            options={availableUsers.map((user) => ({
+                                                value: user.id,
+                                                label: user.name,
+                                                subtitle: user.email,
+                                            }))}
                                             value={teamMemberData.user_id}
-                                            onChange={(e) => setTeamMemberData('user_id', parseInt(e.target.value))}
-                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                            required
-                                        >
-                                            <option value={0}>Select a user...</option>
-                                            {availableUsers.map((user) => (
-                                                <option key={user.id} value={user.id}>
-                                                    {user.name} ({user.email})
-                                                </option>
-                                            ))}
-                                        </select>
+                                            onChange={(value) => setTeamMemberData('user_id', value as number)}
+                                            placeholder="Search and select user..."
+                                        />
                                     </div>
 
                                     <div>

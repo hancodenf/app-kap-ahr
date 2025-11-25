@@ -1,7 +1,8 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import Toast from '@/Components/Toast';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 import { PropsWithChildren, ReactNode, useState, useEffect } from 'react';
+import axios from 'axios';
 
 export default function Authenticated({
     header,
@@ -19,11 +20,76 @@ export default function Authenticated({
         }
         return false;
     });
+    
+    // Security unlock state
+    const [securityUnlocked, setSecurityUnlocked] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('security_unlocked') === 'true';
+        }
+        return false;
+    });
+    const [showUnlockModal, setShowUnlockModal] = useState(false);
+    const [unlockKey, setUnlockKey] = useState('');
+    const [unlockError, setUnlockError] = useState('');
 
     // Save state to localStorage whenever it changes
     useEffect(() => {
         localStorage.setItem('sidebarCollapsed', String(sidebarCollapsed));
     }, [sidebarCollapsed]);
+
+    // Keyboard shortcut Ctrl+K for unlock/lock toggle
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k' && user.role === 'admin') {
+                e.preventDefault();
+                
+                // If already unlocked, lock it with confirmation
+                if (securityUnlocked) {
+                    if (confirm('Lock security monitoring access? You will need to enter the key again to unlock.')) {
+                        handleLock();
+                    }
+                } else {
+                    // Show unlock modal
+                    setShowUnlockModal(true);
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [user.role, securityUnlocked]);
+
+    // Handle lock
+    const handleLock = () => {
+        // Clear local state
+        setSecurityUnlocked(false);
+        localStorage.removeItem('security_unlocked');
+        
+        // Redirect to lock endpoint which will clear session and redirect back
+        window.location.href = route('admin.security.lock');
+    };
+
+    // Handle unlock
+    const handleUnlock = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setUnlockError('');
+
+        try {
+            const response = await axios.post(route('admin.security.unlock'), {
+                key: unlockKey
+            });
+
+            if (response.data.success) {
+                setSecurityUnlocked(true);
+                localStorage.setItem('security_unlocked', 'true');
+                setShowUnlockModal(false);
+                setUnlockKey('');
+                router.reload();
+            }
+        } catch (error: any) {
+            setUnlockError(error.response?.data?.message || 'Invalid key');
+        }
+    };
 
     const getDashboardRoute = () => {
         const role = user.role;
@@ -87,6 +153,26 @@ export default function Authenticated({
                 active: route().current('admin.users.*'),
             },
             {
+                name: 'Registered AP',
+                href: route('admin.registered-aps.index'),
+                icon: (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                ),
+                active: route().current('admin.registered-aps.*'),
+            },
+            ...(securityUnlocked ? [{
+                name: 'Login Security',
+                href: route('admin.login-security.index'),
+                icon: (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                ),
+                active: route().current('admin.login-security.*'),
+            }] : []),
+            {
                 name: 'Clients',
                 href: route('admin.clients.index'),
                 icon: (
@@ -95,6 +181,16 @@ export default function Authenticated({
                     </svg>
                 ),
                 active: route().current('admin.clients.*'),
+            },
+            {
+                name: 'News',
+                href: route('admin.news.index'),
+                icon: (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                    </svg>
+                ),
+                active: route().current('admin.news.*'),
             }
         ] : []),
         ...(user.role === 'company' ? [
@@ -154,7 +250,7 @@ export default function Authenticated({
                 <Link href="/" className="flex items-center space-x-3 ml-2 lg:ml-0">
                     <ApplicationLogo className="h-8 w-8" />
                     <div className="flex flex-col">
-                        <span className="text-lg font-bold text-primary-600">AURA</span>
+                        <span className="text-lg font-bold text-primary-600"><strong>AURA</strong></span>
                         <span className="text-xs text-gray-500">Audit, Reporting & Analyze</span>
                     </div>
                 </Link>
@@ -235,11 +331,18 @@ export default function Authenticated({
                 {/* Sidebar */}
                 <div className={`fixed left-0 z-50 flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
                     } lg:translate-x-0 ${sidebarCollapsed ? 'w-16' : 'w-64'
-                    } bg-white border-r border-gray-200`}
-                    style={{ top: '64px', bottom: 0 }}
+                    } bg-cover bg-center bg-no-repeat shadow-xl`}
+                    style={{ 
+                        top: '64px', 
+                        bottom: 0,
+                        backgroundImage: 'url(/AHR.jpg)'
+                    }}
                 >
+                    {/* Overlay for better text readability */}
+                    <div className="absolute inset-0"></div>
+                    
                     {/* Navigation */}
-                    <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">{menuItems.map((item, index) => (
+                    <nav className="relative z-10 flex-1 px-4 py-4 space-y-2 overflow-y-auto">{menuItems.map((item, index) => (
                         <div 
                             key={item.name} 
                             className="relative group"
@@ -258,9 +361,9 @@ export default function Authenticated({
                         >
                             <Link
                                 href={item.href}
-                                className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${item.active
-                                        ? 'bg-primary-100 text-primary-700 border-r-2 border-primary-600'
-                                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                className={`flex items-center px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${item.active
+                                        ? 'bg-white/95 text-gray-900 shadow-lg scale-[1.02]'
+                                        : 'text-white/90 hover:bg-white/20 hover:text-white backdrop-blur-sm'
                                     } ${sidebarCollapsed ? 'justify-center' : ''}`}
                             >
                                 <span className={`${sidebarCollapsed ? '' : 'mr-3'}`}>
@@ -271,9 +374,9 @@ export default function Authenticated({
 
                             {/* Tooltip when sidebar is collapsed */}
                             {sidebarCollapsed && (
-                                <div className="tooltip-content fixed px-3 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-[9999] shadow-xl pointer-events-none">
+                                <div className="tooltip-content fixed px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-[9999] shadow-xl pointer-events-none">
                                     {item.name}
-                                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-gray-800"></div>
+                                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-gray-900"></div>
                                 </div>
                             )}
                         </div>
@@ -281,12 +384,12 @@ export default function Authenticated({
                 </nav>
 
                 {/* User menu at bottom of sidebar */}
-                <div className="border-t border-gray-200 p-4">
+                <div className="relative z-10 border-t border-white/20 p-4 backdrop-blur-sm">
                     {!sidebarCollapsed ? (
                         <div className="space-y-1">
                             <Link
                                 href={route('profile.edit')}
-                                className="flex items-center px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100"
+                                className="flex items-center px-3 py-2.5 text-sm font-medium text-white/90 rounded-lg hover:bg-white/20 hover:text-white transition-all backdrop-blur-sm"
                             >
                                 <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -297,7 +400,7 @@ export default function Authenticated({
                                 href={route('logout')}
                                 method="post"
                                 as="button"
-                                className="flex items-center w-full px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100"
+                                className="flex items-center w-full px-3 py-2.5 text-sm font-medium text-white/90 rounded-lg hover:bg-white/20 hover:text-white transition-all backdrop-blur-sm"
                             >
                                 <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -310,15 +413,15 @@ export default function Authenticated({
                             <div className="relative group">
                                 <Link
                                     href={route('profile.edit')}
-                                    className="flex items-center justify-center px-1 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100"
+                                    className="flex items-center justify-center px-1 py-2 text-sm text-white/90 rounded-lg hover:bg-white/20 hover:text-white transition-all backdrop-blur-sm"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                     </svg>
                                 </Link>
-                                <div className="absolute left-full ml-3 bottom-0 px-3 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-[9999] shadow-xl">
+                                <div className="absolute left-full ml-3 bottom-0 px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-[9999] shadow-xl">
                                     Profile
-                                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-gray-800"></div>
+                                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-gray-900"></div>
                                 </div>
                             </div>
                             <div className="relative group">
@@ -326,15 +429,15 @@ export default function Authenticated({
                                     href={route('logout')}
                                     method="post"
                                     as="button"
-                                    className="flex items-center justify-center w-full px-1 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100"
+                                    className="flex items-center justify-center w-full px-1 py-2 text-sm text-white/90 rounded-lg hover:bg-white/20 hover:text-white transition-all backdrop-blur-sm"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                                     </svg>
                                 </Link>
-                                <div className="absolute left-full ml-3 bottom-0 px-3 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-[9999] shadow-xl">
+                                <div className="absolute left-full ml-3 bottom-0 px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-[9999] shadow-xl">
                                     Logout
-                                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-gray-800"></div>
+                                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-gray-900"></div>
                                 </div>
                             </div>
                         </div>
@@ -370,6 +473,73 @@ export default function Authenticated({
                     {children}
                 </main>
             </div>
+
+            {/* Security Unlock Modal */}
+            {showUnlockModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-xl p-6 w-96 max-w-md">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900">Security Access</h3>
+                            <button
+                                onClick={() => {
+                                    setShowUnlockModal(false);
+                                    setUnlockKey('');
+                                    setUnlockError('');
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <form onSubmit={handleUnlock}>
+                            <div className="mb-4">
+                                <label htmlFor="unlockKey" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Enter Security Key
+                                </label>
+                                <input
+                                    id="unlockKey"
+                                    type="password"
+                                    value={unlockKey}
+                                    onChange={(e) => setUnlockKey(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Enter key..."
+                                    autoFocus
+                                />
+                                {unlockError && (
+                                    <p className="mt-2 text-sm text-red-600">{unlockError}</p>
+                                )}
+                            </div>
+                            
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowUnlockModal(false);
+                                        setUnlockKey('');
+                                        setUnlockError('');
+                                    }}
+                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                >
+                                    Unlock
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <p className="mt-4 text-xs text-gray-500 text-center">
+                            Press <kbd className="px-2 py-1 bg-gray-100 border border-gray-300 rounded">Ctrl</kbd> + <kbd className="px-2 py-1 bg-gray-100 border border-gray-300 rounded">K</kbd> to open this dialog
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
         </div>
     );

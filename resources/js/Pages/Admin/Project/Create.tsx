@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { PageProps } from '@/types';
-import { FormEventHandler } from 'react';
+import { FormEventHandler, useMemo, useEffect } from 'react';
 import SearchableSelect from '@/Components/SearchableSelect';
 
 interface Client {
@@ -10,6 +10,7 @@ interface Client {
     alamat: string;
     kementrian: string;
     kode_satker: string;
+    used_years?: number[];
     user?: {
         id: number;
         name: string;
@@ -41,12 +42,47 @@ interface TeamMemberRow {
 }
 
 export default function Create({ auth, clients, availableUsers, templates }: Props) {
+    const currentYear = new Date().getFullYear();
+    
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         client_id: 0,
+        year: currentYear,
         team_members: [] as TeamMemberRow[],
         template_id: 0,
     });
+
+    // Get year options with disabled status for used years
+    const yearOptions = useMemo(() => {
+        const selectedClient = clients.find(c => c.id === data.client_id);
+        const usedYears = (selectedClient?.used_years || []).map(y => Number(y)); // Convert to numbers
+        
+        return Array.from({ length: currentYear - 1999 }, (_, i) => {
+            const year = currentYear - i;
+            const isDisabled = usedYears.includes(year);
+            return {
+                value: year,
+                label: year.toString(),
+                isDisabled: isDisabled
+            };
+        });
+    }, [data.client_id, clients, currentYear]);
+
+    // Reset year if it becomes disabled when client changes
+    useEffect(() => {
+        const selectedClient = clients.find(c => c.id === data.client_id);
+        const usedYears = (selectedClient?.used_years || []).map(y => Number(y)); // Convert to numbers
+        
+        if (usedYears.includes(data.year)) {
+            // Find first available year
+            const availableYear = Array.from({ length: currentYear - 1999 }, (_, i) => currentYear - i)
+                .find(year => !usedYears.includes(year));
+            
+            if (availableYear) {
+                setData('year', availableYear);
+            }
+        }
+    }, [data.client_id]);
 
     const addTeamMember = () => {
         setData('team_members', [
@@ -92,7 +128,7 @@ export default function Create({ auth, clients, availableUsers, templates }: Pro
                             <div className="mb-6">
                                 <h3 className="text-lg font-medium text-gray-900 mb-2">New Project</h3>
                                 <p className="text-sm text-gray-600">
-                                    Buat project baru
+                                    Create a new project
                                 </p>
                             </div>
 
@@ -132,6 +168,21 @@ export default function Create({ auth, clients, availableUsers, templates }: Pro
                                     />
                                     {errors.client_id && (
                                         <p className="mt-1 text-sm text-red-600">{errors.client_id}</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Project Year <span className="text-red-500">*</span>
+                                    </label>
+                                    <SearchableSelect
+                                        options={yearOptions}
+                                        value={data.year}
+                                        onChange={(value) => setData('year', value as number)}
+                                        placeholder="Select project year..."
+                                    />
+                                    {errors.year && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.year}</p>
                                     )}
                                 </div>
 

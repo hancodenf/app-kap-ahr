@@ -10,6 +10,8 @@ interface Client {
 	alamat: string;
 	kementrian: string;
 	kode_satker: string;
+	type: string;
+	logo: string | null;
 	created_at: string;
 	client_users_count?: number;
 	projects_count?: number;
@@ -64,14 +66,14 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 			// Show relation dialog instead of delete dialog
 			const messages = [];
 			if ((client.client_users_count || 0) > 0) {
-				messages.push(`${client.client_users_count} akun user`);
+				messages.push(`${client.client_users_count} user account(s)`);
 			}
 			if ((client.projects_count || 0) > 0) {
-				messages.push(`${client.projects_count} project`);
+				messages.push(`${client.projects_count} project(s)`);
 			}
 			
 			setClientToDelete(client);
-			setRelationMessage(`Client "${client.name}" tidak dapat dihapus karena masih memiliki ${messages.join(' dan ')} yang terkait.\n\nSilakan hapus atau pindahkan data terkait terlebih dahulu.`);
+			setRelationMessage(`Client "${client.name}" cannot be deleted because it still has related ${messages.join(' and ')}.\n\nPlease delete or move the related data first.`);
 			setShowRelationDialog(true);
 			return;
 		}
@@ -137,7 +139,7 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 							<div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2">
 								<input
 									type="text"
-									placeholder="Cari nama, alamat, kementrian, atau kode satker..."
+									placeholder="Search name, address, ministry, or satker code..."
 									value={search}
 									onChange={(e) => setSearch(e.target.value)}
 									onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -148,7 +150,7 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 										onClick={handleSearch}
 										className="flex-1 sm:flex-none bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md transition-colors text-sm font-medium"
 									>
-										Cari
+										Search
 									</button>
 									{filters.search && (
 										<button
@@ -166,28 +168,34 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 								<table className="min-w-full divide-y divide-gray-200">
 									<thead className="bg-gray-50">
 										<tr>
-											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											<th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												No
 											</th>
-											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											<th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+												Logo
+											</th>
+											<th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Client
 											</th>
-											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											<th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Kementrian
 											</th>
-											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											<th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+												Type
+											</th>
+											<th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Kode Satker
 											</th>
-											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-												Jumlah Akun
+											<th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+												Accounts
 											</th>
-											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											<th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Projects
 											</th>
-											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-												Bergabung
+											<th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+												Joined
 											</th>
-											<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+											<th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Actions
 											</th>
 										</tr>
@@ -195,28 +203,48 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 									<tbody className="bg-white divide-y divide-gray-200">
 										{clients.data.map((client, index) => (
 											<tr key={client.id} className="hover:bg-gray-50 transition-colors">
-												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+												<td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
 													{(clients.current_page - 1) * clients.per_page + index + 1}
 												</td>
-												<td className="px-6 py-4">
+												<td className="px-3 py-2 whitespace-nowrap">
+													{client.logo ? (
+														<img 
+															src={`/storage/${client.logo}`} 
+															alt={`${client.name} logo`}
+															className="w-10 h-10 object-contain rounded border border-gray-200 p-0.5 bg-white"
+														/>
+													) : (
+														<div className="w-10 h-10 bg-gray-100 rounded border border-gray-200 flex items-center justify-center">
+															<svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+															</svg>
+														</div>
+													)}
+												</td>
+												<td className="px-3 py-2">
 													<div>
 														<div className="text-sm font-medium text-gray-900">
 															{client.name}
 														</div>
-														<div className="text-xs text-gray-400 mt-1">
+														<div className="text-xs text-gray-400 mt-0.5">
 															{client.alamat}
 														</div>
 													</div>
 												</td>
-												<td className="px-6 py-4 whitespace-nowrap">
+												<td className="px-3 py-2 whitespace-nowrap">
 													<div className="text-sm text-gray-900">{client.kementrian}</div>
 												</td>
-												<td className="px-6 py-4 whitespace-nowrap">
-													<span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+												<td className="px-3 py-2 whitespace-nowrap">
+													<span className="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">
+														{client.type}
+													</span>
+												</td>
+												<td className="px-3 py-2 whitespace-nowrap">
+													<span className="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
 														{client.kode_satker}
 													</span>
 												</td>
-												<td className="px-6 py-4 whitespace-nowrap">
+												<td className="px-3 py-2 whitespace-nowrap">
 													<div className="flex items-center gap-1 text-sm text-gray-600">
 														<svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 															<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -224,7 +252,7 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 														<span className="font-medium">{client.client_users_count || 0}</span> 
 													</div>
 												</td>
-												<td className="px-6 py-4 whitespace-nowrap">
+												<td className="px-3 py-2 whitespace-nowrap">
 													<div className="flex items-center gap-1 text-sm text-gray-600">
 														<svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 															<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -232,14 +260,14 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 														<span className="font-medium">{client.projects_count || 0}</span> 
 													</div> 
 												</td>
-												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+												<td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
 													{formatDate(client.created_at)}
 												</td>
-												<td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-													<div className="flex justify-end gap-2">
+												<td className="px-3 py-2 whitespace-nowrap text-right text-sm font-medium">
+													<div className="flex justify-end gap-1">
 														<Link
 															href={route('admin.clients.show', client.id)}
-															className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
+															className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors"
 															title="View Details"
 														>
 															<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -249,7 +277,7 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 														</Link>
 														<Link
 															href={route('admin.clients.edit', client.id)}
-															className="inline-flex items-center px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded-md hover:bg-yellow-100 transition-colors"
+															className="inline-flex items-center px-2 py-1 bg-yellow-50 text-yellow-700 rounded hover:bg-yellow-100 transition-colors"
 															title="Edit"
 														>
 															<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -257,17 +285,17 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 															</svg>
 														</Link>
 												<button
-															onClick={() => handleDeleteClick(client)}
-															className={`inline-flex items-center px-3 py-1.5 rounded-md transition-colors ${
-																(client.client_users_count || 0) > 0 || (client.projects_count || 0) > 0
-																	? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-																	: 'bg-red-50 text-red-700 hover:bg-red-100'
-															}`}
-															title={
-																(client.client_users_count || 0) > 0 || (client.projects_count || 0) > 0
-																	? 'Tidak dapat dihapus karena memiliki data terkait'
-																	: 'Delete'
-															}
+														onClick={() => handleDeleteClick(client)}
+														className={`inline-flex items-center px-2 py-1 rounded transition-colors ${
+															(client.client_users_count || 0) > 0 || (client.projects_count || 0) > 0
+																? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+																: 'bg-red-50 text-red-700 hover:bg-red-100'
+														}`}
+														title={
+															(client.client_users_count || 0) > 0 || (client.projects_count || 0) > 0
+																? 'Cannot be deleted because it has related data'
+																: 'Delete'
+														}
 														>
 															<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 																<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -286,9 +314,17 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 								{clients.data.map((client, index) => (
 									<div key={client.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
 										<div className="flex items-start gap-3 mb-3">
-											<div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-												{client.name.charAt(0).toUpperCase()}
-											</div>
+											{client.logo ? (
+												<img 
+													src={`/storage/${client.logo}`} 
+													alt={`${client.name} logo`}
+													className="w-12 h-12 rounded-lg object-contain border border-gray-200 p-1 bg-white flex-shrink-0"
+												/>
+											) : (
+												<div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+													{client.name.charAt(0).toUpperCase()}
+												</div>
+											)}
 											<div className="flex-1 min-w-0">
 												<div className="text-xs text-gray-500 mb-1">
 													#{(clients.current_page - 1) * clients.per_page + index + 1}
@@ -303,11 +339,19 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 										{/* Client Info Grid */}
 										<div className="grid grid-cols-2 gap-2 mb-3">
 											<div className="bg-gray-50 rounded-lg p-2">
-												<div className="text-[10px] text-gray-500 mb-0.5">Kementrian</div>
+												<div className="text-[10px] text-gray-500 mb-0.5">Ministry</div>
 												<div className="text-sm font-medium text-gray-900 truncate">{client.kementrian}</div>
 											</div>
 											<div className="bg-gray-50 rounded-lg p-2">
-												<div className="text-[10px] text-gray-500 mb-0.5">Kode Satker</div>
+												<div className="text-[10px] text-gray-500 mb-0.5">Type</div>
+												<div className="text-sm">
+													<span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+														{client.type}
+													</span>
+												</div>
+											</div>
+											<div className="bg-gray-50 rounded-lg p-2">
+												<div className="text-[10px] text-gray-500 mb-0.5">Satker Code</div>
 												<div className="text-sm">
 													<span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
 														{client.kode_satker}
@@ -315,17 +359,17 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 												</div>
 											</div>
 											<div className="bg-gray-50 rounded-lg p-2">
-												<div className="text-[10px] text-gray-500 mb-0.5">Jumlah Akun</div>
+												<div className="text-[10px] text-gray-500 mb-0.5">Accounts</div>
 												<div className="text-sm font-medium text-gray-900">{client.client_users_count || 0} users</div>
 											</div>
-											<div className="bg-gray-50 rounded-lg p-2">
+											<div className="bg-gray-50 rounded-lg p-2 col-span-2">
 												<div className="text-[10px] text-gray-500 mb-0.5">Projects</div>
 												<div className="text-sm font-medium text-gray-900">{client.projects_count || 0} projects</div>
 											</div>
 										</div>
 
 										<div className="text-xs text-gray-500 mb-3">
-											<span className="font-medium">Bergabung:</span> {formatDate(client.created_at)}
+											<span className="font-medium">Joined:</span> {formatDate(client.created_at)}
 										</div>
 
 										<div className="flex gap-2">
@@ -350,14 +394,14 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 											</Link>
 											<button
 												onClick={() => handleDeleteClick(client)}
-												className={`inline-flex items-center justify-center px-3 py-2 rounded-md transition-colors ${
+												className={`inline-flex items-center px-3 py-2 rounded-md transition-colors ${
 													(client.client_users_count || 0) > 0 || (client.projects_count || 0) > 0
 														? 'bg-gray-100 text-gray-400 cursor-not-allowed'
 														: 'bg-red-50 text-red-700 hover:bg-red-100'
 												}`}
 												title={
 													(client.client_users_count || 0) > 0 || (client.projects_count || 0) > 0
-														? 'Tidak dapat dihapus karena memiliki data terkait'
+														? 'Cannot be deleted because it has related data'
 														: 'Delete'
 												}
 											>
@@ -374,7 +418,7 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 							{clients.data.length === 0 && (
 								<div className="text-center py-8">
 									<div className="text-gray-500">
-										{filters.search ? 'Tidak ada client yang ditemukan.' : 'Belum ada client.'}
+										{filters.search ? 'No clients found.' : 'No clients yet.'}
 									</div>
 								</div>
 							)}
@@ -414,10 +458,10 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 			{/* Delete Confirmation Dialog */}
 			<ConfirmDialog
 				show={showDeleteDialog}
-				title="Hapus Client"
-				message={`Apakah Anda yakin ingin menghapus client "${clientToDelete?.name}"? Tindakan ini tidak dapat dibatalkan.`}
-				confirmText="Hapus"
-				cancelText="Batal"
+				title="Delete Client"
+				message={`Are you sure you want to delete client "${clientToDelete?.name}"? This action cannot be undone.`}
+				confirmText="Delete"
+				cancelText="Cancel"
 				onConfirm={handleDeleteConfirm}
 				onClose={() => {
 					setShowDeleteDialog(false);
@@ -429,9 +473,9 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 			{/* Relation Warning Dialog */}
 			<ConfirmDialog
 				show={showRelationDialog}
-				title="Tidak Dapat Menghapus Client"
+				title="Cannot Delete Client"
 				message={relationMessage}
-				confirmText="Mengerti"
+				confirmText="Understood"
 				cancelText=""
 				onConfirm={() => {
 					setShowRelationDialog(false);

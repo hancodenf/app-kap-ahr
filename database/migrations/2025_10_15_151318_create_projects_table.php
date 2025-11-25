@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('slug')->unique();
             $table->enum('status', ['open', 'closed'])->default('closed');
+            $table->year('year'); // Project year
 
             // Foreign key reference (nullable untuk denormalisasi)
             $table->uuid('client_id')->nullable();

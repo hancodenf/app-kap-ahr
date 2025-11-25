@@ -4,6 +4,7 @@ interface Option {
     value: string | number;
     label: string;
     subtitle?: string;
+    isDisabled?: boolean;
 }
 
 interface SearchableSelectProps {
@@ -160,15 +161,22 @@ export default function SearchableSelect({
                         {filteredOptions.length > 0 ? (
                             filteredOptions.map((option) => {
                                 const isSelected = valueArray.includes(option.value);
+                                const isDisabled = option.isDisabled || false;
                                 return (
                                     <button
                                         key={option.value}
                                         type="button"
-                                        onClick={() => handleSelect(option.value)}
+                                        onClick={() => !isDisabled && handleSelect(option.value)}
+                                        disabled={isDisabled}
                                         className={`
                                             w-full text-left px-3 py-2 text-sm
-                                            hover:bg-primary-50 transition-colors
-                                            ${isSelected ? 'bg-primary-100 text-primary-900' : 'text-gray-900'}
+                                            transition-colors
+                                            ${isDisabled 
+                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60' 
+                                                : 'hover:bg-primary-50 cursor-pointer'
+                                            }
+                                            ${isSelected && !isDisabled ? 'bg-primary-100 text-primary-900' : ''}
+                                            ${!isSelected && !isDisabled ? 'text-gray-900' : ''}
                                         `}
                                     >
                                         <div className="flex items-center">
@@ -176,12 +184,16 @@ export default function SearchableSelect({
                                                 <input
                                                     type="checkbox"
                                                     checked={isSelected}
+                                                    disabled={isDisabled}
                                                     onChange={() => {}}
                                                     className="mr-2 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                                                 />
                                             )}
                                             <div className="flex-1">
-                                                <div className="font-medium">{option.label}</div>
+                                                <div className={`font-medium ${isDisabled ? 'line-through' : ''}`}>
+                                                    {option.label}
+                                                    {isDisabled && <span className="ml-2 text-xs">(Already used)</span>}
+                                                </div>
                                                 {option.subtitle && (
                                                     <div className="text-xs text-gray-500 mt-0.5">{option.subtitle}</div>
                                                 )}

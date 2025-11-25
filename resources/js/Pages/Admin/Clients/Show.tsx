@@ -24,6 +24,8 @@ interface Client {
 	alamat: string;
 	kementrian: string;
 	kode_satker: string;
+	type: string;
+	logo: string | null;
 	client_users: ClientUser[];
 	projects: Project[];
 	created_at: string;
@@ -73,9 +75,22 @@ export default function Show(props: Props) {
 					<div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
 						<div className="p-6 border-b border-gray-200">
 							<div className="flex items-start justify-between">
-								<div>
-									<h3 className="text-2xl font-bold text-gray-900">{client.name}</h3>
-									<p className="mt-1 text-sm text-gray-500">Client ID: #{client.id}</p>
+								<div className="flex items-start gap-4">
+									{client.logo ? (
+										<img 
+											src={`/storage/${client.logo}`} 
+											alt={`${client.name} logo`}
+											className="w-20 h-20 rounded-lg object-contain border-2 border-gray-200 p-2 bg-white"
+										/>
+									) : (
+										<div className="w-20 h-20 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white font-bold text-3xl">
+											{client.name.charAt(0).toUpperCase()}
+										</div>
+									)}
+									<div>
+										<h3 className="text-2xl font-bold text-gray-900">{client.name}</h3>
+										<p className="mt-1 text-sm text-gray-500">Client ID: #{client.id}</p>
+									</div>
 								</div>
 								<div className="flex gap-2">
 									<Link
@@ -104,6 +119,14 @@ export default function Show(props: Props) {
 									<dd className="mt-1 text-sm text-gray-900">{client.kementrian}</dd>
 								</div>
 								<div>
+									<dt className="text-sm font-medium text-gray-500">Type</dt>
+									<dd className="mt-1">
+										<span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">
+											{client.type}
+										</span>
+									</dd>
+								</div>
+								<div>
 									<dt className="text-sm font-medium text-gray-500">Kode Satker</dt>
 									<dd className="mt-1">
 										<span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
@@ -124,10 +147,10 @@ export default function Show(props: Props) {
 						<div className="p-6">
 							<div className="flex items-center justify-between mb-4 pb-2 border-b">
 								<h4 className="text-lg font-semibold text-gray-900">
-									Akun Terkait
+									Related Accounts
 								</h4>
 								<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-									{client.client_users?.length || 0} akun
+									{client.client_users?.length || 0} accounts
 								</span>
 							</div>
 							
@@ -137,10 +160,10 @@ export default function Show(props: Props) {
 										<thead className="bg-gray-50">
 											<tr>
 												<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">No</th>
-												<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+												<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
 												<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-												<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dibuat</th>
-												<th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
+												<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
+												<th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
 											</tr>
 										</thead>
 										<tbody className="bg-white divide-y divide-gray-200">
@@ -155,7 +178,7 @@ export default function Show(props: Props) {
 															href={route('admin.users.show', user.id)}
 															className="text-blue-600 hover:text-blue-900 font-medium"
 														>
-															Lihat Detail →
+															View Details →
 														</Link>
 													</td>
 												</tr>
@@ -168,7 +191,7 @@ export default function Show(props: Props) {
 									<svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
 									</svg>
-									<p className="mt-2 text-sm text-gray-500">Belum ada akun yang terkait dengan client ini</p>
+									<p className="mt-2 text-sm text-gray-500">No accounts associated with this client yet</p>
 									<Link
 										href={route('admin.users.create')}
 										className="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors gap-2"
@@ -176,7 +199,7 @@ export default function Show(props: Props) {
 										<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
 										</svg>
-										Tambah Akun Baru
+										Add New Account
 									</Link>
 								</div>
 							)}
@@ -188,7 +211,7 @@ export default function Show(props: Props) {
 						<div className="p-6">
 							<div className="flex items-center justify-between mb-4 pb-2 border-b">
 								<h4 className="text-lg font-semibold text-gray-900">
-									Projects Terkait
+									Related Projects
 								</h4>
 								<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
 									{client.projects?.length || 0} projects
@@ -279,7 +302,7 @@ export default function Show(props: Props) {
 									<svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
 									</svg>
-									<p className="mt-2 text-sm text-gray-500">Belum ada project yang terkait dengan client ini</p>
+									<p className="mt-2 text-sm text-gray-500">No projects associated with this client yet</p>
 									<Link
 										href={route('admin.projects.bundles.create')}
 										className="mt-4 inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors gap-2"
@@ -287,7 +310,7 @@ export default function Show(props: Props) {
 										<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
 										</svg>
-										Tambah Project Baru
+										Add New Project
 									</Link>
 								</div>
 							)}

@@ -15,11 +15,7 @@ class ProjectTemplateSeeder extends Seeder
     {
         // Create project template categories
         $templates = [
-            'Project Audit BLU',
-            'Audit Internal KAP',
-            'Review Pengendalian Internal',
-            'Audit Keuangan Tahunan',
-            'Audit Operasional',
+            'Project Audit BLU', 
         ];
 
         foreach ($templates as $templateName) {

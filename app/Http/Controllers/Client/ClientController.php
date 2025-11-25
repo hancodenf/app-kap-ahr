@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use App\Models\News;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -192,6 +193,26 @@ class ClientController extends Controller
             })
             : collect([]);
 
+        // Get latest published news
+        $latestNews = News::published()
+            ->with('creator')
+            ->orderBy('published_at', 'desc')
+            ->take(3)
+            ->get()
+            ->map(function ($news) {
+                return [
+                    'id' => $news->id,
+                    'title' => $news->title,
+                    'slug' => $news->slug,
+                    'excerpt' => $news->excerpt,
+                    'featured_image' => $news->featured_image,
+                    'published_at' => $news->published_at,
+                    'creator' => [
+                        'name' => $news->creator ? $news->creator->name : 'Unknown',
+                    ],
+                ];
+            });
+
         return Inertia::render('Client/Dashboard', [
             'user' => [
                 'id' => $user->id,
@@ -219,6 +240,7 @@ class ClientController extends Controller
             'tasksRequiringAction' => $tasksRequiringAction,
             'taskTrend' => $taskTrend,
             'recentActivities' => $recentActivities,
+            'latestNews' => $latestNews,
         ]);
     }
 
