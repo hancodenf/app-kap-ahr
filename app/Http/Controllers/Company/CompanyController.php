@@ -1256,7 +1256,7 @@ class CompanyController extends Controller
         }
 
         // Update assignment status to "Submitted" (ready for approval workflow)
-        $latestAssignment->status = 'Submitted';
+        $latestAssignment->status = 'Completed';
         $latestAssignment->save();
         
         // Mark task as completed
@@ -1274,7 +1274,7 @@ class CompanyController extends Controller
             'meta' => json_encode([
                 'task_id' => $task->id,
                 'previous_status' => 'Client Reply',
-                'new_status' => 'Submitted',
+                'new_status' => 'Completed',
             ]),
         ]);
 

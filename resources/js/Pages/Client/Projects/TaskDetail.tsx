@@ -30,14 +30,7 @@ interface TaskAssignment {
     created_at: string;
     documents: Document[];
     client_documents: ClientDocument[];
-    user?: {
-        id: number;
-        name: string;
-        email: string;
-        role?: {
-            name: string;
-        };
-    };
+    // No user relation in TaskAssignment model
 }
 
 interface TaskWorker {

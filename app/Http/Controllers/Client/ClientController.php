@@ -470,8 +470,7 @@ class ClientController extends Controller
                       ->latest()
                       ->with([
                           'documents',
-                          'clientDocuments',
-                          'user.role'
+                          'clientDocuments'
                       ]);
             },
             'taskWorkers.projectTeam.user' // Load task workers
@@ -533,12 +532,7 @@ class ClientController extends Controller
                 'created_at' => $latestAssignment->created_at,
                 'documents' => $latestAssignment->documents,
                 'client_documents' => $latestAssignment->clientDocuments,
-                'user' => $latestAssignment->user ? [
-                    'id' => $latestAssignment->user->id,
-                    'name' => $latestAssignment->user->name,
-                    'email' => $latestAssignment->user->email,
-                    'role' => $latestAssignment->user->role
-                ] : null
+                // No user relation in TaskAssignment model
             ] : null,
             // Include filtered assignments (only "Submitted to Client" and "Client Reply")
             'assignments' => $task->taskAssignments->map(function ($assignment) {
@@ -553,12 +547,7 @@ class ClientController extends Controller
                     'status' => $assignment->status,
                     'documents' => $assignment->documents,
                     'client_documents' => $assignment->clientDocuments,
-                    'user' => $assignment->user ? [
-                        'id' => $assignment->user->id,
-                        'name' => $assignment->user->name,
-                        'email' => $assignment->user->email,
-                        'role' => $assignment->user->role
-                    ] : null
+                    // No user relation in TaskAssignment model
                 ];
             }),
         ];
