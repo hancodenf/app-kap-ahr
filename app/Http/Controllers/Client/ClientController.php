@@ -417,7 +417,6 @@ class ClientController extends Controller
                                 'notes' => $latestAssignment->notes,
                                 'comment' => $latestAssignment->comment,
                                 'client_comment' => $latestAssignment->client_comment,
-                                'is_approved' => $latestAssignment->is_approved,
                                 'created_at' => $latestAssignment->created_at,
                             ] : null,
                             // All assignments with documents
@@ -428,7 +427,6 @@ class ClientController extends Controller
                                     'notes' => $assignment->notes,
                                     'comment' => $assignment->comment,
                                     'client_comment' => $assignment->client_comment,
-                                    'is_approved' => $assignment->is_approved,
                                     'created_at' => $assignment->created_at,
                                     'documents' => $assignment->documents->map(function($doc) {
                                         return [
@@ -550,7 +548,6 @@ class ClientController extends Controller
                 'notes' => $latestAssignment->notes,
                 'comment' => $latestAssignment->comment,
                 'client_comment' => $latestAssignment->client_comment,
-                'is_approved' => $latestAssignment->is_approved,
                 'created_at' => $latestAssignment->created_at,
                 'documents' => $latestAssignment->documents,
                 'client_documents' => $latestAssignment->clientDocuments,
@@ -564,7 +561,6 @@ class ClientController extends Controller
                     'notes' => $assignment->notes,
                     'comment' => $assignment->comment,
                     'client_comment' => $assignment->client_comment,
-                    'is_approved' => $assignment->is_approved,
                     'created_at' => $assignment->created_at,
                     'status' => $assignment->status,
                     'documents' => $assignment->documents,
@@ -729,7 +725,6 @@ class ClientController extends Controller
             'notes' => null, // Client doesn't use notes field
             'client_comment' => $request->client_comment,
             'comment' => null,
-            'is_approved' => false,
         ]);
 
         // Upload files

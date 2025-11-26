@@ -24,10 +24,20 @@ interface TaskAssignment {
     notes: string | null;
     comment: string | null;
     client_comment: string | null;
-    is_approved: boolean;
     created_at: string;
+    status: string;
     documents: Document[];
     client_documents: ClientDocument[];
+}
+
+interface TaskApproval {
+    id: number;
+    role: string;
+    order: number;
+    status_name_pending: string;
+    status_name_progress: string;
+    status_name_complete: string;
+    status_name_reject: string;
 }
 
 interface Task {
@@ -44,6 +54,7 @@ interface Task {
     my_assignment_id: number | null;
     latest_assignment: TaskAssignment | null;
     assignments: TaskAssignment[];
+    task_approvals?: TaskApproval[];
 }
 
 interface RequiredProgress {
@@ -107,14 +118,16 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
         file_labels: string[];
         upload_mode: 'upload' | 'request';
         client_documents: Array<{ name: string; description: string }>;
-        task_status: string;
+        completion_status: 'pending' | 'in_progress' | 'completed';
+        assignment_status: string;
     }>({
         notes: '',
         files: [],
         file_labels: [],
         upload_mode: 'upload',
         client_documents: [],
-        task_status: 'Draft',
+        completion_status: 'pending',
+        assignment_status: 'Draft',
     });
 
     const toggleStep = (stepId: number) => {
@@ -155,9 +168,11 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
         setData({
             notes: task.latest_assignment?.notes || '',
             files: [],
+            file_labels: [],
             upload_mode: 'upload',
             client_documents: [],
-            task_status: task.status, // Set current task status
+            completion_status: task.completion_status, // Set task completion status
+            assignment_status: task.latest_assignment?.status || 'Draft', // Set assignment status
         });
         setShowTaskModal(true);
     };
@@ -614,36 +629,70 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                             {showForm ? (
                             <form onSubmit={handleSubmitTaskUpdate}>
                                 <div className="space-y-4">
-                                    {/* Task Status Dropdown (Editable for Admin) */}
+                                    {/* Task Completion Status Dropdown (for tasks table) */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Task Status
-                                            <span className="ml-2 text-xs text-gray-500">(Admin can change status)</span>
+                                            Task Completion Status
+                                            <span className="ml-2 text-xs text-gray-500">(Overall task progress - table: tasks)</span>
                                         </label>
                                         <select
-                                            value={data.task_status}
-                                            onChange={(e) => setData('task_status', e.target.value)}
+                                            value={data.completion_status}
+                                            onChange={(e) => setData('completion_status', e.target.value as 'pending' | 'in_progress' | 'completed')}
                                             className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500"
                                         >
-                                            <option value="Draft">Draft</option>
-                                            <option value="Submitted">Submitted</option>
-                                            <option value="Submitted to Client">Submitted to Client</option>
-                                            <option value="Client Reply">Client Reply</option>
-                                            <option value="Under Review by Team Leader">Under Review by Team Leader</option>
-                                            <option value="Approved by Team Leader">Approved by Team Leader</option>
-                                            <option value="Returned for Revision (by Team Leader)">Returned for Revision (by Team Leader)</option>
-                                            <option value="Under Review by Manager">Under Review by Manager</option>
-                                            <option value="Approved by Manager">Approved by Manager</option>
-                                            <option value="Returned for Revision (by Manager)">Returned for Revision (by Manager)</option>
-                                            <option value="Under Review by Supervisor">Under Review by Supervisor</option>
-                                            <option value="Approved by Supervisor">Approved by Supervisor</option>
-                                            <option value="Returned for Revision (by Supervisor)">Returned for Revision (by Supervisor)</option>
-                                            <option value="Under Review by Partner">Under Review by Partner</option>
-                                            <option value="Approved by Partner">Approved by Partner</option>
-                                            <option value="Returned for Revision (by Partner)">Returned for Revision (by Partner)</option>
+                                            <option value="pending">⏳ Pending</option>
+                                            <option value="in_progress">🔄 In Progress</option>
+                                            <option value="completed">✅ Completed</option>
                                         </select>
-                                        {errors.task_status && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.task_status}</p>
+                                        {errors.completion_status && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.completion_status}</p>
+                                        )}
+                                    </div>
+
+                                    {/* Assignment Status Dropdown (for task_assignments table - DYNAMIC) */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Assignment Workflow Status
+                                            <span className="ml-2 text-xs text-gray-500">(Submission status - table: task_assignments)</span>
+                                        </label>
+                                        <select
+                                            value={data.assignment_status}
+                                            onChange={(e) => setData('assignment_status', e.target.value)}
+                                            className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                        >
+                                            {/* Default statuses */}
+                                            <option value="Draft">📝 Draft</option>
+                                            <option value="Submitted">📤 Submitted</option>
+                                            
+                                            {/* Dynamic approval statuses from task_approvals */}
+                                            {selectedTask.task_approvals && selectedTask.task_approvals.length > 0 ? (
+                                                selectedTask.task_approvals.map((approval) => (
+                                                    <optgroup key={approval.id} label={`─── ${approval.role.toUpperCase()} ───`}>
+                                                        <option value={approval.status_name_pending}>⏳ {approval.status_name_pending}</option>
+                                                        <option value={approval.status_name_progress}>🔍 {approval.status_name_progress}</option>
+                                                        <option value={approval.status_name_complete}>✅ {approval.status_name_complete}</option>
+                                                        <option value={approval.status_name_reject}>❌ {approval.status_name_reject}</option>
+                                                    </optgroup>
+                                                ))
+                                            ) : (
+                                                <optgroup label="─── NO APPROVAL WORKFLOW ───">
+                                                    <option disabled>No approval levels configured</option>
+                                                </optgroup>
+                                            )}
+                                            
+                                            {/* Client interaction statuses (conditional) */}
+                                            {selectedTask.client_interact && (
+                                                <optgroup label="─── CLIENT INTERACTION ───">
+                                                    <option value="Submitted to Client">📮 Submitted to Client</option>
+                                                    <option value="Client Reply">💬 Client Reply</option>
+                                                </optgroup>
+                                            )}
+                                            
+                                            {/* Final status */}
+                                            <option value="Completed">🎉 Completed</option>
+                                        </select>
+                                        {errors.assignment_status && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.assignment_status}</p>
                                         )}
                                     </div>
 
@@ -678,7 +727,6 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                                                                 <p className="text-sm font-semibold text-gray-900">
                                                                     Submission #{selectedTask.assignments.length - index}
                                                                     {index === 0 && <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">Latest</span>}
-                                                                    {assignment.is_approved && <span className="ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">Approved</span>}
                                                                 </p>
                                                                 <p className="text-xs text-gray-500 mt-1">
                                                                     {new Date(assignment.created_at).toLocaleDateString('id-ID', {
@@ -781,82 +829,32 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                                         </div>
                                     )}
 
-                                    {/* File Upload Section - Tabs for client_interact tasks */}
-                                    <div>
-                                        {selectedTask.client_interact && (
-                                            <div className="mb-4 border-b border-gray-200">
-                                                <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setUploadMode('upload');
-                                                            // Reset Request from Client tab when switching to Upload
-                                                            setClientDocInputs([{ id: 0, name: '', description: '' }]);
-                                                            setNextClientDocId(1);
-                                                            setData('client_documents', []);
-                                                            setData('upload_mode', 'upload');
-                                                        }}
-                                                        className={`${
-                                                            uploadMode === 'upload'
-                                                                ? 'border-primary-500 text-primary-600'
-                                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                                        } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-                                                    >
-                                                        <svg className="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                                        </svg>
-                                                        Upload Files
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setUploadMode('request');
-                                                            // Reset Upload Files tab when switching to Request
-                                                            setFileInputs([{ id: 0, label: '', file: null }]);
-                                                            setNextFileId(1);
-                                                            setData('files', []);
-                                                            setData('upload_mode', 'request');
-                                                        }}
-                                                        className={`${
-                                                            uploadMode === 'request'
-                                                                ? 'border-primary-500 text-primary-600'
-                                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                                        } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-                                                    >
-                                                        <svg className="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                        </svg>
-                                                        Request from Client
-                                                    </button>
-                                                </nav>
-                                            </div>
-                                        )}
-
-                                        <div className="flex items-center justify-between mb-3">
-                                            <label className="block text-sm font-medium text-gray-700">
-                                                {uploadMode === 'upload' ? 'Upload Files' : 'Request Documents from Client'}
+                                    {/* File Upload Section - Email Attachment Style */}
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                📎 Attach Files
                                                 {selectedTask.multiple_files ? (
-                                                    <span className="ml-2 text-xs text-gray-500">(Multiple {uploadMode === 'upload' ? 'files' : 'documents'} allowed)</span>
+                                                    <span className="ml-2 text-xs text-gray-500">(You can upload multiple files)</span>
                                                 ) : (
-                                                    <span className="ml-2 text-xs text-gray-500">(Single {uploadMode === 'upload' ? 'file' : 'document'} only)</span>
+                                                    <span className="ml-2 text-xs text-gray-500">(Single file only)</span>
                                                 )}
                                             </label>
+                                            
+                                            {/* Add File Button - Only show if multiple files allowed */}
                                             {selectedTask.multiple_files && (
                                                 <button
                                                     type="button"
-                                                    onClick={uploadMode === 'upload' ? addFileInput : addClientDocInput}
-                                                    className="inline-flex items-center px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                                    onClick={addFileInput}
+                                                    className="mb-3 inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                                 >
                                                     <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                                     </svg>
-                                                    Add {uploadMode === 'upload' ? 'File' : 'Document'}
+                                                    Add Another File
                                                 </button>
                                             )}
-                                        </div>
-                                        
-                                        {/* Upload Files Mode */}
-                                        {uploadMode === 'upload' && (
+                                            
                                             <div className="space-y-4">
                                                 {fileInputs.map((input, index) => (
                                                 <div key={input.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
@@ -941,63 +939,91 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                                                 <p className="mt-1 text-sm text-red-600">{errors.files}</p>
                                             )}
                                         </div>
-                                        )}
+                                    </div>
 
-                                        {/* Request from Client Mode */}
-                                        {uploadMode === 'request' && (
+                                    {/* Request Documents from Client - Only for 'upload' permission */}
+                                    {selectedTask.client_interact && (
+                                        <div className="border-t border-gray-200 pt-6 mt-6">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <label className="block text-sm font-medium text-gray-700">
+                                                    📋 Request Documents from Client
+                                                    <span className="ml-2 text-xs text-gray-500">(Optional)</span>
+                                                </label>
+                                                {selectedTask.multiple_files && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={addClientDocInput}
+                                                        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                                                    >
+                                                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                        </svg>
+                                                        Add Document Request
+                                                    </button>
+                                                )}
+                                            </div>
+                                            
                                             <div className="space-y-4">
                                                 {clientDocInputs.map((input, index) => (
-                                                    <div key={input.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                                    <div key={input.id} className="border border-purple-200 rounded-lg p-4 bg-purple-50">
                                                         <div className="flex items-start gap-3">
-                                                            {/* Document Name Input */}
-                                                            <div className="flex-1">
-                                                                <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                                    Document Name <span className="text-red-500">*</span>
-                                                                </label>
-                                                                <input
-                                                                    type="text"
-                                                                    value={input.name}
-                                                                    onChange={(e) => handleClientDocNameChange(input.id, e.target.value)}
-                                                                    placeholder="e.g., Laporan Keuangan Q4, Surat Pernyataan"
-                                                                    className="block w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                                                                    required
-                                                                />
+                                                            <div className="flex-1 space-y-3">
+                                                                {/* Document Name */}
+                                                                <div>
+                                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                                        Document Name *
+                                                                    </label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={input.name}
+                                                                        onChange={(e) => handleClientDocNameChange(input.id, e.target.value)}
+                                                                        placeholder="e.g., Financial Report 2024"
+                                                                        className="block w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500"
+                                                                    />
+                                                                </div>
+
+                                                                {/* Document Description */}
+                                                                <div>
+                                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                                        Description
+                                                                    </label>
+                                                                    <textarea
+                                                                        value={input.description}
+                                                                        onChange={(e) => handleClientDocDescriptionChange(input.id, e.target.value)}
+                                                                        rows={2}
+                                                                        placeholder="Add details about what document is needed..."
+                                                                        className="block w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500"
+                                                                    />
+                                                                </div>
                                                             </div>
 
                                                             {/* Remove Button */}
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => removeClientDocInput(input.id)}
-                                                                className="mt-6 p-1.5 text-red-600 hover:text-red-700 hover:bg-red-100 rounded-md transition-colors"
-                                                                title="Remove document request"
-                                                            >
-                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                                </svg>
-                                                            </button>
-                                                        </div>
-
-                                                        {/* Description/Notes */}
-                                                        <div className="mt-3">
-                                                            <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                                Description / Notes (Optional)
-                                                            </label>
-                                                            <textarea
-                                                                value={input.description}
-                                                                onChange={(e) => handleClientDocDescriptionChange(input.id, e.target.value)}
-                                                                rows={2}
-                                                                placeholder="Additional details about this document request..."
-                                                                className="block w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                                                            />
+                                                            {selectedTask.multiple_files && clientDocInputs.length > 1 && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removeClientDocInput(input.id)}
+                                                                    className="mt-6 p-1.5 text-red-600 hover:text-red-700 hover:bg-red-100 rounded-md transition-colors"
+                                                                    title="Remove document request"
+                                                                >
+                                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                    </svg>
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 ))}
-                                                
-                                                <p className="mt-2 text-xs text-gray-500">
-                                                    💡 These document requests will be sent to the client for upload.
-                                                </p>
                                             </div>
-                                        )}
+                                            
+                                            <p className="mt-2 text-xs text-gray-500">
+                                                💡 Specify which documents you need from the client. They will receive a notification to upload these files.
+                                            </p>
+                                            
+                                            {errors.client_documents && (
+                                                <p className="mt-1 text-sm text-red-600">{errors.client_documents}</p>
+                                            )}
+                                        </div>
+                                    )}
                                     </div>
                                 </div>
 
@@ -1054,10 +1080,7 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                                                                     {index === 0 && (
                                                                         <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">Latest</span>
                                                                     )}
-                                                                    {assignment.is_approved && (
-                                                                        <span className="px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">✓ Approved</span>
-                                                                    )}
-                                                                    {assignment.comment && !assignment.is_approved && (
+                                                                    {assignment.comment && (
                                                                         <span className="px-2 py-0.5 text-xs bg-red-100 text-red-800 rounded-full">✗ Rejected</span>
                                                                     )}
                                                                 </div>
@@ -1161,7 +1184,7 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                                         </div>
 
                                         {/* Add New Submission button - only show if latest assignment is rejected */}
-                                        {selectedTask.assignments.length > 0 && selectedTask.assignments[0].comment && !selectedTask.assignments[0].is_approved && (
+                                        {selectedTask.assignments.length > 0 && selectedTask.assignments[0].comment && (
                                             <div className="mt-6 flex justify-center">
                                                 <button
                                                     type="button"
