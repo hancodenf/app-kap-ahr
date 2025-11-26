@@ -71,10 +71,20 @@ interface Project {
     status: string;
 }
 
+interface TeamMember {
+    id: number;
+    user_id: number;
+    user_name: string;
+    user_email: string;
+    user_position: string | null;
+    role: string;
+}
+
 interface Props extends PageProps {
     project: Project;
     workingSteps: WorkingStep[];
     myRole: string;
+    teamMembers: TeamMember[];
 }
 
 interface ApprovalTask {
@@ -105,7 +115,7 @@ interface ApprovalTask {
     } | null;
 }
 
-export default function ShowProject({ auth, project, workingSteps, myRole }: Props) {
+export default function ShowProject({ auth, project, workingSteps, myRole, teamMembers }: Props) {
     const [activeTab, setActiveTab] = useState<'my-tasks' | 'approval-requests'>('my-tasks');
     const [approvalTasks, setApprovalTasks] = useState<ApprovalTask[]>([]);
     const [loadingApprovals, setLoadingApprovals] = useState(false);
@@ -182,6 +192,13 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
             progressPercentage,
         };
     }, [workingSteps]);
+
+    // Fetch approval requests on initial load if user has approval access
+    useEffect(() => {
+        if (needsApprovalTab) {
+            fetchApprovalRequests();
+        }
+    }, []);
 
     // Fetch approval requests when switching to approval tab
     // AND reset modal/form state when switching tabs
@@ -805,6 +822,72 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                         </div>
                     </div>
 
+                    {/* Team Members Section */}
+                    <div className="mb-6 bg-white shadow-sm rounded-lg overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                                <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                                Project Team
+                                <span className="ml-2 text-sm font-normal text-gray-500">({teamMembers.length} members)</span>
+                            </h3>
+                        </div>
+                        <div className="px-6 py-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                {teamMembers.map((member) => {
+                                    // Define role badge colors
+                                    const getRoleBadgeClass = (role: string) => {
+                                        switch (role.toLowerCase()) {
+                                            case 'partner':
+                                                return 'bg-purple-100 text-purple-800 border-purple-200';
+                                            case 'manager':
+                                                return 'bg-blue-100 text-blue-800 border-blue-200';
+                                            case 'supervisor':
+                                                return 'bg-green-100 text-green-800 border-green-200';
+                                            case 'team leader':
+                                                return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                                            case 'member':
+                                                return 'bg-gray-100 text-gray-800 border-gray-200';
+                                            default:
+                                                return 'bg-gray-100 text-gray-800 border-gray-200';
+                                        }
+                                    };
+
+                                    return (
+                                        <div
+                                            key={member.id}
+                                            className="relative flex items-center space-x-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm hover:border-primary-300 hover:shadow-md transition-all"
+                                        >
+                                            <div className="flex-shrink-0">
+                                                <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
+                                                    <span className="text-lg font-semibold text-primary-700">
+                                                        {member.user_name.charAt(0).toUpperCase()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="focus:outline-none">
+                                                    <p className="text-sm font-medium text-gray-900 truncate">
+                                                        {member.user_name}
+                                                    </p>
+                                                    {member.user_position && (
+                                                        <p className="text-xs text-gray-500 truncate">
+                                                            {member.user_position}
+                                                        </p>
+                                                    )}
+                                                    <span className={`mt-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${getRoleBadgeClass(member.role)}`}>
+                                                        {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Tab Navigation - Only for Team Leader, Manager, Supervisor, Partner */}
                     {needsApprovalTab && (
                         <div className="mb-6">
@@ -826,9 +909,14 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                             activeTab === 'approval-requests'
                                                 ? 'border-primary-500 text-primary-600'
                                                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                        } flex-1 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                                        } flex-1 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm relative inline-flex items-center justify-center`}
                                     >
                                         ✅ Approval Requests
+                                        {approvalTasks.length > 0 && (
+                                            <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full animate-pulse">
+                                                {approvalTasks.length}
+                                            </span>
+                                        )}
                                     </button>
                                 </nav>
                             </div>
