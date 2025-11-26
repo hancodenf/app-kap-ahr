@@ -37,7 +37,7 @@ export default function Edit({ auth, news }: PageProps<{ news: News }>) {
             status: data.status,
             _method: 'PUT',
         };
-            
+
         // Only include featured_image if a new file was selected
         if (data.featured_image) {
             formData.featured_image = data.featured_image;
@@ -86,7 +86,7 @@ export default function Edit({ auth, news }: PageProps<{ news: News }>) {
         loadSummernote();
 
         return () => {
-            if (editorRef.current && (window as any).$) {
+            if (editorRef.current && (window as any).$) { 
                 (window as any).$(editorRef.current).summernote('destroy');
             }
         };
