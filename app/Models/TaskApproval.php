@@ -28,20 +28,7 @@ class TaskApproval extends Model
         'status_name_progress',
         'status_name_reject',
         'status_name_complete',
-        'is_valid',
     ];
-
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'is_valid' => 'boolean',
-        ];
-    }
 
     /**
      * Get the task that owns the task approval.

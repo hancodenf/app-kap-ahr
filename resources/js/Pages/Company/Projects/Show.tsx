@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
-import { FormEventHandler, useState, useEffect } from 'react';
+import { FormEventHandler, useState, useEffect, useMemo } from 'react';
 
 interface Document {
     id: number;
@@ -25,7 +25,6 @@ interface TaskAssignment {
     comment: string | null;
     client_comment: string | null;
     status: string;
-    is_approved: boolean;
     created_at: string;
     documents: Document[];
     client_documents?: ClientDocument[];
@@ -137,6 +136,52 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
     // Use lowercase comparison to handle case-insensitive role names
     const roleLower = myRole.toLowerCase();
     const needsApprovalTab = ['team leader', 'manager', 'supervisor', 'partner'].includes(roleLower);
+
+    // Calculate project statistics
+    const projectStats = useMemo(() => {
+        // Get all tasks from all working steps
+        const allTasks = workingSteps.flatMap(step => step.tasks);
+        
+        // My assigned tasks only
+        const myTasks = allTasks.filter(task => task.is_assigned_to_me);
+        
+        // Total tasks
+        const totalTasks = myTasks.length;
+        
+        // Completion status breakdown
+        const completedTasks = myTasks.filter(task => task.completion_status === 'completed').length;
+        const inProgressTasks = myTasks.filter(task => task.completion_status === 'in_progress').length;
+        const pendingTasks = myTasks.filter(task => task.completion_status === 'pending').length;
+        
+        // Assignment status breakdown
+        const draftTasks = myTasks.filter(task => task.status === 'Draft').length;
+        const submittedTasks = myTasks.filter(task => task.status === 'Submitted').length;
+        const underReviewTasks = myTasks.filter(task => task.status.includes('Under Review')).length;
+        const approvedTasks = myTasks.filter(task => task.status.includes('Approved')).length;
+        const returnedTasks = myTasks.filter(task => task.status.includes('Returned')).length;
+        
+        // Client interaction tasks
+        const clientInteractTasks = myTasks.filter(task => 
+            task.status === 'Submitted to Client' || task.status === 'Client Reply'
+        ).length;
+        
+        // Overall progress percentage
+        const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+        
+        return {
+            totalTasks,
+            completedTasks,
+            inProgressTasks,
+            pendingTasks,
+            draftTasks,
+            submittedTasks,
+            underReviewTasks,
+            approvedTasks,
+            returnedTasks,
+            clientInteractTasks,
+            progressPercentage,
+        };
+    }, [workingSteps]);
 
     // Fetch approval requests when switching to approval tab
     // AND reset modal/form state when switching tabs
@@ -604,6 +649,162 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+                    {/* Stats Section */}
+                    <div className="mb-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                        {/* Overall Progress Card */}
+                        <div className="bg-gradient-to-br from-primary-500 to-primary-600 overflow-hidden shadow-lg rounded-lg">
+                            <div className="p-5">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                        </svg>
+                                    </div>
+                                    <div className="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt className="text-sm font-medium text-white text-opacity-90 truncate">
+                                                Overall Progress
+                                            </dt>
+                                            <dd className="flex items-baseline">
+                                                <div className="text-3xl font-bold text-white">
+                                                    {projectStats.progressPercentage}%
+                                                </div>
+                                            </dd>
+                                        </dl>
+                                        {/* Progress Bar */}
+                                        <div className="mt-3 w-full bg-white bg-opacity-30 rounded-full h-2">
+                                            <div 
+                                                className="bg-white h-2 rounded-full transition-all duration-500"
+                                                style={{ width: `${projectStats.progressPercentage}%` }}
+                                            ></div>
+                                        </div>
+                                        <p className="mt-2 text-xs text-white text-opacity-80">
+                                            {projectStats.completedTasks} of {projectStats.totalTasks} tasks completed
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Total Tasks Card */}
+                        <div className="bg-white overflow-hidden shadow-lg rounded-lg border-l-4 border-blue-500">
+                            <div className="p-5">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="rounded-md bg-blue-100 p-3">
+                                            <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt className="text-sm font-medium text-gray-500 truncate">
+                                                My Tasks
+                                            </dt>
+                                            <dd className="flex items-baseline">
+                                                <div className="text-2xl font-bold text-gray-900">
+                                                    {projectStats.totalTasks}
+                                                </div>
+                                            </dd>
+                                        </dl>
+                                        <div className="mt-2 flex items-center text-xs space-x-3">
+                                            <span className="text-green-600 font-medium">✓ {projectStats.completedTasks}</span>
+                                            <span className="text-yellow-600 font-medium">● {projectStats.inProgressTasks}</span>
+                                            <span className="text-gray-500 font-medium">○ {projectStats.pendingTasks}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Workflow Status Card */}
+                        <div className="bg-white overflow-hidden shadow-lg rounded-lg border-l-4 border-purple-500">
+                            <div className="p-5">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="rounded-md bg-purple-100 p-3">
+                                            <svg className="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt className="text-sm font-medium text-gray-500 truncate">
+                                                Workflow Status
+                                            </dt>
+                                            <dd className="mt-1 text-xs text-gray-600 space-y-1">
+                                                <div className="flex justify-between">
+                                                    <span>📝 Draft:</span>
+                                                    <span className="font-semibold">{projectStats.draftTasks}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span>📤 Submitted:</span>
+                                                    <span className="font-semibold">{projectStats.submittedTasks}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span>🔍 Under Review:</span>
+                                                    <span className="font-semibold">{projectStats.underReviewTasks}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span>✅ Approved:</span>
+                                                    <span className="font-semibold text-green-600">{projectStats.approvedTasks}</span>
+                                                </div>
+                                            </dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Action Required Card */}
+                        <div className="bg-white overflow-hidden shadow-lg rounded-lg border-l-4 border-orange-500">
+                            <div className="p-5">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="rounded-md bg-orange-100 p-3">
+                                            <svg className="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt className="text-sm font-medium text-gray-500 truncate">
+                                                Action Required
+                                            </dt>
+                                            <dd className="mt-1 text-xs text-gray-600 space-y-1">
+                                                {projectStats.returnedTasks > 0 && (
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-red-600">❌ Returned:</span>
+                                                        <span className="font-bold text-red-600">{projectStats.returnedTasks}</span>
+                                                    </div>
+                                                )}
+                                                {projectStats.clientInteractTasks > 0 && (
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-purple-600">💬 Client:</span>
+                                                        <span className="font-semibold text-purple-600">{projectStats.clientInteractTasks}</span>
+                                                    </div>
+                                                )}
+                                                {projectStats.returnedTasks === 0 && projectStats.clientInteractTasks === 0 && (
+                                                    <div className="text-center text-green-600 font-medium py-2">
+                                                        ✓ All Clear!
+                                                    </div>
+                                                )}
+                                            </dd>
+                                            {(projectStats.returnedTasks > 0 || projectStats.clientInteractTasks > 0) && (
+                                                <dd className="mt-2 text-xs text-gray-500 italic">
+                                                    {projectStats.returnedTasks > 0 ? 'Review returned tasks' : 'Check client documents'}
+                                                </dd>
+                                            )}
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Tab Navigation - Only for Team Leader, Manager, Supervisor, Partner */}
                     {needsApprovalTab && (
                         <div className="mb-6">
@@ -1497,10 +1698,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole }: Pro
                                                                     {index === 0 && (
                                                                         <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">Latest</span>
                                                                     )}
-                                                                    {assignment.is_approved && (
-                                                                        <span className="px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">✓ Approved</span>
-                                                                    )}
-                                                                    {assignment.comment && !assignment.is_approved && (
+                                                                    {assignment.comment && (
                                                                         <span className="px-2 py-0.5 text-xs bg-red-100 text-red-800 rounded-full">✗ Rejected</span>
                                                                     )}
                                                                 </div>

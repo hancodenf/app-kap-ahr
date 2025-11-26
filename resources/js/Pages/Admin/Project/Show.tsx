@@ -24,7 +24,6 @@ interface TaskAssignment {
     notes: string | null;
     comment: string | null;
     client_comment: string | null;
-    is_approved: boolean;
     created_at: string;
     status: string;
     documents: Document[];
@@ -728,7 +727,6 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                                                                 <p className="text-sm font-semibold text-gray-900">
                                                                     Submission #{selectedTask.assignments.length - index}
                                                                     {index === 0 && <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">Latest</span>}
-                                                                    {assignment.is_approved && <span className="ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">Approved</span>}
                                                                 </p>
                                                                 <p className="text-xs text-gray-500 mt-1">
                                                                     {new Date(assignment.created_at).toLocaleDateString('id-ID', {
@@ -1082,10 +1080,7 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                                                                     {index === 0 && (
                                                                         <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">Latest</span>
                                                                     )}
-                                                                    {assignment.is_approved && (
-                                                                        <span className="px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">✓ Approved</span>
-                                                                    )}
-                                                                    {assignment.comment && !assignment.is_approved && (
+                                                                    {assignment.comment && (
                                                                         <span className="px-2 py-0.5 text-xs bg-red-100 text-red-800 rounded-full">✗ Rejected</span>
                                                                     )}
                                                                 </div>
@@ -1189,7 +1184,7 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                                         </div>
 
                                         {/* Add New Submission button - only show if latest assignment is rejected */}
-                                        {selectedTask.assignments.length > 0 && selectedTask.assignments[0].comment && !selectedTask.assignments[0].is_approved && (
+                                        {selectedTask.assignments.length > 0 && selectedTask.assignments[0].comment && (
                                             <div className="mt-6 flex justify-center">
                                                 <button
                                                     type="button"

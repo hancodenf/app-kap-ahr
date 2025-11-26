@@ -30,8 +30,6 @@ return new class extends Migration
             $table->string('status_name_reject')->nullable();
             $table->string('status_name_complete')->nullable();
 
-
-            $table->boolean('is_valid')->default(false);
             $table->timestamps();
         });
     }

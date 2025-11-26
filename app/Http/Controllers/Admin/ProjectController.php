@@ -276,7 +276,6 @@ class ProjectController extends Controller
                                 'status' => $latestAssignment->status,
                                 'comment' => $latestAssignment->comment,
                                 'client_comment' => $latestAssignment->client_comment,
-                                'is_approved' => $latestAssignment->is_approved,
                                 'created_at' => $latestAssignment->created_at,
                             ] : null,
                             // All assignments with documents
@@ -287,7 +286,6 @@ class ProjectController extends Controller
                                     'notes' => $assignment->notes,
                                     'comment' => $assignment->comment,
                                     'client_comment' => $assignment->client_comment,
-                                    'is_approved' => $assignment->is_approved,
                                     'created_at' => $assignment->created_at,
                                     'documents' => $assignment->documents->map(function($doc) {
                                         return [
@@ -727,7 +725,6 @@ class ProjectController extends Controller
                         'status_name_progress' => $statusNames['progress'],
                         'status_name_reject' => $statusNames['reject'],
                         'status_name_complete' => $statusNames['complete'],
-                        'is_valid' => true,
                     ]);
                 }
             }
@@ -910,7 +907,6 @@ class ProjectController extends Controller
                 'time' => now(),
                 'notes' => $request->notes,
                 'comment' => null,
-                'is_approved' => false,
             ]);
         }
         

@@ -670,7 +670,6 @@ class CompanyController extends Controller
                 } else {
                     // No approval, no client interaction - mark as completed
                     $latestAssignment->status = 'Completed';
-                    $latestAssignment->is_approved = true;
                     $task->completion_status = 'completed';
                     $task->completed_at = now();
                     $task->save();
@@ -684,7 +683,6 @@ class CompanyController extends Controller
                 $latestAssignment->status = $firstApproval->status_name_pending;
             } else {
                 $latestAssignment->status = 'Completed';
-                $latestAssignment->is_approved = true;
             }
             $latestAssignment->save();
         } elseif (str_contains($currentStatus, 'Returned for Revision')) {
@@ -1348,7 +1346,6 @@ class CompanyController extends Controller
             'time' => now(),
             'notes' => "Re-upload requested\nComment:\n" . $request->comment,
             'status' => 'Submitted to Client', // Set status to request re-upload from client
-            'is_approved' => false,
         ]);
 
         // Copy team documents to new assignment (WITH files - keep team's uploaded documents)
