@@ -145,10 +145,16 @@ class ProjectController extends Controller
         $templates = \App\Models\ProjectTemplate::orderBy('name')
             ->get(['id', 'name']);
 
+        // Get registered AP user IDs (status = 'active')
+        $registeredApUserIds = \App\Models\RegisteredAp::where('status', 'active')
+            ->pluck('user_id')
+            ->toArray();
+
         return Inertia::render('Admin/Project/Create', [
             'clients' => $clients,
             'availableUsers' => $availableUsers,
             'templates' => $templates,
+            'registeredApUserIds' => $registeredApUserIds,
         ]);
     }
 

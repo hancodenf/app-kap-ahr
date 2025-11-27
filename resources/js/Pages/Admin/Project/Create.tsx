@@ -34,6 +34,7 @@ interface Props extends PageProps {
     clients: Client[];
     availableUsers: User[];
     templates: Template[];
+    registeredApUserIds: number[];
 }
 
 interface TeamMemberRow {
@@ -41,7 +42,7 @@ interface TeamMemberRow {
     role: 'partner' | 'manager' | 'supervisor' | 'team leader' | 'member';
 }
 
-export default function Create({ auth, clients, availableUsers, templates }: Props) {
+export default function Create({ auth, clients, availableUsers, templates, registeredApUserIds }: Props) {
     const currentYear = new Date().getFullYear();
     
     const { data, setData, post, processing, errors } = useForm({
@@ -51,6 +52,29 @@ export default function Create({ auth, clients, availableUsers, templates }: Pro
         team_members: [] as TeamMemberRow[],
         template_id: 0,
     });
+
+    // Helper function to check if user is registered AP
+    const isUserRegisteredAp = (userId: number): boolean => {
+        return registeredApUserIds.includes(userId);
+    };
+
+    // Helper function to check if partner option should be disabled
+    const isPartnerOptionDisabled = (userId: number | null): boolean => {
+        // If no user selected yet, allow partner to be selected (don't disable)
+        if (!userId || userId === 0) return false;
+        // If user is selected, check if they're registered AP
+        return !isUserRegisteredAp(userId);
+    };
+
+    // Get filtered users based on role for each team member
+    const getFilteredUsers = (role: string) => {
+        if (role === 'partner') {
+            // If role is partner, only show registered APs
+            return availableUsers.filter(user => isUserRegisteredAp(user.id));
+        }
+        // Otherwise show all users
+        return availableUsers;
+    };
 
     // Get year options with disabled status for used years
     const yearOptions = useMemo(() => {
@@ -199,7 +223,7 @@ export default function Create({ auth, clients, availableUsers, templates }: Pro
                                                         Select User
                                                     </label>
                                                     <SearchableSelect
-                                                        options={availableUsers.map(user => ({
+                                                        options={getFilteredUsers(member.role).map(user => ({
                                                             value: user.id,
                                                             label: user.name,
                                                             subtitle: `${user.email}${user.position ? ' - ' + user.position : ''}`,
@@ -214,17 +238,29 @@ export default function Create({ auth, clients, availableUsers, templates }: Pro
                                                     <label className="block text-xs font-medium text-gray-600 mb-1">
                                                         Role
                                                     </label>
-                                                    <select
+                                                    <SearchableSelect
+                                                        options={[
+                                                            { value: 'member', label: 'Member' },
+                                                            { value: 'team leader', label: 'Team Leader' },
+                                                            { value: 'supervisor', label: 'Supervisor' },
+                                                            { value: 'manager', label: 'Manager' },
+                                                            { 
+                                                                value: 'partner', 
+                                                                label: member.user_id > 0 && isPartnerOptionDisabled(member.user_id) 
+                                                                    ? 'Partner (Registered AP Only)' 
+                                                                    : 'Partner',
+                                                                isDisabled: isPartnerOptionDisabled(member.user_id)
+                                                            },
+                                                        ]}
                                                         value={member.role}
-                                                        onChange={(e) => updateTeamMember(index, 'role', e.target.value)}
-                                                        className="w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
-                                                    >
-                                                        <option value="member">Member</option>
-                                                        <option value="team leader">Team Leader</option>
-                                                        <option value="supervisor">Supervisor</option>
-                                                        <option value="manager">Manager</option>
-                                                        <option value="partner">Partner</option>
-                                                    </select>
+                                                        onChange={(value) => updateTeamMember(index, 'role', value as string)}
+                                                        placeholder="Select role..."
+                                                    />
+                                                    {member.user_id > 0 && isPartnerOptionDisabled(member.user_id) && (
+                                                        <p className="mt-1 text-xs text-orange-600">
+                                                            ⚠️ This user is not a Registered AP
+                                                        </p>
+                                                    )}
                                                 </div>
 
                                                 <div className="pt-6">
