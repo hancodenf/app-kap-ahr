@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skema Pengujian Blackbox - Aplikasi KAP AHR</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #3498db;
+            font-size: 22px;
+        }
+
+        h3 {
+            color: #2c3e50;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .info-section {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+
+        .info-section p {
+            margin: 8px 0;
+        }
+
+        .info-section strong {
+            color: #2c3e50;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            background: white;
+        }
+
+        th {
+            background-color: #3498db;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            font-size: 13px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #f0f8ff;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 5px;
+        }
+
+        .badge-admin {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .badge-company {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .badge-client {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .badge-public {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .summary-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .page-break {
+            page-break-after: always;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+            }
+            table {
+                page-break-inside: auto;
+            }
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+        }
+
+        .feature-count {
+            background: #3498db;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            display: inline-block;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .db-info {
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .db-info h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .db-info ul {
+            list-style-position: inside;
+            margin-left: 15px;
+        }
+
+        .db-info li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SKEMA PENGUJIAN BLACKBOX</h1>
+        <h1 style="font-size: 24px; margin-top: 10px;">Aplikasi Manajemen Audit KAP AHR</h1>
+
+        <div class="info-section">
+            <p><strong>Aplikasi:</strong> KAP AHR - Sistem Manajemen Audit dan Project</p>
+            <p><strong>Versi:</strong> 1.0</p>
+            <p><strong>Tanggal Pembuatan:</strong> 27 November 2025</p>
+            <p><strong>Framework:</strong> Laravel 11 + Inertia.js + React + TypeScript</p>
+            <p><strong>Database:</strong> MySQL</p>
+        </div>
+
+        <div class="db-info">
+            <h4>📊 Struktur Database Aplikasi</h4>
+            <ul>
+                <li><strong>21 Tabel Utama:</strong> clients, users, projects, tasks, working_steps, documents, dll</li>
+                <li><strong>3 Role Utama:</strong> Admin, Company (Staff/Partner), Client</li>
+                <li><strong>Fitur Keamanan:</strong> Failed Login Tracking, Account Suspension, Security Unlock</li>
+                <li><strong>Fitur Utama:</strong> Project Templates, Hierarchical Approval, Document Management, Activity Logs</li>
+            </ul>
+        </div>
+
+        <div class="summary-box">
+            <strong>📝 Petunjuk Pengisian:</strong><br>
+            1. Kolom "Hasil yang Diharapkan" diisi dengan deskripsi hasil yang seharusnya muncul<br>
+            2. Kolom "Hasil Pengujian" diisi dengan hasil aktual setelah testing (Berhasil/Gagal)<br>
+            3. Kolom "Kesimpulan" diisi dengan Valid/Invalid berdasarkan kesesuaian hasil
+        </div>
+
+        <!-- ==================== MODUL AUTENTIKASI ==================== -->
+        <h2>1. MODUL AUTENTIKASI</h2>
+        
+        <div class="feature-count">Total: 6 Fitur Pengujian</div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 20%;">Fitur yang Diuji</th>
+                    <th style="width: 20%;">Skenario Pengujian</th>
+                    <th style="width: 20%;">Hasil yang Diharapkan</th>
+                    <th style="width: 15%;">Hasil Pengujian</th>
+                    <th style="width: 10%;">Kesimpulan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>Login - Valid Credentials</td>
+                    <td>User memasukkan email dan password yang benar</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Login - Invalid Credentials</td>
+                    <td>User memasukkan email/password yang salah</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Login - Account Suspension</td>
+                    <td>User gagal login 3x berturut-turut</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Forgot Password</td>
+                    <td>User request reset password melalui email</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>Reset Password</td>
+                    <td>User mengubah password melalui link reset</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Logout</td>
+                    <td>User klik tombol logout</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ==================== MODUL ADMIN - USER MANAGEMENT ==================== -->
+        <h2>2. MODUL ADMIN - MANAJEMEN USER</h2>
+        
+        <div class="feature-count">Total: 8 Fitur Pengujian</div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 20%;">Fitur yang Diuji</th>
+                    <th style="width: 20%;">Skenario Pengujian</th>
+                    <th style="width: 20%;">Hasil yang Diharapkan</th>
+                    <th style="width: 15%;">Hasil Pengujian</th>
+                    <th style="width: 10%;">Kesimpulan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>Dashboard Admin</td>
+                    <td>Admin mengakses halaman dashboard</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>List Users</td>
+                    <td>Admin melihat daftar semua users dengan pagination dan search</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Create User</td>
+                    <td>Admin membuat user baru dengan role tertentu</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Edit User</td>
+                    <td>Admin mengubah data user (nama, email, role, position)</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>Delete User</td>
+                    <td>Admin menghapus user dari sistem</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Toggle User Status</td>
+                    <td>Admin mengaktifkan/menonaktifkan user</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td>View User Detail</td>
+                    <td>Admin melihat detail lengkap user</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>8</td>
+                    <td>Search & Filter Users</td>
+                    <td>Admin mencari user berdasarkan nama, email, atau role</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ==================== MODUL ADMIN - CLIENT MANAGEMENT ==================== -->
+        <h2>3. MODUL ADMIN - MANAJEMEN CLIENT</h2>
+        
+        <div class="feature-count">Total: 7 Fitur Pengujian</div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 20%;">Fitur yang Diuji</th>
+                    <th style="width: 20%;">Skenario Pengujian</th>
+                    <th style="width: 20%;">Hasil yang Diharapkan</th>
+                    <th style="width: 15%;">Hasil Pengujian</th>
+                    <th style="width: 10%;">Kesimpulan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>List Clients</td>
+                    <td>Admin melihat daftar semua client dengan info lengkap</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Create Client</td>
+                    <td>Admin menambah client baru (nama, alamat, kementrian, kode satker, type, logo)</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Edit Client</td>
+                    <td>Admin mengubah informasi client</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Delete Client</td>
+                    <td>Admin menghapus client dari sistem</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>View Client Detail</td>
+                    <td>Admin melihat detail client dan project terkait</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Upload Client Logo</td>
+                    <td>Admin mengupload logo client</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td>Search Clients</td>
+                    <td>Admin mencari client berdasarkan nama, alamat, kementrian</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="page-break"></div>
+
+        <!-- ==================== MODUL ADMIN - PROJECT TEMPLATES ==================== -->
+        <h2>4. MODUL ADMIN - MANAJEMEN PROJECT TEMPLATES</h2>
+        
+        <div class="feature-count">Total: 12 Fitur Pengujian</div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 20%;">Fitur yang Diuji</th>
+                    <th style="width: 20%;">Skenario Pengujian</th>
+                    <th style="width: 20%;">Hasil yang Diharapkan</th>
+                    <th style="width: 15%;">Hasil Pengujian</th>
+                    <th style="width: 10%;">Kesimpulan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>List Project Templates</td>
+                    <td>Admin melihat daftar semua template project</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Create Template</td>
+                    <td>Admin membuat template project baru</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Edit Template</td>
+                    <td>Admin mengubah nama template</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Delete Template</td>
+                    <td>Admin menghapus template project</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>Add Working Step to Template</td>
+                    <td>Admin menambah working step dalam template</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Edit Working Step</td>
+                    <td>Admin mengubah working step dalam template</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td>Delete Working Step</td>
+                    <td>Admin menghapus working step dari template</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>8</td>
+                    <td>Reorder Working Steps</td>
+                    <td>Admin mengubah urutan working steps dengan drag & drop</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>9</td>
+                    <td>Add Task to Template</td>
+                    <td>Admin menambah task dalam working step dengan konfigurasi client interaction</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>10</td>
+                    <td>Edit Task in Template</td>
+                    <td>Admin mengubah task (nama, comment, client interaction, is_required)</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>11</td>
+                    <td>Delete Task from Template</td>
+                    <td>Admin menghapus task dari template</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>12</td>
+                    <td>Reorder Tasks in Template</td>
+                    <td>Admin mengubah urutan tasks dengan drag & drop</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ==================== MODUL ADMIN - PROJECTS ==================== -->
+        <h2>5. MODUL ADMIN - MANAJEMEN PROJECTS</h2>
+        
+        <div class="feature-count">Total: 18 Fitur Pengujian</div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 20%;">Fitur yang Diuji</th>
+                    <th style="width: 20%;">Skenario Pengujian</th>
+                    <th style="width: 20%;">Hasil yang Diharapkan</th>
+                    <th style="width: 15%;">Hasil Pengujian</th>
+                    <th style="width: 10%;">Kesimpulan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>List Projects</td>
+                    <td>Admin melihat daftar semua project dengan filter dan search</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Create Project</td>
+                    <td>Admin membuat project baru untuk client tertentu</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Generate Project from Template</td>
+                    <td>Admin generate project dari template yang sudah ada</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Edit Project Name</td>
+                    <td>Admin mengubah nama project</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>Update Project Status</td>
+                    <td>Admin mengubah status project (open/closed)</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Delete Project</td>
+                    <td>Admin menghapus project</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td>View Project Detail</td>
+                    <td>Admin melihat detail project dengan working steps dan tasks</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>8</td>
+                    <td>Add Team Member</td>
+                    <td>Admin menambah team member ke project dengan role tertentu</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>9</td>
+                    <td>Edit Team Member Role</td>
+                    <td>Admin mengubah role team member (partner/manager/supervisor/team leader/member)</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>10</td>
+                    <td>Remove Team Member</td>
+                    <td>Admin menghapus team member dari project</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>11</td>
+                    <td>Add Working Step to Project</td>
+                    <td>Admin menambah working step ke project</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>12</td>
+                    <td>Edit Working Step</td>
+                    <td>Admin mengubah working step dalam project</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>13</td>
+                    <td>Delete Working Step</td>
+                    <td>Admin menghapus working step dari project</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>14</td>
+                    <td>Add Task to Project</td>
+                    <td>Admin menambah task ke working step dengan konfigurasi lengkap</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>15</td>
+                    <td>Edit Task in Project</td>
+                    <td>Admin mengubah task (nama, status, requirement, client interaction)</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>16</td>
+                    <td>Delete Task from Project</td>
+                    <td>Admin menghapus task dari project</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>17</td>
+                    <td>Update Task Status</td>
+                    <td>Admin mengubah status task (pending/in_progress/completed)</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>18</td>
+                    <td>Reorder Steps & Tasks</td>
+                    <td>Admin mengubah urutan working steps dan tasks</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="page-break"></div>
+
+        <!-- ==================== MODUL ADMIN - REGISTERED APs ==================== -->
+        <h2>6. MODUL ADMIN - MANAJEMEN REGISTERED APs</h2>
+        
+        <div class="feature-count">Total: 6 Fitur Pengujian</div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 20%;">Fitur yang Diuji</th>
+                    <th style="width: 20%;">Skenario Pengujian</th>
+                    <th style="width: 20%;">Hasil yang Diharapkan</th>
+                    <th style="width: 15%;">Hasil Pengujian</th>
+                    <th style="width: 10%;">Kesimpulan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>List Registered APs</td>
+                    <td>Admin melihat daftar semua AP yang terdaftar</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Create Registered AP</td>
+                    <td>Admin mendaftarkan AP baru untuk user</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Edit Registered AP</td>
+                    <td>Admin mengubah data AP (nomor, tanggal, status)</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Delete Registered AP</td>
+                    <td>Admin menghapus AP yang terdaftar</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>View AP Detail</td>
+                    <td>Admin melihat detail lengkap AP</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Update AP Status</td>
+                    <td>Admin mengubah status AP (active/inactive/expired)</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ==================== MODUL ADMIN - NEWS MANAGEMENT ==================== -->
+        <h2>7. MODUL ADMIN - MANAJEMEN NEWS/BERITA</h2>
+        
+        <div class="feature-count">Total: 7 Fitur Pengujian</div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 20%;">Fitur yang Diuji</th>
+                    <th style="width: 20%;">Skenario Pengujian</th>
+                    <th style="width: 20%;">Hasil yang Diharapkan</th>
+                    <th style="width: 15%;">Hasil Pengujian</th>
+                    <th style="width: 10%;">Kesimpulan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>List News</td>
+                    <td>Admin melihat daftar semua berita</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Create News</td>
+                    <td>Admin membuat berita baru dengan featured image</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Edit News</td>
+                    <td>Admin mengubah konten berita</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Delete News</td>
+                    <td>Admin menghapus berita</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>Publish News</td>
+                    <td>Admin mempublikasikan berita (draft → published)</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Upload Featured Image</td>
+                    <td>Admin mengupload gambar utama untuk berita</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td>View News Detail</td>
+                    <td>Admin melihat preview berita lengkap</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ==================== MODUL ADMIN - LOGIN SECURITY ==================== -->
+        <h2>8. MODUL ADMIN - MONITORING KEAMANAN LOGIN</h2>
+        
+        <div class="feature-count">Total: 6 Fitur Pengujian</div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 20%;">Fitur yang Diuji</th>
+                    <th style="width: 20%;">Skenario Pengujian</th>
+                    <th style="width: 20%;">Hasil yang Diharapkan</th>
+                    <th style="width: 15%;">Hasil Pengujian</th>
+                    <th style="width: 10%;">Kesimpulan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>Security Unlock</td>
+                    <td>Admin memasukkan key untuk unlock fitur monitoring</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>View Failed Login Attempts</td>
+                    <td>Admin melihat daftar percobaan login gagal</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>View Attempt Detail</td>
+                    <td>Admin melihat detail attempt (IP, location, user agent, photo)</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Unsuspend User</td>
+                    <td>Admin membuka suspend akun user</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>Delete Attempt Record</td>
+                    <td>Admin menghapus record percobaan login</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Security Lock</td>
+                    <td>Admin mengunci kembali fitur monitoring</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="page-break"></div>
+
+        <!-- ==================== MODUL COMPANY - DASHBOARD ==================== -->
+        <h2>9. MODUL COMPANY/STAFF - DASHBOARD</h2>
+        
+        <div class="feature-count">Total: 3 Fitur Pengujian</div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 20%;">Fitur yang Diuji</th>
+                    <th style="width: 20%;">Skenario Pengujian</th>
+                    <th style="width: 20%;">Hasil yang Diharapkan</th>
+                    <th style="width: 15%;">Hasil Pengujian</th>
+                    <th style="width: 10%;">Kesimpulan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>View Dashboard</td>
+                    <td>Company user mengakses dashboard</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>View Statistics</td>
+                    <td>Company user melihat statistik project dan task</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>View Recent Activities</td>
+                    <td>Company user melihat aktivitas terbaru</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ==================== MODUL COMPANY - CLIENTS ==================== -->
+        <h2>10. MODUL COMPANY/STAFF - MANAJEMEN CLIENT</h2>
+        
+        <div class="feature-count">Total: 4 Fitur Pengujian</div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 20%;">Fitur yang Diuji</th>
+                    <th style="width: 20%;">Skenario Pengujian</th>
+                    <th style="width: 20%;">Hasil yang Diharapkan</th>
+                    <th style="width: 15%;">Hasil Pengujian</th>
+                    <th style="width: 10%;">Kesimpulan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>View My Clients</td>
+                    <td>Company user melihat daftar client dari project yang ditangani</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Search Clients</td>
+                    <td>Company user mencari client dengan keyword</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>View Client Detail</td>
+                    <td>Company user melihat detail client dengan logo dan info lengkap</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Filter Client Projects</td>
+                    <td>Company user filter project client berdasarkan status dengan pagination</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ==================== MODUL COMPANY - PROJECTS ==================== -->
+        <h2>11. MODUL COMPANY/STAFF - MANAJEMEN PROJECT</h2>
+        
+        <div class="feature-count">Total: 8 Fitur Pengujian</div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 20%;">Fitur yang Diuji</th>
+                    <th style="width: 20%;">Skenario Pengujian</th>
+                    <th style="width: 20%;">Hasil yang Diharapkan</th>
+                    <th style="width: 15%;">Hasil Pengujian</th>
+                    <th style="width: 10%;">Kesimpulan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>View My Projects</td>
+                    <td>Company user melihat daftar project yang ditangani</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Search & Filter Projects</td>
+                    <td>Company user mencari/filter project berdasarkan status, client</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>View Project Detail</td>
+                    <td>Company user melihat detail project dengan working steps dan tasks</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>View Project Team</td>
+                    <td>Company user melihat team members dalam project</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>View Task Detail</td>
+                    <td>Company user melihat detail task dengan documents dan approval flow</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Update Task Status</td>
+                    <td>Company user mengubah status task sesuai role</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td>Add Task Comment</td>
+                    <td>Company user menambahkan comment pada task</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>8</td>
+                    <td>Upload Task Documents</td>
+                    <td>Company user mengupload dokumen untuk task</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ==================== MODUL COMPANY - APPROVAL ==================== -->
+        <h2>12. MODUL COMPANY/STAFF - WORKFLOW APPROVAL</h2>
+        
+        <div class="feature-count">Total: 6 Fitur Pengujian</div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 20%;">Fitur yang Diuji</th>
+                    <th style="width: 20%;">Skenario Pengujian</th>
+                    <th style="width: 20%;">Hasil yang Diharapkan</th>
+                    <th style="width: 15%;">Hasil Pengujian</th>
+                    <th style="width: 10%;">Kesimpulan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>View Approval Requests</td>
+                    <td>Company user (dengan role tertentu) melihat task yang butuh approval</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>View Approval Detail</td>
+                    <td>Company user melihat detail task approval dengan hierarchy</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Approve Task</td>
+                    <td>Company user (team leader/supervisor/manager/partner) approve task</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Reject Task</td>
+                    <td>Company user reject task dengan alasan</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>Accept Client Documents</td>
+                    <td>Company user menerima dokumen dari client</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Request Document Reupload</td>
+                    <td>Company user meminta client upload ulang dokumen</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="page-break"></div>
+
+        <!-- ==================== MODUL CLIENT - DASHBOARD ==================== -->
+        <h2>13. MODUL CLIENT/KLIEN - DASHBOARD</h2>
+        
+        <div class="feature-count">Total: 3 Fitur Pengujian</div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 20%;">Fitur yang Diuji</th>
+                    <th style="width: 20%;">Skenario Pengujian</th>
+                    <th style="width: 20%;">Hasil yang Diharapkan</th>
+                    <th style="width: 15%;">Hasil Pengujian</th>
+                    <th style="width: 10%;">Kesimpulan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>View Dashboard</td>
+                    <td>Client mengakses dashboard</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>View Project Summary</td>
+                    <td>Client melihat ringkasan project yang sedang berjalan</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>View Recent Updates</td>
+                    <td>Client melihat update terbaru dari project</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ==================== MODUL CLIENT - PROJECTS ==================== -->
+        <h2>14. MODUL CLIENT/KLIEN - MANAJEMEN PROJECT</h2>
+        
+        <div class="feature-count">Total: 7 Fitur Pengujian</div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 20%;">Fitur yang Diuji</th>
+                    <th style="width: 20%;">Skenario Pengujian</th>
+                    <th style="width: 20%;">Hasil yang Diharapkan</th>
+                    <th style="width: 15%;">Hasil Pengujian</th>
+                    <th style="width: 10%;">Kesimpulan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>View My Projects</td>
+                    <td>Client melihat daftar project miliknya</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>View Project Detail</td>
+                    <td>Client melihat detail project dengan progress</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>View Working Steps</td>
+                    <td>Client melihat tahapan working steps (locked/unlocked)</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>View Task List</td>
+                    <td>Client melihat daftar tasks dalam working step</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>View Task Detail</td>
+                    <td>Client melihat detail task berdasarkan client interaction level</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Add Comment to Task</td>
+                    <td>Client menambahkan comment pada task (jika interaction = comment/upload)</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td>Upload Documents</td>
+                    <td>Client mengupload dokumen ke task (jika interaction = upload)</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ==================== MODUL PUBLIC - NEWS ==================== -->
+        <h2>15. MODUL PUBLIC - NEWS/BERITA</h2>
+        
+        <div class="feature-count">Total: 3 Fitur Pengujian</div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 20%;">Fitur yang Diuji</th>
+                    <th style="width: 20%;">Skenario Pengujian</th>
+                    <th style="width: 20%;">Hasil yang Diharapkan</th>
+                    <th style="width: 15%;">Hasil Pengujian</th>
+                    <th style="width: 10%;">Kesimpulan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>View News List</td>
+                    <td>User (authenticated) melihat daftar berita yang published</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Read News Detail</td>
+                    <td>User membaca konten berita lengkap</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>View Featured Image</td>
+                    <td>User melihat gambar utama berita</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ==================== MODUL PROFILE ==================== -->
+        <h2>16. MODUL PROFILE MANAGEMENT</h2>
+        
+        <div class="feature-count">Total: 4 Fitur Pengujian</div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 20%;">Fitur yang Diuji</th>
+                    <th style="width: 20%;">Skenario Pengujian</th>
+                    <th style="width: 20%;">Hasil yang Diharapkan</th>
+                    <th style="width: 15%;">Hasil Pengujian</th>
+                    <th style="width: 10%;">Kesimpulan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>View Profile</td>
+                    <td>User melihat halaman profile</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Update Profile Information</td>
+                    <td>User mengubah nama, email, whatsapp</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Update Password</td>
+                    <td>User mengubah password</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Upload Profile Photo</td>
+                    <td>User mengupload foto profile</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ==================== SUMMARY ==================== -->
+        <h2>📊 RINGKASAN PENGUJIAN</h2>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 40%;">Kategori Modul</th>
+                    <th style="width: 15%;">Role</th>
+                    <th style="width: 15%;">Jumlah Fitur</th>
+                    <th style="width: 25%;">Status Pengujian</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>Autentikasi</td>
+                    <td><span class="role-badge badge-public">Public</span></td>
+                    <td>6</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Admin - User Management</td>
+                    <td><span class="role-badge badge-admin">Admin</span></td>
+                    <td>8</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Admin - Client Management</td>
+                    <td><span class="role-badge badge-admin">Admin</span></td>
+                    <td>7</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Admin - Project Templates</td>
+                    <td><span class="role-badge badge-admin">Admin</span></td>
+                    <td>12</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>Admin - Projects</td>
+                    <td><span class="role-badge badge-admin">Admin</span></td>
+                    <td>18</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Admin - Registered APs</td>
+                    <td><span class="role-badge badge-admin">Admin</span></td>
+                    <td>6</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td>Admin - News Management</td>
+                    <td><span class="role-badge badge-admin">Admin</span></td>
+                    <td>7</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>8</td>
+                    <td>Admin - Login Security</td>
+                    <td><span class="role-badge badge-admin">Admin</span></td>
+                    <td>6</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>9</td>
+                    <td>Company - Dashboard</td>
+                    <td><span class="role-badge badge-company">Company</span></td>
+                    <td>3</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>10</td>
+                    <td>Company - Clients</td>
+                    <td><span class="role-badge badge-company">Company</span></td>
+                    <td>4</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>11</td>
+                    <td>Company - Projects</td>
+                    <td><span class="role-badge badge-company">Company</span></td>
+                    <td>8</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>12</td>
+                    <td>Company - Workflow Approval</td>
+                    <td><span class="role-badge badge-company">Company</span></td>
+                    <td>6</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>13</td>
+                    <td>Client - Dashboard</td>
+                    <td><span class="role-badge badge-client">Client</span></td>
+                    <td>3</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>14</td>
+                    <td>Client - Projects</td>
+                    <td><span class="role-badge badge-client">Client</span></td>
+                    <td>7</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>15</td>
+                    <td>Public - News</td>
+                    <td><span class="role-badge badge-public">All Users</span></td>
+                    <td>3</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>16</td>
+                    <td>Profile Management</td>
+                    <td><span class="role-badge badge-public">All Users</span></td>
+                    <td>4</td>
+                    <td></td>
+                </tr>
+                <tr style="background-color: #e3f2fd; font-weight: bold;">
+                    <td colspan="3" style="text-align: right;">TOTAL FITUR:</td>
+                    <td>108</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="db-info" style="margin-top: 30px;">
+            <h4>📋 Catatan Penting untuk Pengujian:</h4>
+            <ul>
+                <li><strong>Role-Based Access:</strong> Pastikan setiap role hanya bisa mengakses fitur sesuai haknya</li>
+                <li><strong>Approval Hierarchy:</strong> Test approval flow dari team leader → supervisor → manager → partner</li>
+                <li><strong>Client Interaction:</strong> Test 3 level interaksi client (read only, comment, upload)</li>
+                <li><strong>Working Step Lock:</strong> Test mekanisme lock/unlock working steps berdasarkan required tasks</li>
+                <li><strong>Security Features:</strong> Test failed login tracking, suspension, dan security unlock</li>
+                <li><strong>Document Management:</strong> Test upload single/multiple files untuk tasks</li>
+                <li><strong>Activity Logging:</strong> Verify semua aktivitas penting tercatat di activity_logs</li>
+                <li><strong>Data Denormalization:</strong> Pastikan data denormalisasi (project_name, client_name, dll) terupdate dengan benar</li>
+            </ul>
+        </div>
+
+        <div class="info-section" style="margin-top: 30px;">
+            <p><strong>Tester:</strong> _____________________</p>
+            <p><strong>Tanggal Pengujian:</strong> _____________________</p>
+            <p><strong>Versi Aplikasi:</strong> _____________________</p>
+            <p><strong>Browser/Platform:</strong> _____________________</p>
+        </div>
+
+    </div>
+
+    <script>
+        // Auto print functionality (optional)
+        // window.onload = function() { window.print(); }
+    </script>
+</body>
+</html>

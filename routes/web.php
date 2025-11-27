@@ -11,6 +11,7 @@ use App\Http\Controllers\Company\CompanyController;
 use App\Http\Controllers\Company\CompanyClientController;
 use App\Http\Controllers\Admin\ProjectTemplateController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\BlackboxTestController;
 use App\Models\Task;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Auth;
@@ -276,5 +277,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/news', [\App\Http\Controllers\Admin\NewsController::class, 'indexPublic'])->name('news.index');
     Route::get('/news/{news:slug}', [\App\Http\Controllers\Admin\NewsController::class, 'showPublic'])->name('news.show');
 });
+
+// Blackbox Testing Routes (publicly accessible)
+Route::get('/blackbox-test', [BlackboxTestController::class, 'index'])->name('blackbox.test');
+Route::post('/blackbox-test/save-result', [BlackboxTestController::class, 'saveResult'])->name('blackbox.save-result');
+Route::post('/blackbox-test/update-session', [BlackboxTestController::class, 'updateSession'])->name('blackbox.update-session');
+Route::get('/blackbox-test/export/{token}', [BlackboxTestController::class, 'exportPdf'])->name('blackbox.export.pdf');
 
 require __DIR__ . '/auth.php';

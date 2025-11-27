@@ -87,13 +87,7 @@ export default function NewsDetail({ news }: NewsDetailProps) {
                         )}
 
                         {/* Article Meta & Title */}
-                        <div className="px-4 sm:px-6 md:px-8 py-6 border-b border-gray-100">
-                            <div className="flex flex-wrap items-center gap-3 mb-4">
-                                {getStatusBadge(news.status)}
-                                <span className="text-sm text-gray-500">
-                                    {formatDate(news.published_at || news.created_at)}
-                                </span>
-                            </div>
+                        <div className="px-4 sm:px-6 md:px-8 py-6 border-b border-gray-100"> 
                             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 leading-tight">{news.title}</h1>
                             {news.excerpt && (
                                 <p className="text-base sm:text-lg text-gray-600 leading-relaxed border-l-4 border-green-500 pl-4 py-2">{news.excerpt}</p>
