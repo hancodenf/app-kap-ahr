@@ -13,135 +13,148 @@
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            padding: 20px;
+            font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            padding: 0;
             min-height: 100vh;
         }
         
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
         }
         
         .header {
-            background: linear-gradient(135deg, #16a34a 0%, #10b981 100%);
-            color: white;
-            padding: 40px;
-            text-align: center;
-        }
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 24px 32px;
+        }   
         
         .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            font-size: 28px;
+            font-weight: 400;
+            color: #202124;
+            margin-bottom: 4px;
         }
         
         .header p {
-            font-size: 1.1em;
-            opacity: 0.95;
+            font-size: 14px;
+            color: #5f6368;
         }
         
         .session-info {
-            background: #f8f9fa;
-            padding: 30px;
-            border-bottom: 2px solid #e9ecef;
+            background: white;
+            padding: 24px 32px;
+            border-bottom: 1px solid #e0e0e0;
         }
         
         .session-info .token-display {
-            background: white;
-            padding: 15px;
+            background: #f8f9fa;
+            padding: 16px;
             border-radius: 8px;
-            margin-bottom: 20px;
-            border: 2px solid #16a34a;
+            margin-bottom: 24px;
+            border-left: 4px solid #16a34a;
         }
         
         .session-info .token-display strong {
-            color: #16a34a;
+            color: #202124;
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
         }
         
         .session-info .token-display code {
-            background: #f8f9fa;
+            background: white;
             padding: 8px 12px;
             border-radius: 4px;
-            font-size: 14px;
+            font-size: 13px;
             display: inline-block;
-            color: #495057;
+            color: #16a34a;
+            border: 1px solid #e0e0e0;
+            font-family: 'Roboto Mono', monospace;
         }
         
         .info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
+            gap: 16px;
         }
         
         .info-item label {
             display: block;
-            font-weight: 600;
-            margin-bottom: 5px;
-            color: #495057;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #202124;
+            font-size: 14px;
         }
         
         .info-item input {
             width: 100%;
-            padding: 10px;
-            border: 2px solid #dee2e6;
-            border-radius: 6px;
+            padding: 12px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
             font-size: 14px;
-            transition: border-color 0.3s;
+            transition: all 0.2s;
+        }
+        
+        .info-item input:hover {
+            border-color: #bdc1c6;
         }
         
         .info-item input:focus {
             outline: none;
             border-color: #16a34a;
+            box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.1);
         }
         
         .summary-section {
-            padding: 30px;
-            background: #fff;
+            padding: 32px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
         }
         
         .summary-title {
-            font-size: 1.8em;
-            margin-bottom: 20px;
-            color: #2c3e50;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            font-size: 20px;
+            font-weight: 400;
+            margin-bottom: 24px;
+            color: #202124;
         }
         
         .summary-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            gap: 16px;
+            margin-bottom: 32px;
         }
         
         .summary-card {
-            background: linear-gradient(135deg, #16a34a 0%, #10b981 100%);
-            color: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3);
+            background: white;
+            border: 1px solid #e0e0e0;
+            padding: 20px;
+            border-radius: 8px;
+            transition: box-shadow 0.2s;
+        }
+        
+        .summary-card:hover {
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
         }
         
         .summary-card h3 {
-            font-size: 2.5em;
-            margin-bottom: 5px;
+            font-size: 36px;
+            font-weight: 400;
+            margin-bottom: 4px;
+            color: #16a34a;
         }
         
         .summary-card p {
-            opacity: 0.9;
-            font-size: 0.95em;
+            font-size: 14px;
+            color: #5f6368;
         }
         
         .progress-bars {
-            margin-top: 30px;
+            margin-top: 24px;
         }
         
         .progress-item {
@@ -152,64 +165,65 @@
             display: flex;
             justify-content: space-between;
             margin-bottom: 8px;
-            font-weight: 600;
-            color: #495057;
+            font-size: 14px;
+            color: #5f6368;
         }
         
         .progress-bar-bg {
-            background: #e9ecef;
-            height: 30px;
-            border-radius: 15px;
+            background: #e0e0e0;
+            height: 8px;
+            border-radius: 4px;
             overflow: hidden;
         }
         
         .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #16a34a 0%, #10b981 100%);
+            background: #16a34a;
             transition: width 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            font-size: 0.85em;
+            border-radius: 4px;
         }
         
         .content {
-            padding: 30px;
+            padding: 32px;
+            background: #f8f9fa;
         }
         
         .module-section {
-            margin-bottom: 40px;
-            border: 2px solid #e9ecef;
-            border-radius: 12px;
+            margin-bottom: 24px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
             overflow: hidden;
         }
         
         .module-header {
-            background: linear-gradient(135deg, #16a34a 0%, #10b981 100%);
-            color: white;
-            padding: 20px;
+            background: #f8f9fa;
+            padding: 16px 20px;
             cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid #e0e0e0;
+            transition: background-color 0.2s;
         }
         
         .module-header:hover {
-            background: linear-gradient(135deg, #15803d 0%, #059669 100%);
+            background: #f1f3f4;
         }
         
         .module-title {
-            font-size: 1.3em;
-            font-weight: 600;
+            font-size: 16px;
+            font-weight: 500;
+            color: #202124;
         }
         
         .role-badge {
-            background: rgba(255,255,255,0.2);
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.85em;
+            background: #e8f5e9;
+            color: #16a34a;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
         }
         
         .module-content {
@@ -230,33 +244,42 @@
         }
         
         .test-table th {
-            padding: 15px;
+            padding: 12px 16px;
             text-align: left;
-            font-weight: 600;
-            color: #495057;
-            border-bottom: 2px solid #dee2e6;
+            font-weight: 500;
+            color: #5f6368;
+            font-size: 13px;
+            border-bottom: 1px solid #e0e0e0;
         }
         
         .test-table td {
-            padding: 15px;
-            border-bottom: 1px solid #e9ecef;
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f3f4;
+            font-size: 14px;
+            color: #202124;
         }
         
         .test-table tr:hover {
-            background: #f8f9fa;
+            background: #fafafa;
         }
         
         .test-input {
             width: 100%;
-            padding: 8px;
-            border: 1px solid #dee2e6;
+            padding: 8px 12px;
+            border: 1px solid #dadce0;
             border-radius: 4px;
             font-size: 13px;
+            font-family: inherit;
+        }
+        
+        .test-input:hover {
+            border-color: #bdc1c6;
         }
         
         .test-input:focus {
             outline: none;
             border-color: #16a34a;
+            box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.1);
         }
         
         .test-textarea {
@@ -266,50 +289,57 @@
         
         .conclusion-select {
             width: 100%;
-            padding: 8px;
-            border: 2px solid #dee2e6;
+            padding: 8px 12px;
+            border: 1px solid #dadce0;
             border-radius: 4px;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 500;
             cursor: pointer;
+            background: white;
+        }
+        
+        .conclusion-select:hover {
+            border-color: #bdc1c6;
         }
         
         .conclusion-select:focus {
             outline: none;
             border-color: #16a34a;
+            box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.1);
         }
         
         .conclusion-select.valid {
-            background: #d4edda;
-            color: #155724;
-            border-color: #28a745;
+            background: #e8f5e9;
+            color: #137333;
+            border-color: #16a34a;
         }
         
         .conclusion-select.invalid {
-            background: #f8d7da;
-            color: #721c24;
-            border-color: #dc3545;
+            background: #fce8e6;
+            color: #c5221f;
+            border-color: #ea4335;
         }
         
         .conclusion-select.pending {
-            background: #fff3cd;
-            color: #856404;
-            border-color: #ffc107;
+            background: #fef7e0;
+            color: #f9ab00;
+            border-color: #f9ab00;
         }
         
         .save-indicator {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #28a745;
+            bottom: 24px;
+            right: 24px;
+            background: #202124;
             color: white;
-            padding: 15px 25px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            padding: 12px 20px;
+            border-radius: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
             display: none;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             z-index: 1000;
+            font-size: 14px;
         }
         
         .save-indicator.show {
@@ -319,29 +349,32 @@
         
         @keyframes slideIn {
             from {
-                transform: translateX(400px);
+                transform: translateY(100px);
+                opacity: 0;
             }
             to {
-                transform: translateX(0);
+                transform: translateY(0);
+                opacity: 1;
             }
         }
         
         .export-btn {
-            background: linear-gradient(135deg, #16a34a 0%, #10b981 100%);
+            background: #16a34a;
             color: white;
-            padding: 15px 30px;
+            padding: 10px 24px;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
-            margin-top: 20px;
             display: inline-block;
             text-decoration: none;
+            transition: background-color 0.2s, box-shadow 0.2s;
         }
         
         .export-btn:hover {
-            background: linear-gradient(135deg, #15803d 0%, #059669 100%);
+            background: #15803d;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
         }
         
         @media print {
@@ -359,39 +392,39 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📋 SKEMA PENGUJIAN BLACKBOX</h1>
-            <p>Sistem Manajemen Audit KAP AHR - Testing Framework</p>
+            <h1>Skema Pengujian Blackbox</h1>
+            <p>Sistem Manajemen Audit KAP AHR</p>
         </div>
 
         <div class="session-info">
             <div class="token-display">
-                <strong>🔑 Token Sesi Pengujian:</strong>
+                <strong>Token Sesi Pengujian</strong>
                 <code id="sessionToken">{{ $session->token }}</code>
-                <small style="display: block; margin-top: 5px; color: #6c757d;">
+                <small style="display: block; margin-top: 8px; color: #5f6368; font-size: 13px;">
                     Simpan token ini untuk melanjutkan pengujian di kemudian hari. 
-                    Akses dengan: <strong>{{ url('/blackbox-test?token=' . $session->token) }}</strong>
+                    URL: {{ url('/blackbox-test?token=' . $session->token) }}
                 </small>
             </div>
 
             <div class="info-grid">
                 <div class="info-item">
-                    <label>👤 Nama Tester:</label>
+                    <label>Nama Tester</label>
                     <input type="text" id="testerName" placeholder="Masukkan nama tester" 
                            value="{{ $session->tester_name }}" class="session-field">
                 </div>
                 <div class="info-item">
-                    <label>📅 Tanggal Pengujian:</label>
+                    <label>Tanggal Pengujian</label>
                     <input type="date" id="testDate" 
                            value="{{ $session->test_date ? $session->test_date->format('Y-m-d') : date('Y-m-d') }}" 
                            class="session-field">
                 </div>
                 <div class="info-item">
-                    <label>📦 Versi Aplikasi:</label>
+                    <label>Versi Aplikasi</label>
                     <input type="text" id="appVersion" placeholder="e.g., v1.0.0" 
                            value="{{ $session->app_version }}" class="session-field">
                 </div>
                 <div class="info-item">
-                    <label>💻 Browser/Platform:</label>
+                    <label>Browser/Platform</label>
                     <input type="text" id="browserPlatform" placeholder="e.g., Chrome 120 / Windows 11" 
                            value="{{ $session->browser_platform }}" class="session-field">
                 </div>
@@ -399,7 +432,7 @@
         </div>
 
         <div class="summary-section" id="summarySection">
-            <h2 class="summary-title">📊 RINGKASAN PENGUJIAN</h2>
+            <h2 class="summary-title">Ringkasan Pengujian</h2>
             
             <div class="summary-grid">
                 <div class="summary-card">
@@ -408,15 +441,15 @@
                 </div>
                 <div class="summary-card">
                     <h3 id="validTests">{{ $results->flatten()->where('conclusion', 'valid')->count() }}</h3>
-                    <p>✅ Valid</p>
+                    <p>Valid</p>
                 </div>
                 <div class="summary-card">
                     <h3 id="invalidTests">{{ $results->flatten()->where('conclusion', 'invalid')->count() }}</h3>
-                    <p>❌ Invalid</p>
+                    <p>Invalid</p>
                 </div>
                 <div class="summary-card">
                     <h3 id="pendingTests">{{ collect($modules)->sum(fn($m) => count($m['tests'])) - $results->flatten()->whereIn('conclusion', ['valid', 'invalid'])->count() }}</h3>
-                    <p>⏳ Pending</p>
+                    <p>Pending</p>
                 </div>
             </div>
 
@@ -427,7 +460,7 @@
                         <span id="progressPercent">0%</span>
                     </div>
                     <div class="progress-bar-bg">
-                        <div class="progress-bar" id="progressBar" style="width: 0%">0%</div>
+                        <div class="progress-bar" id="progressBar" style="width: 0%"></div>
                     </div>
                 </div>
                 
@@ -437,13 +470,13 @@
                         <span id="successPercent">0%</span>
                     </div>
                     <div class="progress-bar-bg">
-                        <div class="progress-bar" id="successBar" style="width: 0%; background: linear-gradient(90deg, #28a745 0%, #20c997 100%)">0%</div>
+                        <div class="progress-bar" id="successBar" style="width: 0%; background: #16a34a"></div>
                     </div>
                 </div>
             </div>
 
             <a href="{{ route('blackbox.export.pdf', $session->token) }}" class="export-btn" target="_blank">
-                📄 Export ke PDF
+                Export ke PDF
             </a>
         </div>
 
@@ -510,9 +543,9 @@
                                         data-scenario="{{ $test['scenario'] }}"
                                         data-field="conclusion"
                                     >
-                                        <option value="pending" {{ (!$existingResult || $existingResult->conclusion === 'pending') ? 'selected' : '' }}>⏳ Pending</option>
-                                        <option value="valid" {{ ($existingResult && $existingResult->conclusion === 'valid') ? 'selected' : '' }}>✅ Valid</option>
-                                        <option value="invalid" {{ ($existingResult && $existingResult->conclusion === 'invalid') ? 'selected' : '' }}>❌ Invalid</option>
+                                        <option value="pending" {{ (!$existingResult || $existingResult->conclusion === 'pending') ? 'selected' : '' }}>Pending</option>
+                                        <option value="valid" {{ ($existingResult && $existingResult->conclusion === 'valid') ? 'selected' : '' }}>Valid</option>
+                                        <option value="invalid" {{ ($existingResult && $existingResult->conclusion === 'invalid') ? 'selected' : '' }}>Invalid</option>
                                     </select>
                                 </td>
                             </tr>
@@ -668,11 +701,9 @@
             
             document.getElementById('progressPercent').textContent = progressPercent + '%';
             document.getElementById('progressBar').style.width = progressPercent + '%';
-            document.getElementById('progressBar').textContent = progressPercent + '%';
             
             document.getElementById('successPercent').textContent = successPercent + '%';
             document.getElementById('successBar').style.width = successPercent + '%';
-            document.getElementById('successBar').textContent = successPercent + '%';
 
             // Smooth scroll to summary after update
             if (window.scrollY > 500) {

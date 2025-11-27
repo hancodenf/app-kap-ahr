@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Client;
+use App\Exports\UsersExport;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -475,5 +477,18 @@ class UserController extends Controller
 
         return redirect()->back()
             ->with('success', "User {$user->name} berhasil {$status}.");
+    }
+
+    /**
+     * Export users to Excel
+     */
+    public function export(Request $request)
+    {
+        $role = $request->role ?? null;
+        $search = $request->search ?? null;
+
+        $filename = 'users_export_' . now()->format('Y-m-d_His') . '.xlsx';
+
+        return Excel::download(new UsersExport($role, $search), $filename);
     }
 }

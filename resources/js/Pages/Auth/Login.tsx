@@ -112,6 +112,40 @@ export default function Login({
         <GuestLayout>
             <Head title="Log in" />
 
+            {/* Loading Overlay */}
+            {processing && (
+                <div className="fixed inset-0 bg-gradient-to-br from-black/60 via-black/50 to-black/60 z-50 flex items-center justify-center backdrop-blur-md animate-fadeIn">
+                    <div className="bg-white rounded-2xl p-10 flex flex-col items-center shadow-2xl max-w-sm mx-4 animate-scaleIn">
+                        {/* Animated Logo/Icon */}
+                        <div className="relative w-20 h-20 mb-6">
+                            {/* Outer rotating ring */}
+                            <div className="absolute inset-0 border-4 border-primary-100 rounded-full"></div>
+                            {/* Primary spinner */}
+                            <div className="absolute inset-0 border-4 border-transparent border-t-primary-600 border-r-primary-500 rounded-full animate-spin"></div>
+                            {/* Inner pulsing circle */}
+                            <div className="absolute inset-3 bg-primary-50 rounded-full flex items-center justify-center animate-pulse">
+                                <svg className="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        {/* Text content */}
+                        <div className="text-center">
+                            <h3 className="text-gray-900 font-semibold text-xl mb-2">Signing In</h3>
+                            <p className="text-gray-500 text-sm">Authenticating your credentials...</p>
+                            
+                            {/* Loading dots animation */}
+                            <div className="flex justify-center gap-1.5 mt-4">
+                                <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* LEFT COLUMN - Login Form */}
                 <div className="lg:pr-8 lg:border-r border-gray-200">

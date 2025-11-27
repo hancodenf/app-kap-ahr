@@ -166,6 +166,21 @@ class LoginSecurityController extends Controller
     }
 
     /**
+     * Clear all failed login attempt records.
+     */
+    public function clear(Request $request)
+    {
+        $request->validate([
+            'password' => ['required', 'current_password'],
+        ]);
+
+        FailedLoginAttempt::truncate();
+
+        return redirect()->route('admin.login-security.index')
+            ->with('success', 'All login security data has been cleared successfully.');
+    }
+
+    /**
      * Get hourly data for last 24 hours.
      */
     protected function getHourlyData(): array

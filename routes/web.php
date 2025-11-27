@@ -73,6 +73,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::resource('users', UserController::class);
     Route::post('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
+    Route::get('/users-export', [UserController::class, 'export'])->name('users.export');
 
     // Registered APs Management Routes
     Route::resource('registered-aps', RegisteredApController::class);
@@ -82,6 +83,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
         Route::get('/', [\App\Http\Controllers\Admin\LoginSecurityController::class, 'index'])->name('index');
         Route::get('/{attempt}', [\App\Http\Controllers\Admin\LoginSecurityController::class, 'show'])->name('show');
         Route::post('/unsuspend/{user}', [\App\Http\Controllers\Admin\LoginSecurityController::class, 'unsuspend'])->name('unsuspend');
+        Route::post('/clear', [\App\Http\Controllers\Admin\LoginSecurityController::class, 'clear'])->name('clear');
         Route::delete('/{attempt}', [\App\Http\Controllers\Admin\LoginSecurityController::class, 'destroy'])->name('destroy');
     });
 
