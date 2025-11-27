@@ -60,7 +60,7 @@ class CompanyClientController extends Controller
     /**
      * Display client details with related projects.
      */
-    public function show(Client $client)
+    public function show(Request $request, Client $client)
     {
         $user = Auth::user();
 
@@ -75,19 +75,39 @@ class CompanyClientController extends Controller
             abort(403, 'Unauthorized access to this client.');
         }
 
-        // Load client with their projects where user is a team member
-        $client->load([
-            'projects' => function ($query) use ($user) {
-                $query->whereHas('projectTeams', function ($q) use ($user) {
-                    $q->where('user_id', $user->id);
-                })
-                ->withCount(['workingSteps', 'tasks'])
-                ->latest();
-            }
-        ]);
+        // Get search and filter parameters
+        $search = $request->get('search');
+        $status = $request->get('status');
+
+        // Get projects where user is a team member with pagination
+        $projectsQuery = Project::where('client_id', $client->id)
+            ->whereHas('projectTeams', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })
+            ->withCount(['workingSteps', 'tasks']);
+
+        // Apply search filter
+        if ($search) {
+            $projectsQuery->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('slug', 'like', "%{$search}%");
+            });
+        }
+
+        // Apply status filter
+        if ($status && in_array($status, ['open', 'closed'])) {
+            $projectsQuery->where('status', $status);
+        }
+
+        $projects = $projectsQuery->latest()->paginate(6)->withQueryString();
 
         return Inertia::render('Company/Clients/Show', [
             'client' => $client,
+            'projects' => $projects,
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+            ],
         ]);
     }
 }

@@ -407,40 +407,7 @@ export default function CompanyDashboard({
 							</div>
 						</div>
 					)}
-
-                    {/* Quick Actions */}
-                    <div className="bg-white shadow-lg rounded-xl p-6 hover:shadow-xl transition-shadow">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            <Link href={route('company.projects.index')} className="flex flex-col items-center p-4 bg-primary-50 rounded-lg border-2 border-primary-100 hover:border-primary-600 hover:bg-primary-100 transition-all group">
-                                <div className="p-3 bg-primary-100 rounded-full group-hover:bg-primary-200 transition-colors mb-2">
-                                    <svg className="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                </div>
-                                <span className="text-sm font-medium text-primary-900">My Projects</span>
-                            </Link>
-
-                            <Link href={route('company.projects.index')} className="flex flex-col items-center p-4 bg-primary-50 rounded-lg border-2 border-primary-100 hover:border-primary-600 hover:bg-primary-100 transition-all group">
-                                <div className="p-3 bg-primary-100 rounded-full group-hover:bg-primary-200 transition-colors mb-2">
-                                    <svg className="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                    </svg>
-                                </div>
-                                <span className="text-sm font-medium text-primary-900">View Tasks</span>
-                            </Link>
-
-                            <Link href={route('company.projects.index')} className="flex flex-col items-center p-4 bg-green-50 rounded-lg border-2 border-green-100 hover:border-green-600 hover:bg-green-100 transition-all group">
-                                <div className="p-3 bg-green-100 rounded-full group-hover:bg-green-200 transition-colors mb-2">
-                                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                                <span className="text-sm font-medium text-green-900">Completed</span>
-                            </Link>
-                        </div>
-                    </div>
-					
+ 
 					{/* Latest News Section */}
 					{latestNews && latestNews.length > 0 && (
 						<div className="mt-8">

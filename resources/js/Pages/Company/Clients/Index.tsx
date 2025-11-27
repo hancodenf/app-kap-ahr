@@ -4,11 +4,14 @@ import { PageProps } from '@/types';
 import { useState } from 'react';
 
 interface Client {
-    id: number;
+    id: string;
+    slug: string;
     name: string;
     alamat: string;
     kementrian: string;
     kode_satker: string;
+    type: string;
+    logo: string | null;
     projects_count: number;
     created_at: string;
     updated_at: string;
@@ -124,7 +127,10 @@ export default function Index({ clients, filters }: Props) {
                                                 No
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Client Name
+                                                Client
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Type
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Ministry
@@ -147,15 +153,33 @@ export default function Index({ clients, filters }: Props) {
                                                     {(clients.current_page - 1) * clients.per_page + index + 1}
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <div className="text-sm font-medium text-gray-900">
-                                                        {client.name}
-                                                    </div>
-                                                    <div className="text-sm text-gray-500">
-                                                        {client.alamat}
+                                                    <div className="flex items-center">
+                                                        {client.logo && (
+                                                            <img 
+                                                                src={`/storage/${client.logo}`} 
+                                                                alt={`${client.name} logo`}
+                                                                className="h-10 w-10 rounded-lg object-contain border border-gray-200 mr-3"
+                                                            />
+                                                        )}
+                                                        <div>
+                                                            <div className="text-sm font-medium text-gray-900">
+                                                                {client.name}
+                                                            </div>
+                                                            <div className="text-sm text-gray-500 truncate max-w-xs">
+                                                                {client.alamat}
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {client.kementrian}
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                                        {client.type}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-900">
+                                                    <div className="max-w-xs truncate" title={client.kementrian}>
+                                                        {client.kementrian}
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                     {client.kode_satker}
@@ -165,7 +189,7 @@ export default function Index({ clients, filters }: Props) {
                                                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                         </svg>
-                                                        {client.projects_count} projects
+                                                        {client.projects_count}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -192,29 +216,41 @@ export default function Index({ clients, filters }: Props) {
                                 {clients.data.map((client, index) => (
                                     <div key={client.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
                                         <div className="flex justify-between items-start mb-3">
-                                            <div className="flex-1">
-                                                <div className="text-xs text-gray-500 mb-1">
-                                                    #{(clients.current_page - 1) * clients.per_page + index + 1}
+                                            <div className="flex items-start gap-3 flex-1">
+                                                {client.logo && (
+                                                    <img 
+                                                        src={`/storage/${client.logo}`} 
+                                                        alt={`${client.name} logo`}
+                                                        className="h-12 w-12 rounded-lg object-contain border border-gray-200 flex-shrink-0"
+                                                    />
+                                                )}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-xs text-gray-500 mb-1">
+                                                        #{(clients.current_page - 1) * clients.per_page + index + 1}
+                                                    </div>
+                                                    <h3 className="text-base font-medium text-gray-900 mb-1">
+                                                        {client.name}
+                                                    </h3>
+                                                    <p className="text-sm text-gray-500 mb-2 line-clamp-2">{client.alamat}</p>
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                                        {client.type}
+                                                    </span>
                                                 </div>
-                                                <h3 className="text-base font-medium text-gray-900 mb-1">
-                                                    {client.name}
-                                                </h3>
-                                                <p className="text-sm text-gray-500 mb-2">{client.alamat}</p>
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-2 mb-3">
                                             <div className="bg-gray-50 rounded-lg p-2">
                                                 <div className="text-[10px] text-gray-500 mb-0.5">Ministry</div>
-                                                <div className="text-sm font-medium text-gray-900 truncate">{client.kementrian}</div>
+                                                <div className="text-xs font-medium text-gray-900 line-clamp-2" title={client.kementrian}>
+                                                    {client.kementrian}
+                                                </div>
                                             </div>
 
                                             <div className="bg-gray-50 rounded-lg p-2">
                                                 <div className="text-[10px] text-gray-500 mb-0.5">Satker Code</div>
-                                                <div className="text-sm">
-                                                    <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                        {client.kode_satker}
-                                                    </span>
+                                                <div className="text-sm font-medium text-gray-900">
+                                                    {client.kode_satker}
                                                 </div>
                                             </div>
                                         </div>
