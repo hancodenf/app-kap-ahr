@@ -480,6 +480,22 @@ class CompanyController extends Controller
                 ];
             });
 
+        // Get all team members for this project
+        $teamMembers = ProjectTeam::where('project_id', $project->id)
+            ->orderBy('role')
+            ->orderBy('user_name')
+            ->get()
+            ->map(function($member) {
+                return [
+                    'id' => $member->id,
+                    'user_id' => $member->user_id,
+                    'user_name' => $member->user_name,
+                    'user_email' => $member->user_email,
+                    'user_position' => $member->user_position,
+                    'role' => $member->role,
+                ];
+            });
+
         return Inertia::render('Company/Projects/Show', [
             'project' => [
                 'id' => $project->id,
@@ -489,6 +505,7 @@ class CompanyController extends Controller
             ],
             'workingSteps' => $workingSteps,
             'myRole' => $teamMember->role,
+            'teamMembers' => $teamMembers,
         ]);
     }
 

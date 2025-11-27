@@ -486,7 +486,7 @@ class ClientController extends Controller
             'project',
             'taskAssignments' => function ($query) {
                 // Filter only assignments with status "Submitted to Client" or "Client Reply"
-                $query->whereIn('status', ['Submitted to Client', 'Client Reply'])
+                $query->whereIn('status', ['Submitted to Client', 'Client Reply', 'Completed'])
                       ->latest()
                       ->with([
                           'documents',
