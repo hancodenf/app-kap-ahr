@@ -30,14 +30,24 @@ class CompanyController extends Controller
         // 1. Project Statistics
         $projectStats = [
             'total' => ProjectTeam::where('user_id', $user->id)->count(),
-            'active' => ProjectTeam::where('user_id', $user->id)
+            'in_progress' => ProjectTeam::where('user_id', $user->id)
                 ->whereHas('project', function($query) {
-                    $query->where('status', 'open');
+                    $query->where('status', 'In Progress');
                 })
                 ->count(),
-            'closed' => ProjectTeam::where('user_id', $user->id)
+            'completed' => ProjectTeam::where('user_id', $user->id)
                 ->whereHas('project', function($query) {
-                    $query->where('status', 'closed');
+                    $query->where('status', 'Completed');
+                })
+                ->count(),
+            'draft' => ProjectTeam::where('user_id', $user->id)
+                ->whereHas('project', function($query) {
+                    $query->where('status', 'Draft');
+                })
+                ->count(),
+            'archived' => ProjectTeam::where('user_id', $user->id)
+                ->whereHas('project', function($query) {
+                    $query->where('status', 'Archived');
                 })
                 ->count(),
             'by_role' => $hasProjects 
@@ -237,7 +247,7 @@ class CompanyController extends Controller
         $user = Auth::user();
         
         // Get filters from request
-        $status = $request->input('status', 'open'); // Default to 'open'
+        $status = $request->input('status', 'Draft'); // Default to 'Draft'
         $search = $request->input('search', '');
         
         // Get projects where user is a team member
@@ -276,12 +286,18 @@ class CompanyController extends Controller
         
         // Get status counts
         $statusCounts = [
-            'open' => Project::whereHas('projectTeams', function($q) use ($user) {
+            'draft' => Project::whereHas('projectTeams', function($q) use ($user) {
                 $q->where('user_id', $user->id);
-            })->where('status', 'open')->count(),
-            'closed' => Project::whereHas('projectTeams', function($q) use ($user) {
+            })->where('status', 'Draft')->count(),
+            'in_progress' => Project::whereHas('projectTeams', function($q) use ($user) {
                 $q->where('user_id', $user->id);
-            })->where('status', 'closed')->count(),
+            })->where('status', 'In Progress')->count(),
+            'completed' => Project::whereHas('projectTeams', function($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })->where('status', 'Completed')->count(),
+            'archived' => Project::whereHas('projectTeams', function($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })->where('status', 'Archived')->count(),
         ];
 
         return Inertia::render('Company/Projects/Index', [

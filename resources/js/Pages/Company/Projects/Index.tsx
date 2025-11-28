@@ -19,15 +19,17 @@ interface Props extends PageProps {
         status?: string;
     };
     statusCounts: {
-        open: number;
-        closed: number;
+        draft: number;
+        in_progress: number;
+        completed: number;
+        archived: number;
     };
 }
 
 export default function ProjectsIndex({ auth, projects, filters, statusCounts }: Props) {
     const { flash } = usePage().props as any;
     const [search, setSearch] = useState(filters.search || '');
-    const activeStatus = filters.status || 'open';
+    const activeStatus = filters.status || 'Draft';
 
     const handleSearch = () => {
         router.get(route('company.projects.index'), { search, status: activeStatus }, {
@@ -120,9 +122,45 @@ export default function ProjectsIndex({ auth, projects, filters, statusCounts }:
                             <div className="mb-4 sm:mb-6 border-b border-gray-200 overflow-x-auto">
                                 <nav className="-mb-px flex space-x-2 sm:space-x-4" aria-label="Tabs">
                                     <button
-                                        onClick={() => handleStatusChange('open')}
+                                        onClick={() => handleStatusChange('Draft')}
                                         className={`${
-                                            activeStatus === 'open'
+                                            activeStatus === 'Draft'
+                                                ? 'border-yellow-500 text-yellow-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        } whitespace-nowrap py-2 sm:py-3 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm transition-colors flex items-center gap-1 sm:gap-2`}
+                                    >
+                                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
+                                        <span>Draft</span>
+                                        <span className={`${
+                                            activeStatus === 'Draft' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-600'
+                                        } inline-flex items-center px-1.5 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium`}>
+                                            {statusCounts.draft}
+                                        </span>
+                                    </button>
+                                    <button
+                                        onClick={() => handleStatusChange('In Progress')}
+                                        className={`${
+                                            activeStatus === 'In Progress'
+                                                ? 'border-blue-500 text-blue-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        } whitespace-nowrap py-2 sm:py-3 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm transition-colors flex items-center gap-1 sm:gap-2`}
+                                    >
+                                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        <span>In Progress</span>
+                                        <span className={`${
+                                            activeStatus === 'In Progress' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'
+                                        } inline-flex items-center px-1.5 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium`}>
+                                            {statusCounts.in_progress}
+                                        </span>
+                                    </button>
+                                    <button
+                                        onClick={() => handleStatusChange('Completed')}
+                                        className={`${
+                                            activeStatus === 'Completed'
                                                 ? 'border-green-500 text-green-600'
                                                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                         } whitespace-nowrap py-2 sm:py-3 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm transition-colors flex items-center gap-1 sm:gap-2`}
@@ -130,29 +168,29 @@ export default function ProjectsIndex({ auth, projects, filters, statusCounts }:
                                         <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
-                                        <span>Open</span>
+                                        <span>Completed</span>
                                         <span className={`${
-                                            activeStatus === 'open' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                                            activeStatus === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
                                         } inline-flex items-center px-1.5 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium`}>
-                                            {statusCounts.open}
+                                            {statusCounts.completed}
                                         </span>
                                     </button>
                                     <button
-                                        onClick={() => handleStatusChange('closed')}
+                                        onClick={() => handleStatusChange('Archived')}
                                         className={`${
-                                            activeStatus === 'closed'
+                                            activeStatus === 'Archived'
                                                 ? 'border-gray-500 text-gray-700'
                                                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                         } whitespace-nowrap py-2 sm:py-3 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm transition-colors flex items-center gap-1 sm:gap-2`}
                                     >
                                         <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                                         </svg>
-                                        <span>Closed</span>
+                                        <span>Archived</span>
                                         <span className={`${
-                                            activeStatus === 'closed' ? 'bg-gray-200 text-gray-800' : 'bg-gray-100 text-gray-600'
+                                            activeStatus === 'Archived' ? 'bg-gray-200 text-gray-800' : 'bg-gray-100 text-gray-600'
                                         } inline-flex items-center px-1.5 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium`}>
-                                            {statusCounts.closed}
+                                            {statusCounts.archived}
                                         </span>
                                     </button>
                                 </nav>

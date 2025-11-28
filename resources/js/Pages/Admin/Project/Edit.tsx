@@ -67,8 +67,8 @@ interface TaskWorker {
 interface ProjectBundle {
     id: number;
     name: string;
-    year: number;
-    status: 'open' | 'closed';
+    year: string | number;
+    status: 'Draft' | 'In Progress' | 'Completed' | 'Archived';
     client_id: number | null;
     client_name: string | null;
     client_alamat: string | null;
@@ -424,7 +424,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         name: '',
         client_id: 0,
         year: new Date().getFullYear(),
-        status: 'closed' as 'open' | 'closed',
+        status: 'Draft' as 'Draft' | 'In Progress' | 'Completed' | 'Archived',
     });
 
     // Get year options with disabled status for used years
@@ -433,8 +433,13 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         const selectedClient = clients.find(c => c.id === editTemplateData.client_id);
         const usedYears = (selectedClient?.used_years || []).map(y => Number(y)); // Convert to numbers
         
-        return Array.from({ length: currentYear - 1999 }, (_, i) => {
-            const year = currentYear - i;
+        // Generate years from 7 years ago to 1 year in the future
+        const startYear = currentYear - 7; // 7 tahun ke belakang
+        const endYear = currentYear + 1;   // 1 tahun ke depan
+        const yearCount = endYear - startYear + 1;
+        
+        return Array.from({ length: yearCount }, (_, i) => {
+            const year = endYear - i; // Start from future year and go backwards for descending order
             return {
                 value: year,
                 label: year.toString(),
@@ -602,8 +607,8 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         setEditTemplateData({
             name: bundle.name,
             client_id: bundle.client_id || 0,
-            year: bundle.year || new Date().getFullYear(),
-            status: bundle.status || 'closed',
+            year: Number(bundle.year) || new Date().getFullYear(),
+            status: bundle.status || 'Draft',
         });
         setShowEditTemplateModal(true);
     };
@@ -951,7 +956,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                     </div>
                     <Link
                         href={route('admin.projects.bundles.index')}
-                        className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                        className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-xs font-medium transition-all duration-200 hover:shadow-sm"
                     >
                         Back to Projects
                     </Link>
@@ -973,19 +978,33 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                             <h3 className="text-lg font-medium text-gray-900">Project Name</h3>
                                             {/* Status Badge */}
                                             <div className="flex items-center">
-                                                {bundle.status === 'open' ? (
+                                                {bundle.status === 'In Progress' ? (
+                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                                        <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                                        </svg>
+                                                        In Progress
+                                                    </span>
+                                                ) : bundle.status === 'Completed' ? (
                                                     <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-200">
                                                         <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
                                                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                                         </svg>
-                                                        Project Active
+                                                        Completed
+                                                    </span>
+                                                ) : bundle.status === 'Draft' ? (
+                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+                                                        <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                                        </svg>
+                                                        Draft
                                                     </span>
                                                 ) : (
                                                     <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700 border border-gray-300">
                                                         <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
                                                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                                                         </svg>
-                                                        Project Closed
+                                                        Archived
                                                     </span>
                                                 )}
                                             </div>
@@ -1029,9 +1048,9 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                 </div>
                                 <button
                                     onClick={handleEditTemplate}
-                                    className="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors ml-4"
+                                    className="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs font-medium transition-all duration-200 ml-4 hover:shadow-sm"
                                 >
-                                    <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
                                     Edit Project
@@ -1051,9 +1070,9 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                 </div>
                                 <button 
                                     onClick={() => setShowAddTeamMemberModal(true)}
-                                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors inline-flex items-center"
+                                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-xs font-medium transition-all duration-200 inline-flex items-center hover:shadow-sm"
                                 >
-                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                     </svg>
                                     Add Team Member
@@ -1092,14 +1111,20 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                         <button
                                                             onClick={() => handleEditTeamMember(member)}
-                                                            className="text-indigo-600 hover:text-indigo-900 mr-4"
+                                                            className="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs font-medium transition-all duration-200 mr-2 hover:shadow-sm"
                                                         >
+                                                            <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                            </svg>
                                                             Edit Role
                                                         </button>
                                                         <button
                                                             onClick={() => handleDeleteTeamMember(member)}
-                                                            className="text-red-600 hover:text-red-900"
+                                                            className="inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-xs font-medium transition-all duration-200 hover:shadow-sm"
                                                         >
+                                                            <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
                                                             Remove
                                                         </button>
                                                     </td>
@@ -1130,7 +1155,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                 </div>
                                 <button 
                                     onClick={() => setShowAddStepModal(true)}
-                                    className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                                    className="bg-primary-600 hover:bg-primary-700 text-white px-3 py-1.5 rounded text-xs font-medium transition-all duration-200 hover:shadow-sm"
                                 >
                                     Add New Working Step
                                 </button>
@@ -1162,27 +1187,27 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                         setTaskData('working_step_id', step.id);
                                                         setShowAddTaskModal(true);
                                                     }}
-                                                    className="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                                                    className="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-xs font-medium transition-all duration-200 hover:shadow-sm"
                                                 >
-                                                    <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                                     </svg>
                                                     Add Task
                                                 </button>
                                                 <button 
                                                     onClick={() => handleEditStep(step)}
-                                                    className="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                                                    className="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs font-medium transition-all duration-200 hover:shadow-sm"
                                                 >
-                                                    <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                     </svg>
                                                     Edit Step
                                                 </button>
                                                 <button 
                                                     onClick={() => handleDeleteStep(step)}
-                                                    className="inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                                                    className="inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-xs font-medium transition-all duration-200 hover:shadow-sm"
                                                 >
-                                                    <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                     </svg>
                                                     Delete Step
@@ -1310,13 +1335,13 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                             resetStep();
                                             setStepData('name', '');
                                         }}
-                                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+                                        className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-200 rounded hover:bg-gray-300 transition-all duration-200"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
+                                        className="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded hover:bg-primary-700 transition-all duration-200 hover:shadow-sm"
                                     >
                                         Create Working Step
                                     </button>
@@ -1471,51 +1496,33 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     onChange={(value) => setEditTemplateData('year', value as number)}
                                     placeholder="Select project year..."
                                 />
+                                <p className="mt-1 text-xs text-gray-500">
+                                    Available years: {new Date().getFullYear() - 7} - {new Date().getFullYear() + 1}
+                                </p>
                                 {editTemplateErrors.year && (
                                     <p className="mt-1 text-sm text-red-600">{editTemplateErrors.year}</p>
                                 )}
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-3">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Project Status
                                 </label>
-                                <div className="flex items-center space-x-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => setEditTemplateData('status', editTemplateData.status === 'open' ? 'closed' : 'open')}
-                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
-                                            editTemplateData.status === 'open' ? 'bg-green-600' : 'bg-gray-200'
-                                        }`}
-                                    >
-                                        <span
-                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                editTemplateData.status === 'open' ? 'translate-x-6' : 'translate-x-1'
-                                            }`}
-                                        />
-                                    </button>
-                                    <span className={`text-sm font-medium ${editTemplateData.status === 'open' ? 'text-green-700' : 'text-gray-700'}`}>
-                                        {editTemplateData.status === 'open' ? (
-                                            <span className="flex items-center">
-                                                <svg className="w-5 h-5 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                </svg>
-                                                Open - Project is active
-                                            </span>
-                                        ) : (
-                                            <span className="flex items-center">
-                                                <svg className="w-5 h-5 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                                </svg>
-                                                Closed - Project is inactive
-                                            </span>
-                                        )}
-                                    </span>
-                                </div>
+                                <select
+                                    value={editTemplateData.status}
+                                    onChange={(e) => setEditTemplateData('status', e.target.value as 'Draft' | 'In Progress' | 'Completed' | 'Archived')}
+                                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                                >
+                                    <option value="Draft">📝 Draft - Project is being prepared</option>
+                                    <option value="In Progress">🔄 In Progress - Project is active</option>
+                                    <option value="Completed">✅ Completed - Project is finished</option>
+                                    <option value="Archived">📦 Archived - Project is archived</option>
+                                </select>
                                 <p className="mt-2 text-xs text-gray-500">
-                                    {editTemplateData.status === 'open' 
-                                        ? 'Open projects are accessible to assigned team members' 
-                                        : 'Closed projects are archived and read-only'}
+                                    {editTemplateData.status === 'Draft' && 'Draft projects are being prepared and not yet started'}
+                                    {editTemplateData.status === 'In Progress' && 'In Progress projects are accessible to assigned team members'}
+                                    {editTemplateData.status === 'Completed' && 'Completed projects are finished and read-only'}
+                                    {editTemplateData.status === 'Archived' && 'Archived projects are stored for future reference'}
                                 </p>
                             </div>
 

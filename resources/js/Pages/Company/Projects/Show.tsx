@@ -652,8 +652,12 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
                     </div>
                     <span
                         className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            project.status === 'open'
+                            project.status === 'In Progress'
+                                ? 'bg-blue-100 text-blue-800'
+                                : project.status === 'Completed'
                                 ? 'bg-green-100 text-green-800'
+                                : project.status === 'Draft'
+                                ? 'bg-yellow-100 text-yellow-800'
                                 : 'bg-gray-100 text-gray-800'
                         }`}
                     >

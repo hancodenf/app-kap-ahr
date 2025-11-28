@@ -62,14 +62,14 @@ class ProjectSeeder extends Seeder
             ['val0' => 'Badan Penyelenggara Jaminan Produk Halal (BPJPH)', 'val1' => 'Kementerian Agama', 'val2' => 'Abdul Hamid', 'val3' => '-', 'val4' => 'Tumiran Tawirana', 'val5' => 'Fachriza Fayyad Fauzan', 'val6' => 'Irma Nuranisa', 'val7' => 'Jeremi Octavianus Iroth', 'val8' => 'Muhammad Husni Faris'],
         ];
 
-        foreach ($array as $member) {
+        foreach ($array as $index => $member) {
             $clients = Client::where('name', $member['val0'])->first();
             if ($clients) {
                 $project = Project::create([
                     'name' => 'Audit ' . $clients->name . ' Tahun 2026',
                     'slug' => Str::slug('Audit ' . $clients->name . ' Tahun 2026'),
                     'client_id' => $clients->id,
-                    'status' => 'open',
+                    'status' => 'Draft',
                     'year' => 2026,
 
                     'client_name' => $clients->name, // Denormalized client data
@@ -169,6 +169,47 @@ class ProjectSeeder extends Seeder
                         ]);
                     }
                 }
+            }
+        }
+        
+        // Add some historical projects for analytics (2023-2025)
+        $this->createHistoricalProjects();
+    }
+    
+    private function createHistoricalProjects()
+    {
+        $clients = Client::all();
+        if ($clients->isEmpty()) {
+            return;
+        }
+        
+        $historicalYears = [2023, 2024, 2025];
+        $statuses = ['Draft', 'In Progress', 'Completed', 'Archived'];
+        
+        foreach ($historicalYears as $year) {
+            // Create 3-5 historical projects per year
+            $projectCount = rand(3, 5);
+            
+            for ($i = 0; $i < $projectCount; $i++) {
+                $randomClient = $clients->random();
+                
+                $projectName = "Audit {$randomClient->name} Tahun {$year}";
+                $baseSlug = Str::slug($projectName);
+                $uniqueSlug = $baseSlug . '-' . uniqid();
+                
+                Project::create([
+                    'name' => $projectName,
+                    'slug' => $uniqueSlug,
+                    'client_id' => $randomClient->id,
+                    'status' => 'Draft',
+                    'year' => $year,
+                    'client_name' => $randomClient->name,
+                    'client_kementrian' => $randomClient->kementrian,
+                    'client_kode_satker' => $randomClient->kode_satker,
+                    'client_alamat' => $randomClient->alamat,
+                    'created_at' => now()->subYears(2026 - $year)->subMonths(rand(0, 11)),
+                    'updated_at' => now()->subYears(2026 - $year)->subMonths(rand(0, 11)),
+                ]);
             }
         }
     }

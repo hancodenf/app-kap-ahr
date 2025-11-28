@@ -231,24 +231,44 @@ export default function Show({ client, projects, filters }: Props) {
                                         All Status
                                     </button>
                                     <button
-                                        onClick={() => handleFilterChange('open')}
+                                        onClick={() => handleFilterChange('Draft')}
                                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                                            statusFilter === 'open'
+                                            statusFilter === 'Draft'
+                                                ? 'bg-yellow-600 text-white'
+                                                : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'
+                                        }`}
+                                    >
+                                        Draft
+                                    </button>
+                                    <button
+                                        onClick={() => handleFilterChange('In Progress')}
+                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                                            statusFilter === 'In Progress'
                                                 ? 'bg-blue-600 text-white'
                                                 : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
                                         }`}
                                     >
-                                        Open
+                                        In Progress
                                     </button>
                                     <button
-                                        onClick={() => handleFilterChange('closed')}
+                                        onClick={() => handleFilterChange('Completed')}
                                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                                            statusFilter === 'closed'
+                                            statusFilter === 'Completed'
                                                 ? 'bg-green-600 text-white'
                                                 : 'bg-green-50 text-green-700 hover:bg-green-100'
                                         }`}
                                     >
-                                        Closed
+                                        Completed
+                                    </button>
+                                    <button
+                                        onClick={() => handleFilterChange('Archived')}
+                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                                            statusFilter === 'Archived'
+                                                ? 'bg-gray-600 text-white'
+                                                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                                        }`}
+                                    >
+                                        Archived
                                     </button>
                                 </div>
                             </div>

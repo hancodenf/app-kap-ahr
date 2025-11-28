@@ -95,7 +95,7 @@ class CompanyClientController extends Controller
         }
 
         // Apply status filter
-        if ($status && in_array($status, ['open', 'closed'])) {
+        if ($status && in_array($status, ['Draft', 'In Progress', 'Completed', 'Archived'])) {
             $projectsQuery->where('status', $status);
         }
 

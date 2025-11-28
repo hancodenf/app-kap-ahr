@@ -81,8 +81,13 @@ export default function Create({ auth, clients, availableUsers, templates, regis
         const selectedClient = clients.find(c => c.id === data.client_id);
         const usedYears = (selectedClient?.used_years || []).map(y => Number(y)); // Convert to numbers
         
-        return Array.from({ length: currentYear - 1999 }, (_, i) => {
-            const year = currentYear - i;
+        // Generate years from 7 years ago to 1 year in the future
+        const startYear = currentYear - 7; // 7 tahun ke belakang
+        const endYear = currentYear + 1;   // 1 tahun ke depan
+        const yearCount = endYear - startYear + 1;
+        
+        return Array.from({ length: yearCount }, (_, i) => {
+            const year = endYear - i; // Start from future year and go backwards for descending order
             const isDisabled = usedYears.includes(year);
             return {
                 value: year,
@@ -205,6 +210,9 @@ export default function Create({ auth, clients, availableUsers, templates, regis
                                         onChange={(value) => setData('year', value as number)}
                                         placeholder="Select project year..."
                                     />
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        Available years: {new Date().getFullYear() - 7} - {new Date().getFullYear() + 1}
+                                    </p>
                                     {errors.year && (
                                         <p className="mt-1 text-sm text-red-600">{errors.year}</p>
                                     )}
