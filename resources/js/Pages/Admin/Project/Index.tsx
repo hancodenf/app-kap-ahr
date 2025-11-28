@@ -21,6 +21,13 @@ interface ProjectBundle {
         user_name: string;
         role: string;
     }>;
+    task_stats?: {
+        total: number;
+        completed: number;
+        in_progress: number;
+        pending: number;
+        percentage: number;
+    };
 }
 
 interface Props extends PageProps {
@@ -41,9 +48,15 @@ interface Props extends PageProps {
         year?: string;
     };
     availableYears: number[];
+    overallStats: {
+        total_projects: number;
+        completed_projects: number;
+        in_progress_projects: number;
+        not_started_projects: number;
+    };
 }
 
-export default function Index({ bundles, filters, availableYears }: Props) {
+export default function Index({ bundles, filters, availableYears, overallStats }: Props) {
     const { flash } = usePage().props as any;
     const [search, setSearch] = useState(filters.search || '');
     const [year, setYear] = useState(filters.year || '');
@@ -152,6 +165,126 @@ export default function Index({ bundles, filters, availableYears }: Props) {
                         </div>
                     )}
 
+                    {/* Stats Section */}
+                    <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        {/* Total Projects */}
+                        <div className="bg-white overflow-hidden shadow-lg rounded-lg border-l-4 border-blue-500">
+                            <div className="p-5">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="rounded-md bg-blue-100 p-3">
+                                            <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt className="text-sm font-medium text-gray-500 truncate">
+                                                Total Projects
+                                            </dt>
+                                            <dd className="flex items-baseline">
+                                                <div className="text-2xl font-semibold text-gray-900">
+                                                    {overallStats.total_projects}
+                                                </div>
+                                            </dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Completed Projects */}
+                        <div className="bg-white overflow-hidden shadow-lg rounded-lg border-l-4 border-green-500">
+                            <div className="p-5">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="rounded-md bg-green-100 p-3">
+                                            <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt className="text-sm font-medium text-gray-500 truncate">
+                                                Completed
+                                            </dt>
+                                            <dd className="flex items-baseline">
+                                                <div className="text-2xl font-semibold text-green-600">
+                                                    {overallStats.completed_projects}
+                                                </div>
+                                                <div className="ml-2 text-sm text-gray-500">
+                                                    projects
+                                                </div>
+                                            </dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* In Progress Projects */}
+                        <div className="bg-white overflow-hidden shadow-lg rounded-lg border-l-4 border-yellow-500">
+                            <div className="p-5">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="rounded-md bg-yellow-100 p-3">
+                                            <svg className="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt className="text-sm font-medium text-gray-500 truncate">
+                                                In Progress
+                                            </dt>
+                                            <dd className="flex items-baseline">
+                                                <div className="text-2xl font-semibold text-yellow-600">
+                                                    {overallStats.in_progress_projects}
+                                                </div>
+                                                <div className="ml-2 text-sm text-gray-500">
+                                                    projects
+                                                </div>
+                                            </dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Not Started Projects */}
+                        <div className="bg-white overflow-hidden shadow-lg rounded-lg border-l-4 border-gray-500">
+                            <div className="p-5">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="rounded-md bg-gray-100 p-3">
+                                            <svg className="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt className="text-sm font-medium text-gray-500 truncate">
+                                                Not Started
+                                            </dt>
+                                            <dd className="flex items-baseline">
+                                                <div className="text-2xl font-semibold text-gray-600">
+                                                    {overallStats.not_started_projects}
+                                                </div>
+                                                <div className="ml-2 text-sm text-gray-500">
+                                                    projects
+                                                </div>
+                                            </dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-4 sm:p-6">
                             {/* Search & Filter Bar */}
@@ -210,6 +343,9 @@ export default function Index({ bundles, filters, availableYears }: Props) {
                                                 Partner
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Progress
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Status
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -248,6 +384,30 @@ export default function Index({ bundles, filters, availableYears }: Props) {
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-2"> 
                                                         {renderPartners(getPartners(bundle.project_teams))}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 w-64">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex-1 min-w-[160px]">
+                                                            <div className="w-full bg-gray-200 rounded-full h-3">
+                                                                <div 
+                                                                    className={`h-3 rounded-full transition-all duration-300 ${
+                                                                        (bundle.task_stats?.percentage || 0) === 100 
+                                                                            ? 'bg-green-600' 
+                                                                            : (bundle.task_stats?.percentage || 0) > 0 
+                                                                            ? 'bg-blue-600' 
+                                                                            : 'bg-gray-400'
+                                                                    }`}
+                                                                    style={{ width: `${bundle.task_stats?.percentage || 0}%` }}
+                                                                ></div>
+                                                            </div>
+                                                            <div className="mt-1 text-xs text-gray-600">
+                                                                {bundle.task_stats?.completed || 0}/{bundle.task_stats?.total || 0} tasks
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-sm font-medium text-gray-700 min-w-[45px] text-right">
+                                                            {bundle.task_stats?.percentage || 0}%
+                                                        </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -327,6 +487,31 @@ export default function Index({ bundles, filters, availableYears }: Props) {
                                                 <div className="flex items-center gap-2 text-sm text-gray-600 mb-2"> 
                                                     <span className="text-xs">{renderPartners(getPartners(bundle.project_teams))}</span>
                                                 </div>
+                                                
+                                                {/* Progress Bar */}
+                                                <div className="mb-3">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="text-xs text-gray-600">
+                                                            {bundle.task_stats?.completed || 0}/{bundle.task_stats?.total || 0} tasks
+                                                        </span>
+                                                        <span className="text-xs font-medium text-gray-700">
+                                                            {bundle.task_stats?.percentage || 0}%
+                                                        </span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                                        <div 
+                                                            className={`h-2 rounded-full ${
+                                                                (bundle.task_stats?.percentage || 0) === 100 
+                                                                    ? 'bg-green-600' 
+                                                                    : (bundle.task_stats?.percentage || 0) > 0 
+                                                                    ? 'bg-blue-600' 
+                                                                    : 'bg-gray-400'
+                                                            }`}
+                                                            style={{ width: `${bundle.task_stats?.percentage || 0}%` }}
+                                                        ></div>
+                                                    </div>
+                                                </div>
+                                                
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                                     bundle.status === 'open' 
                                                         ? 'bg-green-100 text-green-800' 

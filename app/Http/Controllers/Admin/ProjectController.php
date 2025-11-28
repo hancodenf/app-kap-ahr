@@ -48,6 +48,64 @@ class ProjectController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        // Add task statistics to each project
+        $projects->getCollection()->transform(function ($project) {
+            $tasks = \DB::table('tasks')
+                ->where('project_id', $project->id)
+                ->select('completion_status')
+                ->get();
+            
+            $totalTasks = $tasks->count();
+            $completedTasks = $tasks->where('completion_status', 'completed')->count();
+            $inProgressTasks = $tasks->where('completion_status', 'in_progress')->count();
+            $pendingTasks = $tasks->where('completion_status', 'pending')->count();
+            
+            $project->task_stats = [
+                'total' => $totalTasks,
+                'completed' => $completedTasks,
+                'in_progress' => $inProgressTasks,
+                'pending' => $pendingTasks,
+                'percentage' => $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0,
+            ];
+            
+            return $project;
+        });
+
+        // Calculate overall statistics
+        $allProjects = Project::all();
+        $totalProjects = $allProjects->count();
+        
+        $projectsWithAllTasksCompleted = 0;
+        $projectsInProgress = 0;
+        $projectsNotStarted = 0;
+        
+        foreach ($allProjects as $proj) {
+            $tasks = \DB::table('tasks')
+                ->where('project_id', $proj->id)
+                ->select('completion_status')
+                ->get();
+            
+            $totalTasks = $tasks->count();
+            
+            if ($totalTasks === 0) {
+                $projectsNotStarted++;
+            } else {
+                $completedTasks = $tasks->where('completion_status', 'completed')->count();
+                if ($completedTasks === $totalTasks) {
+                    $projectsWithAllTasksCompleted++;
+                } else {
+                    $projectsInProgress++;
+                }
+            }
+        }
+
+        $overallStats = [
+            'total_projects' => $totalProjects,
+            'completed_projects' => $projectsWithAllTasksCompleted,
+            'in_progress_projects' => $projectsInProgress,
+            'not_started_projects' => $projectsNotStarted,
+        ];
+
         // Get available years from year column
         $availableYears = Project::select('year')
             ->distinct()
@@ -61,6 +119,7 @@ class ProjectController extends Controller
                 'year' => $year,
             ],
             'availableYears' => $availableYears,
+            'overallStats' => $overallStats,
         ]);
     }
 
@@ -86,10 +145,16 @@ class ProjectController extends Controller
         $templates = \App\Models\ProjectTemplate::orderBy('name')
             ->get(['id', 'name']);
 
+        // Get registered AP user IDs (status = 'active')
+        $registeredApUserIds = \App\Models\RegisteredAp::where('status', 'active')
+            ->pluck('user_id')
+            ->toArray();
+
         return Inertia::render('Admin/Project/Create', [
             'clients' => $clients,
             'availableUsers' => $availableUsers,
             'templates' => $templates,
+            'registeredApUserIds' => $registeredApUserIds,
         ]);
     }
 
@@ -354,6 +419,11 @@ class ProjectController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'position']);
 
+        // Get registered APs (users who can be partners)
+        $registeredApUserIds = \App\Models\RegisteredAp::where('status', 'active')
+            ->pluck('user_id')
+            ->toArray();
+
         // Get clients with their used years
         $clients = Client::with('clientUsers')->orderBy('name')->get()
             ->map(function ($client) use ($bundle) {
@@ -370,6 +440,7 @@ class ProjectController extends Controller
             'workingSteps' => $workingSteps,
             'teamMembers' => $teamMembers,
             'availableUsers' => $availableUsers,
+            'registeredApUserIds' => $registeredApUserIds,
             'clients' => $clients,
         ]);
     }

@@ -115,6 +115,7 @@ interface Props extends PageProps {
     workingSteps: WorkingStep[];
     teamMembers: TeamMember[];
     availableUsers: AvailableUser[];
+    registeredApUserIds: number[];
     clients: Client[];
 }
 
@@ -299,7 +300,7 @@ function DraggableTask({ task, onEdit, onDelete }: {
     );
 }
 
-export default function Show({ auth, bundle, workingSteps, teamMembers, availableUsers, clients }: Props) {
+export default function Show({ auth, bundle, workingSteps, teamMembers, availableUsers, registeredApUserIds, clients }: Props) {
     const [steps, setSteps] = useState(workingSteps || []);
     const [activeStep, setActiveStep] = useState<WorkingStep | null>(null);
     const [activeTask, setActiveTask] = useState<Task | null>(null);
@@ -461,6 +462,42 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     const { data: editTeamMemberData, setData: setEditTeamMemberData, put: putTeamMember, reset: resetEditTeamMember } = useForm({
         role: 'member' as 'partner' | 'manager' | 'supervisor' | 'team leader' | 'member',
     });
+
+    // Helper function to check if user is registered AP
+    const isUserRegisteredAp = (userId: number): boolean => {
+        return registeredApUserIds.includes(userId);
+    };
+
+    // Helper function to check if partner option should be disabled
+    const isPartnerOptionDisabled = (userId: number | null): boolean => {
+        // If no user selected yet, allow partner to be selected (don't disable)
+        if (!userId || userId === 0) return false;
+        // If user is selected, check if they're registered AP
+        return !isUserRegisteredAp(userId);
+    };
+
+    // Filtered users based on selected role (for Add Member modal)
+    const filteredAvailableUsers = useMemo(() => {
+        if (teamMemberData.role === 'partner') {
+            // If role is partner, only show registered APs
+            return availableUsers.filter(user => isUserRegisteredAp(user.id));
+        }
+        // Otherwise show all users
+        return availableUsers;
+    }, [teamMemberData.role, availableUsers, registeredApUserIds]);
+
+    // Handle close Add Team Member modal with reset
+    const handleCloseAddTeamMemberModal = () => {
+        setShowAddTeamMemberModal(false);
+        resetTeamMember();
+    };
+
+    // Handle close Edit Team Member modal with reset
+    const handleCloseEditTeamMemberModal = () => {
+        setShowEditTeamMemberModal(false);
+        setEditingTeamMember(null);
+        resetEditTeamMember();
+    };
 
     const handleAddStep = (e: React.FormEvent) => {
         e.preventDefault();
@@ -1747,8 +1784,19 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
             {showAddTeamMemberModal && (
                 <div className="fixed inset-0 z-50 overflow-y-auto">
                     <div className="flex items-center justify-center min-h-screen px-4">
-                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowAddTeamMemberModal(false)}></div>
+                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={handleCloseAddTeamMemberModal}></div>
                         <div className="relative bg-white rounded-lg max-w-md w-full">
+                            {/* Close button */}
+                            <button
+                                type="button"
+                                onClick={handleCloseAddTeamMemberModal}
+                                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                            
                             <form onSubmit={handleAddTeamMember} className="p-6">
                                 <h3 className="text-lg font-medium text-gray-900 mb-4">Add Team Member</h3>
                                 
@@ -1758,7 +1806,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                             Select User
                                         </label>
                                         <SearchableSelect
-                                            options={availableUsers.map((user) => ({
+                                            options={filteredAvailableUsers.map((user) => ({
                                                 value: user.id,
                                                 label: user.name,
                                                 subtitle: user.email,
@@ -1773,26 +1821,36 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
                                             Role in Project
                                         </label>
-                                        <select
-                                            id="role"
+                                        <SearchableSelect
+                                            options={[
+                                                { value: 'member', label: 'Member' },
+                                                { value: 'team leader', label: 'Team Leader' },
+                                                { value: 'supervisor', label: 'Supervisor' },
+                                                { value: 'manager', label: 'Manager' },
+                                                { 
+                                                    value: 'partner', 
+                                                    label: teamMemberData.user_id > 0 && isPartnerOptionDisabled(teamMemberData.user_id) 
+                                                        ? 'Partner (Registered AP Only)' 
+                                                        : 'Partner',
+                                                    isDisabled: isPartnerOptionDisabled(teamMemberData.user_id)
+                                                },
+                                            ]}
                                             value={teamMemberData.role}
-                                            onChange={(e) => setTeamMemberData('role', e.target.value as any)}
-                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                            required
-                                        >
-                                            <option value="member">Member</option>
-                                            <option value="team leader">Team Leader</option>
-                                            <option value="supervisor">Supervisor</option>
-                                            <option value="manager">Manager</option>
-                                            <option value="partner">Partner</option>
-                                        </select>
+                                            onChange={(value) => setTeamMemberData('role', value as any)}
+                                            placeholder="Select role..."
+                                        />
+                                        {teamMemberData.user_id > 0 && isPartnerOptionDisabled(teamMemberData.user_id) && (
+                                            <p className="mt-1 text-xs text-amber-600">
+                                                ⚠️ Selected user is not a registered AP and cannot be assigned as Partner
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 
                                 <div className="flex justify-end space-x-3 mt-6">
                                     <button
                                         type="button"
-                                        onClick={() => setShowAddTeamMemberModal(false)}
+                                        onClick={handleCloseAddTeamMemberModal}
                                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
                                     >
                                         Cancel
@@ -1814,8 +1872,19 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
             {showEditTeamMemberModal && editingTeamMember && (
                 <div className="fixed inset-0 z-50 overflow-y-auto">
                     <div className="flex items-center justify-center min-h-screen px-4">
-                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowEditTeamMemberModal(false)}></div>
+                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={handleCloseEditTeamMemberModal}></div>
                         <div className="relative bg-white rounded-lg max-w-md w-full">
+                            {/* Close button */}
+                            <button
+                                type="button"
+                                onClick={handleCloseEditTeamMemberModal}
+                                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                            
                             <form onSubmit={handleUpdateTeamMember} className="p-6">
                                 <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Team Member Role</h3>
                                 
@@ -1827,25 +1896,35 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     <label htmlFor="edit_role" className="block text-sm font-medium text-gray-700 mb-2">
                                         Role in Project
                                     </label>
-                                    <select
-                                        id="edit_role"
+                                    <SearchableSelect
+                                        options={[
+                                            { value: 'member', label: 'Member' },
+                                            { value: 'team leader', label: 'Team Leader' },
+                                            { value: 'supervisor', label: 'Supervisor' },
+                                            { value: 'manager', label: 'Manager' },
+                                            { 
+                                                value: 'partner', 
+                                                label: isPartnerOptionDisabled(editingTeamMember.user_id) 
+                                                    ? 'Partner (Registered AP Only)' 
+                                                    : 'Partner',
+                                                isDisabled: isPartnerOptionDisabled(editingTeamMember.user_id)
+                                            },
+                                        ]}
                                         value={editTeamMemberData.role}
-                                        onChange={(e) => setEditTeamMemberData('role', e.target.value as any)}
-                                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                        required
-                                    >
-                                        <option value="member">Member</option>
-                                        <option value="team leader">Team Leader</option>
-                                        <option value="supervisor">Supervisor</option>
-                                        <option value="manager">Manager</option>
-                                        <option value="partner">Partner</option>
-                                    </select>
+                                        onChange={(value) => setEditTeamMemberData('role', value as any)}
+                                        placeholder="Select role..."
+                                    />
+                                    {isPartnerOptionDisabled(editingTeamMember.user_id) && (
+                                        <p className="mt-1 text-xs text-amber-600">
+                                            ⚠️ This user is not a registered AP and cannot be assigned as Partner
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div className="flex justify-end space-x-3">
                                     <button
                                         type="button"
-                                        onClick={() => setShowEditTeamMemberModal(false)}
+                                        onClick={handleCloseEditTeamMemberModal}
                                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
                                     >
                                         Cancel

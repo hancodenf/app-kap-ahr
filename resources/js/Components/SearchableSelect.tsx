@@ -83,6 +83,15 @@ export default function SearchableSelect({
         }
     };
 
+    const handleClear = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (multiple) {
+            onChange([]);
+        } else {
+            onChange(0); // or null/empty string depending on your needs
+        }
+    };
+
     return (
         <div ref={dropdownRef} className={`relative ${className}`}>
             {/* Select Button */}
@@ -124,14 +133,32 @@ export default function SearchableSelect({
                         {selectedOptions.length > 0 ? selectedOptions[0].label : placeholder}
                     </span>
                 )}
-                <svg
-                    className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ml-2 ${isOpen ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                
+                <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                    {/* Clear button for single select when value is selected */}
+                    {!multiple && selectedOptions.length > 0 && !disabled && (
+                        <button
+                            type="button"
+                            onClick={handleClear}
+                            className="p-1 hover:bg-gray-200 rounded transition-colors"
+                            title="Clear selection"
+                        >
+                            <svg className="w-4 h-4 text-gray-500 hover:text-gray-700" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                        </button>
+                    )}
+                    
+                    {/* Dropdown arrow */}
+                    <svg
+                        className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
             </div>
 
             {/* Dropdown */}
