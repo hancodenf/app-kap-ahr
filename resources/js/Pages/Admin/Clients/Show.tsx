@@ -12,7 +12,7 @@ interface Project {
 	id: number;
 	name: string;
 	description: string | null;
-	status: 'open' | 'closed';
+	status: 'Draft' | 'In Progress' | 'Completed' | 'Archived';
 	working_steps_count: number;
 	tasks_count: number;
 	created_at: string;
@@ -227,11 +227,15 @@ export default function Show(props: Props) {
 													<div className="flex items-center gap-2 mb-2">
 														<h5 className="text-base font-semibold text-gray-900">{project.name}</h5>
 														<span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
-															project.status === 'open' 
-																? 'bg-green-100 text-green-800' 
+															project.status === 'In Progress'
+																? 'bg-blue-100 text-blue-800'
+																: project.status === 'Completed'
+																? 'bg-green-100 text-green-800'
+																: project.status === 'Draft'
+																? 'bg-yellow-100 text-yellow-800'
 																: 'bg-gray-100 text-gray-800'
 														}`}>
-															{project.status === 'open' ? 'Open' : 'Closed'}
+															{project.status}
 														</span>
 													</div>
 													{project.description && (

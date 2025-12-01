@@ -451,7 +451,7 @@ class ProjectController extends Controller
             'name' => 'required|string|max:255|unique:projects,name,' . $bundle->id,
             'client_id' => 'required|exists:clients,id',
             'year' => 'required|integer|min:2000|max:' . date('Y'),
-            'status' => 'required|in:open,closed',
+            'status' => 'required|in:Draft,In Progress,Completed,Archived',
         ]);
 
         // Check if project with same client and year already exists (excluding current project)

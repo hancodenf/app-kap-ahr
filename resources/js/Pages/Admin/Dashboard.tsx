@@ -16,8 +16,10 @@ interface DashboardStatistics {
 	};
 	projects: {
 		total: number;
-		active: number;
-		closed: number;
+		draft: number;
+		in_progress: number;
+		completed: number;
+		archived: number;
 		newThisMonth: number;
 		byStatus: Record<string, number>;
 	};
@@ -106,7 +108,7 @@ interface Analytics {
 	topTeamMembers: Array<{ user_id: number; user_name: string; user_position: string; project_count: number }>;
 	teamRoleDistribution: Array<{ role: string; count: number }>;
 	projectsByClient: Array<{ client_name: string; project_count: number }>;
-	projectStatusByYear: Array<{ year: number; open: number; closed: number }>;
+	projectStatusByYear: Array<{ year: number; draft: number; in_progress: number; completed: number; archived: number }>;
 	projectCreationTrend: Array<{ month: string; count: number }>;
 	taskCompletionByStep: Array<{ step_name: string; total_tasks: number; completed_tasks: number; completion_rate: number }>;
 }
@@ -210,7 +212,7 @@ export default function AdminDashboard({
 
 	const projectActiveRate =
 		statistics.projects.total > 0
-			? Math.round((statistics.projects.active / statistics.projects.total) * 100)
+			? Math.round((statistics.projects.in_progress / statistics.projects.total) * 100)
 			: 0;
 
 	const apActiveRate =
@@ -296,9 +298,11 @@ export default function AdminDashboard({
 							</div>
 							<h4 className="text-2xl font-bold text-gray-900">{statistics.projects.total}</h4>
 							<p className="text-sm text-gray-600 mt-1">Total Projects</p>
-							<div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-								<span className="text-green-600 font-medium">Active: {statistics.projects.active}</span>
-								<span className="text-gray-500">Closed: {statistics.projects.closed}</span>
+							<div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs gap-2 flex-wrap">
+								<span className="text-yellow-600 font-medium">Draft: {statistics.projects.draft}</span>
+								<span className="text-blue-600 font-medium">In Progress: {statistics.projects.in_progress}</span>
+								<span className="text-green-600 font-medium">Completed: {statistics.projects.completed}</span>
+								<span className="text-gray-500">Archived: {statistics.projects.archived}</span>
 							</div>
 						</div>
 

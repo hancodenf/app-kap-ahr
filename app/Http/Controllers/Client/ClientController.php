@@ -38,11 +38,17 @@ class ClientController extends Controller
             'total' => $hasClient 
                 ? Project::where('client_id', $user->client_id)->count()
                 : 0,
-            'open' => $hasClient 
-                ? Project::where('client_id', $user->client_id)->where('status', 'open')->count()
+            'in_progress' => $hasClient 
+                ? Project::where('client_id', $user->client_id)->where('status', 'In Progress')->count()
                 : 0,
-            'closed' => $hasClient 
-                ? Project::where('client_id', $user->client_id)->where('status', 'closed')->count()
+            'completed' => $hasClient 
+                ? Project::where('client_id', $user->client_id)->where('status', 'Completed')->count()
+                : 0,
+            'draft' => $hasClient 
+                ? Project::where('client_id', $user->client_id)->where('status', 'Draft')->count()
+                : 0,
+            'archived' => $hasClient 
+                ? Project::where('client_id', $user->client_id)->where('status', 'Archived')->count()
                 : 0,
         ];
         
@@ -252,13 +258,15 @@ class ClientController extends Controller
         $user = Auth::user();
         
         // Get filter parameters
-        $status = $request->get('status', 'open');
+        $status = $request->get('status', 'Draft');
         $search = $request->get('search');
 
         // Get status counts
         $statusCounts = [
-            'open' => Project::where('client_id', $user->client_id)->where('status', 'open')->count(),
-            'closed' => Project::where('client_id', $user->client_id)->where('status', 'closed')->count(),
+            'draft' => Project::where('client_id', $user->client_id)->where('status', 'Draft')->count(),
+            'in_progress' => Project::where('client_id', $user->client_id)->where('status', 'In Progress')->count(),
+            'completed' => Project::where('client_id', $user->client_id)->where('status', 'Completed')->count(),
+            'archived' => Project::where('client_id', $user->client_id)->where('status', 'Archived')->count(),
         ];
 
         // Build query

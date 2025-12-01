@@ -81,12 +81,21 @@ interface Project {
     status: string;
 }
 
+interface TeamMember {
+    id: number;
+    user_name: string;
+    user_email: string;
+    user_position: string | null;
+    role: 'partner' | 'manager' | 'supervisor' | 'team leader' | 'member';
+}
+
 interface Props extends PageProps {
     project: Project;
     workingSteps: WorkingStep[];
+    teamMembers: TeamMember[];
 }
 
-export default function ShowProject({ auth, project, workingSteps }: Props) {
+export default function ShowProject({ auth, project, workingSteps, teamMembers }: Props) {
     const [expandedSteps, setExpandedSteps] = useState<number[]>([]);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [showTaskModal, setShowTaskModal] = useState(false);
@@ -97,6 +106,14 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
     const [clientDocInputs, setClientDocInputs] = useState<Array<{ id: number; name: string; description: string }>>([{ id: 0, name: '', description: '' }]);
     const [nextFileId, setNextFileId] = useState(1);
     const [nextClientDocId, setNextClientDocId] = useState(1);
+
+    // Calculate project statistics
+    const allTasks = workingSteps.flatMap(step => step.tasks);
+    const totalTasks = allTasks.length;
+    const completedTasks = allTasks.filter(t => t.completion_status === 'completed').length;
+    const inProgressTasks = allTasks.filter(t => t.completion_status === 'in_progress').length;
+    const pendingTasks = allTasks.filter(t => t.completion_status === 'pending').length;
+    const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
     // Disable body scroll when modal is open
     useEffect(() => {
@@ -406,8 +423,12 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
                     </div>
                     <span
                         className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            project.status === 'open'
+                            project.status === 'In Progress'
+                                ? 'bg-blue-100 text-blue-800'
+                                : project.status === 'Completed'
                                 ? 'bg-green-100 text-green-800'
+                                : project.status === 'Draft'
+                                ? 'bg-yellow-100 text-yellow-800'
                                 : 'bg-gray-100 text-gray-800'
                         }`}
                     >
@@ -420,6 +441,183 @@ export default function ShowProject({ auth, project, workingSteps }: Props) {
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+                    {/* Stats Section */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        {/* Overall Progress - Big Green Card */}
+                        <div className="bg-green-600 rounded-lg p-6 text-white shadow-lg">
+                            <div className="flex items-center justify-between mb-2">
+                                <div>
+                                    <p className="text-sm opacity-90">Overall Progress</p>
+                                    <p className="text-4xl font-bold mt-1">{completionPercentage}%</p>
+                                </div>
+                                <svg className="w-12 h-12 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                </svg>
+                            </div>
+                            <p className="text-xs opacity-75">dari {totalTasks} tasks</p>
+                        </div>
+
+                        {/* Completed */}
+                        <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-gray-600">Completed</p>
+                                    <p className="text-3xl font-bold text-green-600 mt-1">{completedTasks}</p>
+                                    <p className="text-xs text-gray-500 mt-1">dari {totalTasks} tasks</p>
+                                </div>
+                                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                                    <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* In Progress */}
+                        <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-gray-600">In Progress</p>
+                                    <p className="text-3xl font-bold text-yellow-600 mt-1">{inProgressTasks}</p>
+                                    <p className="text-xs text-gray-500 mt-1">sedang dikerjakan</p>
+                                </div>
+                                <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                                    <svg className="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Pending */}
+                        <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-gray-600">Pending</p>
+                                    <p className="text-3xl font-bold text-gray-600 mt-1">{pendingTasks}</p>
+                                    <p className="text-xs text-gray-500 mt-1">belum dimulai</p>
+                                </div>
+                                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                                    <svg className="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Tim Proyek Section */}
+                    {teamMembers && teamMembers.length > 0 && (
+                        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 shadow-sm">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                                Tim Proyek
+                                <span className="ml-2 text-sm text-gray-500 font-normal">
+                                    Anggota tim yang bekerja di project ini ({teamMembers.length} orang)
+                                </span>
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {teamMembers.map((member) => {
+                                    const getRoleBadge = (role: string) => {
+                                        switch (role) {
+                                            case 'partner':
+                                                return 'bg-purple-100 text-purple-800 border-purple-200';
+                                            case 'manager':
+                                                return 'bg-blue-100 text-blue-800 border-blue-200';
+                                            case 'supervisor':
+                                                return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+                                            case 'team leader':
+                                                return 'bg-green-100 text-green-800 border-green-200';
+                                            default:
+                                                return 'bg-gray-100 text-gray-800 border-gray-200';
+                                        }
+                                    };
+
+                                    const getInitials = (name: string) => {
+                                        return name
+                                            .split(' ')
+                                            .map(word => word.charAt(0))
+                                            .join('')
+                                            .toUpperCase()
+                                            .substring(0, 2);
+                                    };
+
+                                    return (
+                                        <div
+                                            key={member.id}
+                                            className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:border-primary-300 hover:shadow-sm transition-all"
+                                        >
+                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center flex-shrink-0">
+                                                <span className="text-white font-bold text-sm">
+                                                    {getInitials(member.user_name)}
+                                                </span>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-semibold text-gray-900 truncate">
+                                                    {member.user_name}
+                                                </p>
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${getRoleBadge(member.role)}`}>
+                                                    {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Workflow Steps Indicator */}
+                    {workingSteps.length > 0 && (
+                        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 shadow-sm">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                                Workflow Steps
+                                <span className="ml-2 text-sm text-gray-500 font-normal">
+                                    Klik tab untuk melihat tasks di setiap step
+                                </span>
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {workingSteps.map((step, index) => {
+                                    const stepTasks = step.tasks;
+                                    const stepCompleted = stepTasks.filter(t => t.completion_status === 'completed').length;
+                                    const stepTotal = stepTasks.length;
+                                    const stepPercentage = stepTotal > 0 ? Math.round((stepCompleted / stepTotal) * 100) : 0;
+
+                                    return (
+                                        <div
+                                            key={step.id}
+                                            className="border-2 border-gray-200 rounded-lg p-4 bg-white hover:border-primary-300 transition-all"
+                                        >
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary-600 text-white font-bold text-sm">
+                                                    {index + 1}
+                                                </div>
+                                                <span className="text-sm font-semibold text-gray-600">
+                                                    {stepPercentage}%
+                                                </span>
+                                            </div>
+                                            <h4 className="text-sm font-semibold text-gray-900 mb-2 line-clamp-2">
+                                                {step.name}
+                                            </h4>
+                                            <p className="text-xs text-gray-500 mb-2">
+                                                {stepCompleted}/{stepTotal} tasks
+                                            </p>
+                                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                                <div
+                                                    className={`h-2 rounded-full transition-all ${
+                                                        stepPercentage === 100 ? 'bg-green-500' :
+                                                        stepPercentage > 0 ? 'bg-yellow-500' : 'bg-gray-300'
+                                                    }`}
+                                                    style={{ width: `${stepPercentage}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Working Steps Accordion */}
                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <div className="p-6">
                             {workingSteps.length === 0 ? (

@@ -412,11 +412,15 @@ export default function Index({ bundles, filters, availableYears, overallStats }
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                        bundle.status === 'open' 
-                                                            ? 'bg-green-100 text-green-800' 
+                                                        bundle.status === 'In Progress' 
+                                                            ? 'bg-blue-100 text-blue-800' 
+                                                            : bundle.status === 'Completed'
+                                                            ? 'bg-green-100 text-green-800'
+                                                            : bundle.status === 'Draft'
+                                                            ? 'bg-yellow-100 text-yellow-800'
                                                             : 'bg-gray-100 text-gray-800'
                                                     }`}>
-                                                        {bundle.status === 'open' ? 'Open' : 'Closed'}
+                                                        {bundle.status}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -513,11 +517,15 @@ export default function Index({ bundles, filters, availableYears, overallStats }
                                                 </div>
                                                 
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                    bundle.status === 'open' 
-                                                        ? 'bg-green-100 text-green-800' 
+                                                    bundle.status === 'In Progress' 
+                                                        ? 'bg-blue-100 text-blue-800' 
+                                                        : bundle.status === 'Completed'
+                                                        ? 'bg-green-100 text-green-800'
+                                                        : bundle.status === 'Draft'
+                                                        ? 'bg-yellow-100 text-yellow-800'
                                                         : 'bg-gray-100 text-gray-800'
                                                 }`}>
-                                                    {bundle.status === 'open' ? 'Open' : 'Closed'}
+                                                    {bundle.status}
                                                 </span>
                                             </div>
                                         </div>

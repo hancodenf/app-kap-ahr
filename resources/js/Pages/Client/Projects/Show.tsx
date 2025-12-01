@@ -176,8 +176,12 @@ export default function Show({ project, workingSteps, projectTeams }: Props) {
                     </div>
                     <span
                         className={`px-4 py-2 rounded-lg text-sm font-semibold shadow-sm ${
-                            project.status === 'open'
+                            project.status === 'In Progress'
+                                ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                                : project.status === 'Completed'
                                 ? 'bg-green-100 text-green-800 border border-green-200'
+                                : project.status === 'Draft'
+                                ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
                                 : 'bg-gray-100 text-gray-800 border border-gray-200'
                         }`}
                     >

@@ -62,16 +62,20 @@ class AdminController extends Controller
         // 3. PROJECT STATISTICS
         // =============================================
         $totalProjects = Project::count();
-        $activeProjects = Project::where('status', 'open')->count();
-        $closedProjects = Project::where('status', 'closed')->count();
+        $draftProjects = Project::where('status', 'Draft')->count();
+        $inProgressProjects = Project::where('status', 'In Progress')->count();
+        $completedProjects = Project::where('status', 'Completed')->count();
+        $archivedProjects = Project::where('status', 'Archived')->count();
         $newProjectsThisMonth = Project::whereMonth('created_at', Carbon::now()->month)
             ->whereYear('created_at', Carbon::now()->year)
             ->count();
 
         // Project status distribution
         $projectsByStatus = [
-            'open' => $activeProjects,
-            'closed' => $closedProjects,
+            'draft' => $draftProjects,
+            'in_progress' => $inProgressProjects,
+            'completed' => $completedProjects,
+            'archived' => $archivedProjects,
         ];
 
         // =============================================
@@ -286,8 +290,10 @@ class AdminController extends Controller
             ->map(function($yearProjects, $year) {
                 return [
                     'year' => $year,
-                    'open' => $yearProjects->where('status', 'open')->sum('count'),
-                    'closed' => $yearProjects->where('status', 'closed')->sum('count'),
+                    'draft' => $yearProjects->where('status', 'Draft')->sum('count'),
+                    'in_progress' => $yearProjects->where('status', 'In Progress')->sum('count'),
+                    'completed' => $yearProjects->where('status', 'Completed')->sum('count'),
+                    'archived' => $yearProjects->where('status', 'Archived')->sum('count'),
                 ];
             })
             ->values();
@@ -367,8 +373,10 @@ class AdminController extends Controller
                 ],
                 'projects' => [
                     'total' => $totalProjects,
-                    'active' => $activeProjects,
-                    'closed' => $closedProjects,
+                    'draft' => $draftProjects,
+                    'in_progress' => $inProgressProjects,
+                    'completed' => $completedProjects,
+                    'archived' => $archivedProjects,
                     'newThisMonth' => $newProjectsThisMonth,
                     'byStatus' => $projectsByStatus,
                 ],
