@@ -14,6 +14,7 @@ use App\Models\TaskWorker;
 use App\Models\User;
 use App\Models\WorkingStep;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -64,7 +65,7 @@ class ProjectController extends Controller
 
         // Add task statistics to each project
         $projects->getCollection()->transform(function ($project) {
-            $tasks = \DB::table('tasks')
+            $tasks = DB::table('tasks')
                 ->where('project_id', $project->id)
                 ->select('completion_status')
                 ->get();
@@ -94,7 +95,7 @@ class ProjectController extends Controller
         $projectsNotStarted = 0;
         
         foreach ($allProjects as $proj) {
-            $tasks = \DB::table('tasks')
+            $tasks = DB::table('tasks')
                 ->where('project_id', $proj->id)
                 ->select('completion_status')
                 ->get();
@@ -217,7 +218,7 @@ class ProjectController extends Controller
         // Create project with denormalized client data
         $project = Project::create([
             'name' => $request->name,
-            'slug' => \Str::slug($request->name . '-' . now()->timestamp),
+            'slug' => Str::slug($request->name . '-' . now()->timestamp),
             'client_id' => $request->client_id,
             'year' => $request->year,
             'client_name' => $client->name,
