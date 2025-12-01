@@ -95,7 +95,7 @@ export default function Login({
                 <div className="font-semibold truncate text-xs">{user.name}</div>
                 <div className="text-[10px] opacity-75 truncate">{user.email}</div>
                 {user.position && (
-                    <div className={`text-[9px] bg-${colorClass}-100 px-1 py-0.5 rounded mt-0.5 inline-block`}>
+                    <div className={`text-[9px] bg-${colorClass}-100 px-1 py-0.5 rounded mt-0.5 inline-block`}> 
                         {user.position}
                     </div>
                 )}
