@@ -53,20 +53,23 @@ interface Props extends PageProps {
         status?: string;
     };
     statusCounts: {
-        draft: number;
         in_progress: number;
         completed: number;
-        archived: number;
+        suspended: number;
+        canceled: number;
     };
 }
 
 export default function Index({ projects, filters, statusCounts }: Props) {
     const { flash } = usePage().props as any;
     const [search, setSearch] = useState(filters.search || '');
-    const [activeStatus, setActiveStatus] = useState(filters.status || 'Draft');
+    // Only allow 'In Progress' or 'Completed' for clients, default to 'In Progress'
+    const [activeStatus, setActiveStatus] = useState(
+        filters.status === 'Completed' ? 'Completed' : 'In Progress'
+    );
 
     const handleSearch = () => {
-        router.get(route('klien.projects.index'), { search, status: activeStatus }, {
+        router.get('/klien/projects', { search, status: activeStatus }, {
             preserveState: true,
             replace: true,
         });
@@ -74,7 +77,7 @@ export default function Index({ projects, filters, statusCounts }: Props) {
 
     const handleReset = () => {
         setSearch('');
-        router.get(route('klien.projects.index'), { status: activeStatus }, {
+        router.get('/klien/projects', { status: activeStatus }, {
             preserveState: true,
             replace: true,
         });
@@ -82,7 +85,7 @@ export default function Index({ projects, filters, statusCounts }: Props) {
 
     const handleStatusChange = (status: string) => {
         setActiveStatus(status);
-        router.get(route('klien.projects.index'), { status, search }, {
+        router.get('/klien/projects', { status, search }, {
             preserveState: true,
             replace: true,
         });
@@ -101,9 +104,10 @@ export default function Index({ projects, filters, statusCounts }: Props) {
             'Draft': { color: 'bg-yellow-100 text-yellow-800', label: 'Draft' },
             'In Progress': { color: 'bg-blue-100 text-blue-800', label: 'In Progress' },
             'Completed': { color: 'bg-green-100 text-green-800', label: 'Completed' },
-            'Archived': { color: 'bg-gray-100 text-gray-800', label: 'Archived' },
+            'Suspended': { color: 'bg-orange-100 text-orange-800', label: 'Suspended' },
+            'Canceled': { color: 'bg-red-100 text-red-800', label: 'Canceled' },
         };
-        const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['Draft'];
+        const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['In Progress'];
         return (
             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${config.color}`}>
                 {config.label}
@@ -140,26 +144,8 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-4 sm:p-6">
                             {/* Status Tabs */}
-                            <div className="mb-4 sm:mb-6 border-b border-gray-200 overflow-x-auto">
+                            <div className="mb-4 sm:mb-6 border-b border-gray-200">
                                 <nav className="-mb-px flex space-x-2 sm:space-x-4" aria-label="Tabs">
-                                    <button
-                                        onClick={() => handleStatusChange('Draft')}
-                                        className={`${
-                                            activeStatus === 'Draft'
-                                                ? 'border-yellow-500 text-yellow-600'
-                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                        } whitespace-nowrap py-2 sm:py-3 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm transition-colors flex items-center gap-1 sm:gap-2`}
-                                    >
-                                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                        </svg>
-                                        <span>Draft</span>
-                                        <span className={`${
-                                            activeStatus === 'Draft' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-600'
-                                        } inline-flex items-center px-1.5 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium`}>
-                                            {statusCounts.draft}
-                                        </span>
-                                    </button>
                                     <button
                                         onClick={() => handleStatusChange('In Progress')}
                                         className={`${
@@ -197,21 +183,39 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                                         </span>
                                     </button>
                                     <button
-                                        onClick={() => handleStatusChange('Archived')}
+                                        onClick={() => handleStatusChange('Suspended')}
                                         className={`${
-                                            activeStatus === 'Archived'
-                                                ? 'border-gray-500 text-gray-700'
+                                            activeStatus === 'Suspended'
+                                                ? 'border-orange-500 text-orange-600'
                                                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                         } whitespace-nowrap py-2 sm:py-3 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm transition-colors flex items-center gap-1 sm:gap-2`}
                                     >
                                         <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                                         </svg>
-                                        <span>Archived</span>
+                                        <span>Suspended</span>
                                         <span className={`${
-                                            activeStatus === 'Archived' ? 'bg-gray-200 text-gray-800' : 'bg-gray-100 text-gray-600'
+                                            activeStatus === 'Suspended' ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-600'
                                         } inline-flex items-center px-1.5 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium`}>
-                                            {statusCounts.archived}
+                                            {statusCounts.suspended}
+                                        </span>
+                                    </button>
+                                    <button
+                                        onClick={() => handleStatusChange('Canceled')}
+                                        className={`${
+                                            activeStatus === 'Canceled'
+                                                ? 'border-red-500 text-red-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        } whitespace-nowrap py-2 sm:py-3 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm transition-colors flex items-center gap-1 sm:gap-2`}
+                                    >
+                                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span>Canceled</span>
+                                        <span className={`${
+                                            activeStatus === 'Canceled' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-600'
+                                        } inline-flex items-center px-1.5 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium`}>
+                                            {statusCounts.canceled}
                                         </span>
                                     </button>
                                 </nav>
@@ -245,29 +249,29 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                                 </div>
                             </div>
                             {/* Projects Table - Desktop */}
-                            <div className="hidden md:block overflow-x-auto">
+                            <div className="hidden xl:block overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
                                                 No
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Project Name
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
                                                 Team
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
                                                 Progress
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Working Steps
+                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
+                                                Steps
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Total Tasks
+                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                                                Tasks
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                                                 Created
                                             </th>
                                         </tr>
@@ -275,19 +279,19 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                                     <tbody className="bg-white divide-y divide-gray-200">
                                         {projects.data.map((project, index) => (
                                             <tr key={project.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
                                                     {(projects.current_page - 1) * projects.per_page + index + 1}
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-4 py-4">
                                                     <Link
-                                                        href={route('klien.projects.show', project.id)}
+                                                        href={`/klien/projects/${project.id}`}
                                                         className="text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline"
                                                     >
                                                         {project.name}
                                                     </Link>
                                                 </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center -space-x-2">
+                                                <td className="px-3 py-4">
+                                                    <div className="flex items-center -space-x-1">
                                                         {project.team_members && project.team_members.length > 0 ? (
                                                             <>
                                                                 {project.team_members.map((member) => (
@@ -296,24 +300,24 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                                                                             key={member.id}
                                                                             src={`/storage/${member.user.profile_photo}`}
                                                                             alt={member.user_name}
-                                                                            className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-sm hover:scale-110 hover:z-10 transition-transform"
+                                                                            className="w-6 h-6 rounded-full object-cover border border-white shadow-sm hover:scale-110 hover:z-10 transition-transform"
                                                                             title={`${member.user_name} - ${member.role}`}
                                                                         />
                                                                     ) : (
                                                                         <div
                                                                             key={member.id}
-                                                                            className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center border-2 border-white shadow-sm hover:scale-110 hover:z-10 transition-transform"
+                                                                            className="w-6 h-6 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center border border-white shadow-sm hover:scale-110 hover:z-10 transition-transform"
                                                                             title={`${member.user_name} - ${member.role}`}
                                                                         >
-                                                                            <span className="text-white font-semibold text-xs">
+                                                                            <span className="text-white font-semibold text-[10px]">
                                                                                 {member.user_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
                                                                             </span>
                                                                         </div>
                                                                     )
                                                                 ))}
                                                                 {project.team_count > 5 && (
-                                                                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center border-2 border-white shadow-sm hover:scale-110 hover:z-10 transition-transform">
-                                                                        <span className="text-gray-600 font-semibold text-xs">
+                                                                    <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center border border-white shadow-sm hover:scale-110 hover:z-10 transition-transform">
+                                                                        <span className="text-gray-600 font-semibold text-[10px]">
                                                                             +{project.team_count - 5}
                                                                         </span>
                                                                     </div>
@@ -324,10 +328,10 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                <td className="px-3 py-4 whitespace-nowrap">
                                                     <div className="space-y-1">
                                                         <div className="flex items-center gap-2">
-                                                            <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-[100px]">
+                                                            <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-[80px]">
                                                                 <div
                                                                     className={`h-2 rounded-full transition-all ${
                                                                         project.completion_percentage === 100
@@ -339,32 +343,32 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                                                                     style={{ width: `${project.completion_percentage}%` }}
                                                                 ></div>
                                                             </div>
-                                                            <span className="text-xs font-medium text-gray-700 min-w-[40px]">
+                                                            <span className="text-xs font-medium text-gray-700 min-w-[30px]">
                                                                 {project.completion_percentage}%
                                                             </span>
                                                         </div>
                                                         <p className="text-xs text-gray-500">
-                                                            {project.completed_tasks}/{project.total_tasks} tasks
+                                                            {project.completed_tasks}/{project.total_tasks}
                                                         </p>
                                                     </div>
                                                 </td> 
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <td className="px-3 py-4 whitespace-nowrap">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                                         </svg>
                                                         {project.working_steps_count} 
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <td className="px-3 py-4 whitespace-nowrap">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                                                         </svg>
                                                         {project.tasks_count} 
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <td className="px-3 py-4 whitespace-nowrap text-xs text-gray-500">
                                                     {formatDate(project.created_at)}
                                                 </td>
                                             </tr>
@@ -373,8 +377,8 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                                 </table>
                             </div>
 
-                            {/* Projects Cards - Mobile */}
-                            <div className="md:hidden space-y-4">
+                            {/* Projects Cards - Mobile/Tablet */}
+                            <div className="xl:hidden space-y-4">
                                 {projects.data.map((project, index) => (
                                     <div key={project.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
                                         <div className="flex justify-between items-start mb-3">
@@ -482,7 +486,7 @@ export default function Index({ projects, filters, statusCounts }: Props) {
                                         </div>
 
                                         <Link
-                                            href={route('klien.projects.show', project.id)}
+                                            href={`/klien/projects/${project.id}`}
                                             className="w-full inline-flex items-center justify-center px-3 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors text-sm font-medium"
                                         >
                                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

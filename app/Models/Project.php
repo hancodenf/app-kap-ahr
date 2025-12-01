@@ -22,12 +22,23 @@ class Project extends Model
         'name',
         'slug',
         'status',
+        'is_archived',
         'client_id',
         'year',
         'client_name',
         'client_alamat',
         'client_kementrian',
         'client_kode_satker',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'is_archived' => 'boolean',
+        'year' => 'integer',
     ];
 
     /**

@@ -33,28 +33,46 @@ class ClientController extends Controller
         // Get client name for denormalized queries
         $clientName = $hasClient ? $client->name : '';
         
-        // 1. Project Statistics
+        // 1. Project Statistics - exclude Draft and archived projects
         $projectStats = [
             'total' => $hasClient 
-                ? Project::where('client_id', $user->client_id)->count()
+                ? Project::where('client_id', $user->client_id)
+                    ->whereNotIn('status', ['Draft'])
+                    ->where('is_archived', false)
+                    ->count()
                 : 0,
             'in_progress' => $hasClient 
-                ? Project::where('client_id', $user->client_id)->where('status', 'In Progress')->count()
+                ? Project::where('client_id', $user->client_id)
+                    ->where('status', 'In Progress')
+                    ->where('is_archived', false)
+                    ->count()
                 : 0,
             'completed' => $hasClient 
-                ? Project::where('client_id', $user->client_id)->where('status', 'Completed')->count()
+                ? Project::where('client_id', $user->client_id)
+                    ->where('status', 'Completed')
+                    ->where('is_archived', false)
+                    ->count()
                 : 0,
-            'draft' => $hasClient 
-                ? Project::where('client_id', $user->client_id)->where('status', 'Draft')->count()
+            'suspended' => $hasClient 
+                ? Project::where('client_id', $user->client_id)
+                    ->where('status', 'Suspended')
+                    ->where('is_archived', false)
+                    ->count()
                 : 0,
-            'archived' => $hasClient 
-                ? Project::where('client_id', $user->client_id)->where('status', 'Archived')->count()
+            'canceled' => $hasClient 
+                ? Project::where('client_id', $user->client_id)
+                    ->where('status', 'Canceled')
+                    ->where('is_archived', false)
+                    ->count()
                 : 0,
         ];
         
-        // Get project IDs for task queries
+        // Get project IDs for task queries - exclude Draft and archived
         $projectIds = $hasClient 
-            ? Project::where('client_id', $user->client_id)->pluck('id')
+            ? Project::where('client_id', $user->client_id)
+                ->whereNotIn('status', ['Draft'])
+                ->where('is_archived', false)
+                ->pluck('id')
             : collect([]);
         
         // 2. Task Statistics (menggunakan completion_status yang benar)
@@ -257,21 +275,35 @@ class ClientController extends Controller
     {
         $user = Auth::user();
         
-        // Get filter parameters
-        $status = $request->get('status', 'Draft');
+        // Get filter parameters - only allow certain statuses for clients
+        $status = $request->get('status', 'In Progress');
+        $allowedStatuses = ['In Progress', 'Completed', 'Suspended', 'Canceled'];
+        if (!in_array($status, $allowedStatuses)) {
+            $status = 'In Progress';
+        }
         $search = $request->get('search');
 
-        // Get status counts
+        // Get status counts - exclude Draft and archived projects
         $statusCounts = [
-            'draft' => Project::where('client_id', $user->client_id)->where('status', 'Draft')->count(),
-            'in_progress' => Project::where('client_id', $user->client_id)->where('status', 'In Progress')->count(),
-            'completed' => Project::where('client_id', $user->client_id)->where('status', 'Completed')->count(),
-            'archived' => Project::where('client_id', $user->client_id)->where('status', 'Archived')->count(),
+            'in_progress' => Project::where('client_id', $user->client_id)
+                ->where('status', 'In Progress')
+                ->where('is_archived', false)->count(),
+            'completed' => Project::where('client_id', $user->client_id)
+                ->where('status', 'Completed')
+                ->where('is_archived', false)->count(),
+            'suspended' => Project::where('client_id', $user->client_id)
+                ->where('status', 'Suspended')
+                ->where('is_archived', false)->count(),
+            'canceled' => Project::where('client_id', $user->client_id)
+                ->where('status', 'Canceled')
+                ->where('is_archived', false)->count(),
         ];
 
-        // Build query
+        // Build query - exclude Draft and archived projects
         $query = Project::where('client_id', $user->client_id)
             ->where('status', $status)
+            ->where('is_archived', false)
+            ->whereNotIn('status', ['Draft'])
             ->withCount(['workingSteps', 'tasks'])
             ->with(['client', 'projectTeams.user']);
 

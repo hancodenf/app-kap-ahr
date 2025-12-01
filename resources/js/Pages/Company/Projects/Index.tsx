@@ -19,9 +19,10 @@ interface Props extends PageProps {
         status?: string;
     };
     statusCounts: {
-        draft: number;
         in_progress: number;
         completed: number;
+        suspended: number;
+        canceled: number;
         archived: number;
     };
 }
@@ -29,7 +30,7 @@ interface Props extends PageProps {
 export default function ProjectsIndex({ auth, projects, filters, statusCounts }: Props) {
     const { flash } = usePage().props as any;
     const [search, setSearch] = useState(filters.search || '');
-    const activeStatus = filters.status || 'Draft';
+    const activeStatus = filters.status || 'In Progress';
 
     const handleSearch = () => {
         router.get(route('company.projects.index'), { search, status: activeStatus }, {
@@ -59,6 +60,22 @@ export default function ProjectsIndex({ auth, projects, filters, statusCounts }:
             month: 'short',
             day: 'numeric',
         });
+    };
+
+    const getProjectStatusBadge = (status: string) => {
+        const statusConfig = {
+            'Draft': { color: 'bg-yellow-100 text-yellow-800', label: 'Draft' },
+            'In Progress': { color: 'bg-blue-100 text-blue-800', label: 'In Progress' },
+            'Completed': { color: 'bg-green-100 text-green-800', label: 'Completed' },
+            'Suspended': { color: 'bg-orange-100 text-orange-800', label: 'Suspended' },
+            'Canceled': { color: 'bg-red-100 text-red-800', label: 'Canceled' },
+        };
+        const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['Draft'];
+        return (
+            <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full ${config.color}`}>
+                {config.label}
+            </span>
+        );
     };
 
     const getStatusBadge = (status: string) => {
@@ -119,26 +136,8 @@ export default function ProjectsIndex({ auth, projects, filters, statusCounts }:
                     <div className="bg-white overflow-hidden shadow-lg sm:rounded-xl">
                         <div className="p-4 sm:p-6">
                             {/* Status Tabs */}
-                            <div className="mb-4 sm:mb-6 border-b border-gray-200 overflow-x-auto">
+                            <div className="mb-4 sm:mb-6 border-b border-gray-200">
                                 <nav className="-mb-px flex space-x-2 sm:space-x-4" aria-label="Tabs">
-                                    <button
-                                        onClick={() => handleStatusChange('Draft')}
-                                        className={`${
-                                            activeStatus === 'Draft'
-                                                ? 'border-yellow-500 text-yellow-600'
-                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                        } whitespace-nowrap py-2 sm:py-3 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm transition-colors flex items-center gap-1 sm:gap-2`}
-                                    >
-                                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                        </svg>
-                                        <span>Draft</span>
-                                        <span className={`${
-                                            activeStatus === 'Draft' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-600'
-                                        } inline-flex items-center px-1.5 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium`}>
-                                            {statusCounts.draft}
-                                        </span>
-                                    </button>
                                     <button
                                         onClick={() => handleStatusChange('In Progress')}
                                         className={`${
@@ -173,6 +172,42 @@ export default function ProjectsIndex({ auth, projects, filters, statusCounts }:
                                             activeStatus === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
                                         } inline-flex items-center px-1.5 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium`}>
                                             {statusCounts.completed}
+                                        </span>
+                                    </button>
+                                    <button
+                                        onClick={() => handleStatusChange('Suspended')}
+                                        className={`${
+                                            activeStatus === 'Suspended'
+                                                ? 'border-orange-500 text-orange-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        } whitespace-nowrap py-2 sm:py-3 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm transition-colors flex items-center gap-1 sm:gap-2`}
+                                    >
+                                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                        </svg>
+                                        <span>Suspended</span>
+                                        <span className={`${
+                                            activeStatus === 'Suspended' ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-600'
+                                        } inline-flex items-center px-1.5 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium`}>
+                                            {statusCounts.suspended}
+                                        </span>
+                                    </button>
+                                    <button
+                                        onClick={() => handleStatusChange('Canceled')}
+                                        className={`${
+                                            activeStatus === 'Canceled'
+                                                ? 'border-red-500 text-red-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        } whitespace-nowrap py-2 sm:py-3 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm transition-colors flex items-center gap-1 sm:gap-2`}
+                                    >
+                                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span>Canceled</span>
+                                        <span className={`${
+                                            activeStatus === 'Canceled' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-600'
+                                        } inline-flex items-center px-1.5 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium`}>
+                                            {statusCounts.canceled}
                                         </span>
                                     </button>
                                     <button
@@ -232,29 +267,29 @@ export default function ProjectsIndex({ auth, projects, filters, statusCounts }:
                             </div>
 
                             {/* Projects Table - Desktop */}
-                            <div className="hidden md:block overflow-x-auto">
+                            <div className="hidden xl:block overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
                                                 No
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Project Name
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
                                                 Client
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
                                                 My Role
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                                                 Status
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                                                 Created
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                                                 Action
                                             </th>
                                         </tr>
@@ -262,10 +297,10 @@ export default function ProjectsIndex({ auth, projects, filters, statusCounts }:
                                     <tbody className="bg-white divide-y divide-gray-200">
                                         {projects.map((project, index) => (
                                             <tr key={project.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
                                                     {index + 1}
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-4 py-4">
                                                     <Link
                                                         href={route('company.projects.show', project.id)}
                                                         className="text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline"
@@ -273,7 +308,7 @@ export default function ProjectsIndex({ auth, projects, filters, statusCounts }:
                                                         {project.name}
                                                     </Link>
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-3 py-4">
                                                     <div className="flex items-center text-sm text-gray-700">
                                                         <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -281,21 +316,21 @@ export default function ProjectsIndex({ auth, projects, filters, statusCounts }:
                                                         {project.client_name}
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                <td className="px-3 py-4 whitespace-nowrap">
                                                     {getRoleBadge(project.my_role)}
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    {getStatusBadge(project.status)}
+                                                <td className="px-3 py-4 whitespace-nowrap">
+                                                    {getProjectStatusBadge(project.status)}
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
                                                     {formatDate(project.created_at)}
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                <td className="px-3 py-4 whitespace-nowrap text-sm">
                                                     <Link
                                                         href={route('company.projects.show', project.id)}
-                                                        className="inline-flex items-center px-3 py-1.5 bg-primary-50 text-primary-700 rounded-md hover:bg-primary-100 transition-colors font-medium"
+                                                        className="inline-flex items-center px-2 py-1 bg-primary-50 text-primary-700 rounded-md hover:bg-primary-100 transition-colors font-medium text-xs"
                                                     >
-                                                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                         </svg>
@@ -308,8 +343,8 @@ export default function ProjectsIndex({ auth, projects, filters, statusCounts }:
                                 </table>
                             </div>
 
-                            {/* Projects Cards - Mobile */}
-                            <div className="md:hidden space-y-4">
+                            {/* Projects Cards - Mobile/Tablet */}
+                            <div className="xl:hidden space-y-4">
                                 {projects.map((project, index) => (
                                     <div key={project.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
                                         <div className="flex justify-between items-start mb-3">
@@ -321,7 +356,7 @@ export default function ProjectsIndex({ auth, projects, filters, statusCounts }:
                                                     {project.name}
                                                 </h3>
                                             </div>
-                                            {getStatusBadge(project.status)}
+                                            {getProjectStatusBadge(project.status)}
                                         </div>
 
                                         <div className="space-y-2 mb-3">
