@@ -196,7 +196,7 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-4 sm:p-6">
                             {/* Role Tabs */}
-                            <div className="mb-4 sm:mb-6 border-b border-gray-200 overflow-x-auto">
+                            <div className="mb-4 sm:mb-6 border-b border-gray-200">
                                 <nav className="-mb-px flex space-x-2 sm:space-x-4" aria-label="Tabs">
                                     <button
                                         onClick={() => handleRoleChange('admin')}
@@ -285,7 +285,7 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                             </div>
 
                             {/* Users Table - Desktop */}
-                            <div className="hidden lg:block overflow-x-auto">
+                            <div className="hidden xl:block overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50">
                                         <tr>
@@ -449,7 +449,7 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                             </div>
 
                             {/* Users Cards - Mobile/Tablet */}
-                            <div className="lg:hidden space-y-4">
+                            <div className="xl:hidden space-y-4">
                                 {users.data.map((user, index) => (
                                     <div key={user.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
                                         <div className="flex items-start gap-3 mb-3">

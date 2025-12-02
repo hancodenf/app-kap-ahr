@@ -184,7 +184,7 @@ class ProjectSeeder extends Seeder
         }
         
         $historicalYears = [2023, 2024, 2025];
-        $statuses = ['Draft', 'In Progress', 'Completed', 'Archived'];
+        $statuses = ['Draft', 'In Progress', 'Completed', 'Suspended', 'Canceled'];
         
         foreach ($historicalYears as $year) {
             // Create 3-5 historical projects per year
@@ -197,11 +197,15 @@ class ProjectSeeder extends Seeder
                 $baseSlug = Str::slug($projectName);
                 $uniqueSlug = $baseSlug . '-' . uniqid();
                 
+                $status = $statuses[array_rand($statuses)];
+                $isArchived = ($year < 2025) ? (rand(1, 4) == 1) : false; // 25% chance for old projects to be archived
+                
                 Project::create([
                     'name' => $projectName,
                     'slug' => $uniqueSlug,
                     'client_id' => $randomClient->id,
-                    'status' => 'Draft',
+                    'status' => $status,
+                    'is_archived' => $isArchived,
                     'year' => $year,
                     'client_name' => $randomClient->name,
                     'client_kementrian' => $randomClient->kementrian,

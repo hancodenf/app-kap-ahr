@@ -2,7 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import ConfirmDialog from '@/Components/ConfirmDialog';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface ProjectBundle {
     id: number;
@@ -46,6 +46,8 @@ interface Props extends PageProps {
     filters: {
         search?: string;
         year?: string;
+        status?: string;
+        archived?: string;
     };
     availableYears: number[];
     overallStats: {
@@ -53,18 +55,43 @@ interface Props extends PageProps {
         completed_projects: number;
         in_progress_projects: number;
         not_started_projects: number;
+        suspended_projects: number;
+        canceled_projects: number;
+        archived_projects: number;
+    };
+    statusCounts: {
+        total: number;
+        draft: number;
+        in_progress: number;
+        completed: number;
+        suspended: number;
+        canceled: number;
+        active: number;
+        archived: number;
     };
 }
 
-export default function Index({ bundles, filters, availableYears, overallStats }: Props) {
+export default function Index({ bundles, filters, availableYears, overallStats, statusCounts }: Props) {
     const { flash } = usePage().props as any;
     const [search, setSearch] = useState(filters.search || '');
     const [year, setYear] = useState(filters.year || '');
+    const [status, setStatus] = useState(filters.status || '');
+    const [archived, setArchived] = useState(filters.archived === 'true');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [bundleToDelete, setBundleToDelete] = useState<ProjectBundle | null>(null);
 
+    // Auto-trigger search when status or archived changes
+    useEffect(() => {
+        handleSearch();
+    }, [status, archived]);
+
     const handleSearch = () => {
-        router.get(route('admin.projects.bundles.index'), { search, year }, {
+        router.get(route('admin.projects.bundles.index'), { 
+            search, 
+            year, 
+            status, 
+            archived: archived ? 'true' : 'false' 
+        }, {
             preserveState: true,
             replace: true,
         });
@@ -73,6 +100,8 @@ export default function Index({ bundles, filters, availableYears, overallStats }
     const handleReset = () => {
         setSearch('');
         setYear('');
+        setStatus('');
+        setArchived(false);
         router.get(route('admin.projects.bundles.index'), {}, {
             preserveState: true,
             replace: true,
@@ -166,7 +195,7 @@ export default function Index({ bundles, filters, availableYears, overallStats }
                     )}
 
                     {/* Stats Section */}
-                    <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-8">
                         {/* Total Projects */}
                         <div className="bg-white overflow-hidden shadow-lg rounded-lg border-l-4 border-blue-500">
                             <div className="p-5">
@@ -181,11 +210,11 @@ export default function Index({ bundles, filters, availableYears, overallStats }
                                     <div className="ml-5 w-0 flex-1">
                                         <dl>
                                             <dt className="text-sm font-medium text-gray-500 truncate">
-                                                Total Projects
+                                                Total
                                             </dt>
                                             <dd className="flex items-baseline">
                                                 <div className="text-2xl font-semibold text-gray-900">
-                                                    {overallStats.total_projects}
+                                                    {statusCounts.total}
                                                 </div>
                                             </dd>
                                         </dl>
@@ -194,28 +223,25 @@ export default function Index({ bundles, filters, availableYears, overallStats }
                             </div>
                         </div>
 
-                        {/* Completed Projects */}
-                        <div className="bg-white overflow-hidden shadow-lg rounded-lg border-l-4 border-green-500">
+                        {/* Draft Projects */}
+                        <div className="bg-white overflow-hidden shadow-lg rounded-lg border-l-4 border-gray-400">
                             <div className="p-5">
                                 <div className="flex items-center">
                                     <div className="flex-shrink-0">
-                                        <div className="rounded-md bg-green-100 p-3">
-                                            <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        <div className="rounded-md bg-gray-100 p-3">
+                                            <svg className="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                             </svg>
                                         </div>
                                     </div>
                                     <div className="ml-5 w-0 flex-1">
                                         <dl>
                                             <dt className="text-sm font-medium text-gray-500 truncate">
-                                                Completed
+                                                Draft
                                             </dt>
                                             <dd className="flex items-baseline">
-                                                <div className="text-2xl font-semibold text-green-600">
-                                                    {overallStats.completed_projects}
-                                                </div>
-                                                <div className="ml-2 text-sm text-gray-500">
-                                                    projects
+                                                <div className="text-2xl font-semibold text-gray-600">
+                                                    {statusCounts.draft || 0}
                                                 </div>
                                             </dd>
                                         </dl>
@@ -242,10 +268,7 @@ export default function Index({ bundles, filters, availableYears, overallStats }
                                             </dt>
                                             <dd className="flex items-baseline">
                                                 <div className="text-2xl font-semibold text-yellow-600">
-                                                    {overallStats.in_progress_projects}
-                                                </div>
-                                                <div className="ml-2 text-sm text-gray-500">
-                                                    projects
+                                                    {statusCounts.in_progress || 0}
                                                 </div>
                                             </dd>
                                         </dl>
@@ -254,34 +277,227 @@ export default function Index({ bundles, filters, availableYears, overallStats }
                             </div>
                         </div>
 
-                        {/* Not Started Projects */}
-                        <div className="bg-white overflow-hidden shadow-lg rounded-lg border-l-4 border-gray-500">
+                        {/* Completed Projects */}
+                        <div className="bg-white overflow-hidden shadow-lg rounded-lg border-l-4 border-green-500">
                             <div className="p-5">
                                 <div className="flex items-center">
                                     <div className="flex-shrink-0">
-                                        <div className="rounded-md bg-gray-100 p-3">
-                                            <svg className="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                                        <div className="rounded-md bg-green-100 p-3">
+                                            <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
                                         </div>
                                     </div>
                                     <div className="ml-5 w-0 flex-1">
                                         <dl>
                                             <dt className="text-sm font-medium text-gray-500 truncate">
-                                                Not Started
+                                                Completed
                                             </dt>
                                             <dd className="flex items-baseline">
-                                                <div className="text-2xl font-semibold text-gray-600">
-                                                    {overallStats.not_started_projects}
-                                                </div>
-                                                <div className="ml-2 text-sm text-gray-500">
-                                                    projects
+                                                <div className="text-2xl font-semibold text-green-600">
+                                                    {statusCounts.completed || 0}
                                                 </div>
                                             </dd>
                                         </dl>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Suspended Projects */}
+                        <div className="bg-white overflow-hidden shadow-lg rounded-lg border-l-4 border-orange-500">
+                            <div className="p-5">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="rounded-md bg-orange-100 p-3">
+                                            <svg className="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt className="text-sm font-medium text-gray-500 truncate">
+                                                Suspended
+                                            </dt>
+                                            <dd className="flex items-baseline">
+                                                <div className="text-2xl font-semibold text-orange-600">
+                                                    {statusCounts.suspended || 0}
+                                                </div>
+                                            </dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Canceled Projects */}
+                        <div className="bg-white overflow-hidden shadow-lg rounded-lg border-l-4 border-red-500">
+                            <div className="p-5">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="rounded-md bg-red-100 p-3">
+                                            <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt className="text-sm font-medium text-gray-500 truncate">
+                                                Canceled
+                                            </dt>
+                                            <dd className="flex items-baseline">
+                                                <div className="text-2xl font-semibold text-red-600">
+                                                    {statusCounts.canceled || 0}
+                                                </div>
+                                            </dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Active Projects */}
+                        <div className="bg-white overflow-hidden shadow-lg rounded-lg border-l-4 border-indigo-500">
+                            <div className="p-5">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="rounded-md bg-indigo-100 p-3">
+                                            <svg className="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt className="text-sm font-medium text-gray-500 truncate">
+                                                Active
+                                            </dt>
+                                            <dd className="flex items-baseline">
+                                                <div className="text-2xl font-semibold text-indigo-600">
+                                                    {statusCounts.active || 0}
+                                                </div>
+                                            </dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Archived Projects */}
+                        <div className="bg-white overflow-hidden shadow-lg rounded-lg border-l-4 border-purple-500">
+                            <div className="p-5">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="rounded-md bg-purple-100 p-3">
+                                            <svg className="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8l6 6m-6 0l6-6m2-5v20m6-19a2 2 0 012 2v14a2 2 0 01-2 2H9a2 2 0 01-2-2V5a2 2 0 012-2h10z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt className="text-sm font-medium text-gray-500 truncate">
+                                                Archived
+                                            </dt>
+                                            <dd className="flex items-baseline">
+                                                <div className="text-2xl font-semibold text-purple-600">
+                                                    {statusCounts.archived || 0}
+                                                </div>
+                                            </dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Status Navigation Tabs */}
+                    <div className="mb-6 bg-white rounded-lg shadow-sm p-4">
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                onClick={() => setStatus('')}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                                    status === '' 
+                                        ? 'bg-blue-100 text-blue-700 border border-blue-300' 
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                                }`}
+                            >
+                                All Status
+                            </button>
+                            <button
+                                onClick={() => setStatus('Draft')}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                                    status === 'Draft' 
+                                        ? 'bg-gray-100 text-gray-700 border border-gray-300' 
+                                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                }`}
+                            >
+                                Draft
+                            </button>
+                            <button
+                                onClick={() => setStatus('In Progress')}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                                    status === 'In Progress' 
+                                        ? 'bg-yellow-100 text-yellow-700 border border-yellow-300' 
+                                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                }`}
+                            >
+                                In Progress
+                            </button>
+                            <button
+                                onClick={() => setStatus('Completed')}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                                    status === 'Completed' 
+                                        ? 'bg-green-100 text-green-700 border border-green-300' 
+                                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                }`}
+                            >
+                                Completed
+                            </button>
+                            <button
+                                onClick={() => setStatus('Suspended')}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                                    status === 'Suspended' 
+                                        ? 'bg-orange-100 text-orange-700 border border-orange-300' 
+                                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                }`}
+                            >
+                                Suspended
+                            </button>
+                            <button
+                                onClick={() => setStatus('Canceled')}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                                    status === 'Canceled' 
+                                        ? 'bg-red-100 text-red-700 border border-red-300' 
+                                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                }`}
+                            >
+                                Canceled
+                            </button>
+                        </div>
+                        
+                        {/* Archived Toggle */}
+                        <div className="flex items-center mt-4 pt-4 border-t border-gray-200">
+                            <label className="flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={archived}
+                                    onChange={(e) => setArchived(e.target.checked)}
+                                    className="sr-only"
+                                />
+                                <div className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                                    archived ? 'bg-purple-600' : 'bg-gray-200'
+                                }`}>
+                                    <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${
+                                        archived ? 'translate-x-6' : 'translate-x-1'
+                                    }`} />
+                                </div>
+                                <span className="ml-3 text-sm font-medium text-gray-700">
+                                    Show Archived Projects Only
+                                </span>
+                            </label>
                         </div>
                     </div>
 
@@ -418,6 +634,10 @@ export default function Index({ bundles, filters, availableYears, overallStats }
                                                             ? 'bg-green-100 text-green-800'
                                                             : bundle.status === 'Draft'
                                                             ? 'bg-yellow-100 text-yellow-800'
+                                                            : bundle.status === 'Suspended'
+                                                            ? 'bg-orange-100 text-orange-800'
+                                                            : bundle.status === 'Canceled'
+                                                            ? 'bg-red-100 text-red-800'
                                                             : 'bg-gray-100 text-gray-800'
                                                     }`}>
                                                         {bundle.status}
@@ -523,6 +743,10 @@ export default function Index({ bundles, filters, availableYears, overallStats }
                                                         ? 'bg-green-100 text-green-800'
                                                         : bundle.status === 'Draft'
                                                         ? 'bg-yellow-100 text-yellow-800'
+                                                        : bundle.status === 'Suspended'
+                                                        ? 'bg-orange-100 text-orange-800'
+                                                        : bundle.status === 'Canceled'
+                                                        ? 'bg-red-100 text-red-800'
                                                         : 'bg-gray-100 text-gray-800'
                                                 }`}>
                                                     {bundle.status}

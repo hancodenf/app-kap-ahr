@@ -15,7 +15,8 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('name');
             $table->string('slug')->unique();
-            $table->enum('status', ['Draft', 'In Progress', 'Completed', 'Archived'])->default('Draft');
+            $table->enum('status', ['Draft', 'In Progress', 'Completed', 'Suspended', 'Canceled'])->default('Draft');
+            $table->boolean('is_archived')->default(false);
             $table->year('year'); // Project year
 
             // Foreign key reference (nullable untuk denormalisasi)

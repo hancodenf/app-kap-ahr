@@ -68,7 +68,8 @@ interface ProjectBundle {
     id: number;
     name: string;
     year: string | number;
-    status: 'Draft' | 'In Progress' | 'Completed' | 'Archived';
+    status: 'Draft' | 'In Progress' | 'Completed' | 'Suspended' | 'Canceled';
+    is_archived: boolean;
     client_id: number | null;
     client_name: string | null;
     client_alamat: string | null;
@@ -424,7 +425,8 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         name: '',
         client_id: 0,
         year: new Date().getFullYear(),
-        status: 'Draft' as 'Draft' | 'In Progress' | 'Completed' | 'Archived',
+        status: 'Draft' as 'Draft' | 'In Progress' | 'Completed' | 'Suspended' | 'Canceled',
+        is_archived: false,
     });
 
     // Get year options with disabled status for used years
@@ -609,6 +611,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
             client_id: bundle.client_id || 0,
             year: Number(bundle.year) || new Date().getFullYear(),
             status: bundle.status || 'Draft',
+            is_archived: bundle.is_archived || false,
         });
         setShowEditTemplateModal(true);
     };
@@ -1510,19 +1513,41 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                 </label>
                                 <select
                                     value={editTemplateData.status}
-                                    onChange={(e) => setEditTemplateData('status', e.target.value as 'Draft' | 'In Progress' | 'Completed' | 'Archived')}
+                                    onChange={(e) => setEditTemplateData('status', e.target.value as 'Draft' | 'In Progress' | 'Completed' | 'Suspended' | 'Canceled')}
                                     className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
                                 >
                                     <option value="Draft">📝 Draft - Project is being prepared</option>
                                     <option value="In Progress">🔄 In Progress - Project is active</option>
                                     <option value="Completed">✅ Completed - Project is finished</option>
-                                    <option value="Archived">📦 Archived - Project is archived</option>
+                                    <option value="Suspended">⏸️ Suspended - Project is temporarily halted</option>
+                                    <option value="Canceled">❌ Canceled - Project is permanently stopped</option>
                                 </select>
                                 <p className="mt-2 text-xs text-gray-500">
                                     {editTemplateData.status === 'Draft' && 'Draft projects are being prepared and not yet started'}
                                     {editTemplateData.status === 'In Progress' && 'In Progress projects are accessible to assigned team members'}
                                     {editTemplateData.status === 'Completed' && 'Completed projects are finished and read-only'}
-                                    {editTemplateData.status === 'Archived' && 'Archived projects are stored for future reference'}
+                                    {editTemplateData.status === 'Suspended' && 'Suspended projects are temporarily halted but can be resumed'}
+                                    {editTemplateData.status === 'Canceled' && 'Canceled projects are permanently stopped and cannot be resumed'}
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="flex items-center space-x-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={editTemplateData.is_archived}
+                                        onChange={(e) => setEditTemplateData('is_archived', e.target.checked)}
+                                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700">
+                                        📦 Archive Project
+                                    </span>
+                                </label>
+                                <p className="mt-1 text-xs text-gray-500">
+                                    {editTemplateData.is_archived 
+                                        ? 'This project will be archived and hidden from regular views' 
+                                        : 'Check this to archive the project for storage purposes'
+                                    }
                                 </p>
                             </div>
 

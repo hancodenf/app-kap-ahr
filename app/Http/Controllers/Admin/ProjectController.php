@@ -14,6 +14,7 @@ use App\Models\TaskWorker;
 use App\Models\User;
 use App\Models\WorkingStep;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -26,6 +27,8 @@ class ProjectController extends Controller
     {
         $search = $request->input('search', '');
         $year = $request->input('year', '');
+        $status = $request->input('status', '');
+        $archived = $request->input('archived', 'false');
         
         $query = Project::with(['client:id,name', 'projectTeams' => function($q) {
             $q->where('role', 'partner')->select('id', 'project_id', 'user_id', 'user_name', 'role');
@@ -39,9 +42,21 @@ class ProjectController extends Controller
             });
         }
 
-        // Year filter - use year column instead of created_at
+        // Year filter
         if ($year) {
             $query->where('year', $year);
+        }
+
+        // Status filter
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        // Archived filter
+        if ($archived === 'true') {
+            $query->where('is_archived', true);
+        } else {
+            $query->where('is_archived', false);
         }
 
         $projects = $query->orderBy('created_at', 'desc')
@@ -50,7 +65,7 @@ class ProjectController extends Controller
 
         // Add task statistics to each project
         $projects->getCollection()->transform(function ($project) {
-            $tasks = \DB::table('tasks')
+            $tasks = DB::table('tasks')
                 ->where('project_id', $project->id)
                 ->select('completion_status')
                 ->get();
@@ -80,7 +95,7 @@ class ProjectController extends Controller
         $projectsNotStarted = 0;
         
         foreach ($allProjects as $proj) {
-            $tasks = \DB::table('tasks')
+            $tasks = DB::table('tasks')
                 ->where('project_id', $proj->id)
                 ->select('completion_status')
                 ->get();
@@ -106,6 +121,19 @@ class ProjectController extends Controller
             'not_started_projects' => $projectsNotStarted,
         ];
 
+        // Calculate status counts
+        $allProjectsForCounts = Project::all();
+        $statusCounts = [
+            'total' => $allProjectsForCounts->count(),
+            'draft' => $allProjectsForCounts->where('status', 'Draft')->count(),
+            'in_progress' => $allProjectsForCounts->where('status', 'In Progress')->count(),
+            'completed' => $allProjectsForCounts->where('status', 'Completed')->count(),
+            'suspended' => $allProjectsForCounts->where('status', 'Suspended')->count(),
+            'canceled' => $allProjectsForCounts->where('status', 'Canceled')->count(),
+            'active' => $allProjectsForCounts->where('is_archived', false)->count(),
+            'archived' => $allProjectsForCounts->where('is_archived', true)->count(),
+        ];
+
         // Get available years from year column
         $availableYears = Project::select('year')
             ->distinct()
@@ -117,9 +145,12 @@ class ProjectController extends Controller
             'filters' => [
                 'search' => $search,
                 'year' => $year,
+                'status' => $status,
+                'archived' => $archived,
             ],
             'availableYears' => $availableYears,
             'overallStats' => $overallStats,
+            'statusCounts' => $statusCounts,
         ]);
     }
 
@@ -163,7 +194,7 @@ class ProjectController extends Controller
         $request->validate([
             'name' => 'required|string|max:255|unique:projects,name',
             'client_id' => 'required|exists:clients,id',
-            'year' => 'required|integer|min:2000|max:' . date('Y'),
+            'year' => 'required|integer|min:2000|max:' . (date('Y') + 1),
             'team_members' => 'nullable|array',
             'team_members.*.user_id' => 'required|exists:users,id',
             'team_members.*.role' => 'required|in:partner,manager,supervisor,team leader,member',
@@ -187,7 +218,7 @@ class ProjectController extends Controller
         // Create project with denormalized client data
         $project = Project::create([
             'name' => $request->name,
-            'slug' => \Str::slug($request->name . '-' . now()->timestamp),
+            'slug' => Str::slug($request->name . '-' . now()->timestamp),
             'client_id' => $request->client_id,
             'year' => $request->year,
             'client_name' => $client->name,
@@ -450,8 +481,9 @@ class ProjectController extends Controller
         $request->validate([
             'name' => 'required|string|max:255|unique:projects,name,' . $bundle->id,
             'client_id' => 'required|exists:clients,id',
-            'year' => 'required|integer|min:2000|max:' . date('Y'),
-            'status' => 'required|in:Draft,In Progress,Completed,Archived',
+            'year' => 'required|integer|min:2000|max:' . (date('Y') + 1),
+            'status' => 'required|in:Draft,In Progress,Completed,Suspended,Canceled',
+            'is_archived' => 'sometimes|boolean',
         ]);
 
         // Check if project with same client and year already exists (excluding current project)
@@ -474,6 +506,7 @@ class ProjectController extends Controller
             'name' => $request->name,
             'year' => $request->year,
             'status' => $request->status,
+            'is_archived' => $request->boolean('is_archived', false),
             'client_id' => $client->id,
             'client_name' => $client->name,
             'client_alamat' => $client->alamat,

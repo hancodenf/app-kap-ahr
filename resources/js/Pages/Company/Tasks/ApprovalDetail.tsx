@@ -51,6 +51,7 @@ interface Props extends PageProps {
 export default function ApprovalDetail({ auth, task, project }: Props) {
     const [processing, setProcessing] = useState(false);
     const [showRejectModal, setShowRejectModal] = useState(false);
+    const [showApproveModal, setShowApproveModal] = useState(false);
     const [rejectComment, setRejectComment] = useState('');
     const { flash } = usePage<any>().props;
 
@@ -67,10 +68,11 @@ export default function ApprovalDetail({ auth, task, project }: Props) {
     }, [flash]);
 
     const handleApprove = () => {
-        if (!confirm('Approve this task?')) {
-            return;
-        }
+        setShowApproveModal(true);
+    };
 
+    const confirmApprove = () => {
+        setShowApproveModal(false);
         setProcessing(true);
 
         router.post(route('company.tasks.approve', task.id), {}, {
@@ -313,6 +315,42 @@ export default function ApprovalDetail({ auth, task, project }: Props) {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Approve Modal */}
+            {showApproveModal && (
+                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-lg max-w-md w-full p-6">
+                        <div className="text-center">
+                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                                <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Approve Task</h3>
+                            <p className="text-sm text-gray-600 mb-6">
+                                Are you sure you want to approve this task? This action will move the task to the next stage in the workflow.
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowApproveModal(false)}
+                                    className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={confirmApprove}
+                                    disabled={processing}
+                                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50"
+                                >
+                                    {processing ? 'Approving...' : 'Confirm Approve'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
