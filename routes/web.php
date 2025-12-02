@@ -15,6 +15,7 @@ use App\Http\Controllers\BlackboxTestController;
 use App\Models\Task;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -24,12 +25,37 @@ Route::bind('projectKlien', function ($value) {
 });
 
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+    // Check if user is authenticated
+    if (Auth::check()) {
+        $user = Auth::user();
+        
+        // Redirect to dashboard based on role
+        if ($user->role) {
+            $roleName = is_string($user->role) ? $user->role : $user->role->name;
+            
+            switch ($roleName) {
+                case 'admin':
+                    return redirect()->route('admin.dashboard');
+                case 'company':
+                    return redirect()->route('company.dashboard');
+                case 'partner':
+                    return redirect()->route('partner.dashboard');
+                case 'staff':
+                    return redirect()->route('staff.dashboard');
+                case 'klien':
+                case 'client':
+                    return redirect()->route('klien.dashboard');
+                default:
+                    return redirect()->route('dashboard');
+            }
+        }
+        
+        // If no role, redirect to dashboard which will show error
+        return redirect()->route('dashboard');
+    }
+    
+    // If not authenticated, show welcome page or redirect to login
+    return redirect()->route('login');
 });
 
 Route::get('/dashboard', function () {
@@ -61,15 +87,15 @@ Route::get('/dashboard', function () {
                 'error' => 'Invalid role. Please contact administrator.'
             ]);
     }
-})->middleware(['auth'])->name('dashboard');
+})->middleware(['auth', 'no.cache'])->name('dashboard');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'no.cache'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
 
 // Admin Routes
-Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'verified', 'role:admin', 'no.cache'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::resource('users', UserController::class);
     Route::post('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
@@ -96,7 +122,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
         $inputKeyHash = hash('sha256', $key);
         
         // Debug logging
-        \Log::info('Security unlock attempt', [
+        Log::info('Security unlock attempt', [
             'input_key_hash' => $inputKeyHash,
             'env_key_hash' => $envKeyHash,
             'match' => $inputKeyHash === $envKeyHash
@@ -113,15 +139,15 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     // Security Lock - GET route that clears session and redirects
     Route::get('/security-lock', function(\Illuminate\Http\Request $request) {
         // Debug logging
-        \Log::info('Security lock requested', [
+        Log::info('Security lock requested', [
             'session_id' => $request->session()->getId(),
-            'user_id' => auth()->id(),
+            'user_id' => Auth::id(),
         ]);
         
         // Remove the security_unlocked flag from session
         $request->session()->forget('security_unlocked');
         
-        \Log::info('Security locked successfully - session cleared');
+        Log::info('Security locked successfully - session cleared');
         
         // Redirect to dashboard
         return redirect()->route('admin.dashboard')->with('success', 'Security monitoring has been locked');
@@ -229,7 +255,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
 
 
 // Company Routes
-Route::middleware(['auth', 'verified', 'role:company'])->prefix('company')->name('company.')->group(function () {
+Route::middleware(['auth', 'verified', 'role:company', 'no.cache'])->prefix('company')->name('company.')->group(function () {
     Route::get('/dashboard', [CompanyController::class, 'dashboard'])->name('dashboard');
     Route::get('/projects', [CompanyController::class, 'myProjects'])->name('projects.index');
     Route::get('/projects/{project}', [CompanyController::class, 'showProject'])->name('projects.show');
@@ -255,17 +281,17 @@ Route::middleware(['auth', 'verified', 'role:company'])->prefix('company')->name
 });
 
 // Partner Routes
-Route::middleware(['auth', 'verified', 'role:partner'])->prefix('partner')->name('partner.')->group(function () {
+Route::middleware(['auth', 'verified', 'role:partner', 'no.cache'])->prefix('partner')->name('partner.')->group(function () {
     // Route::get('/dashboard', [PartnerController::class, 'dashboard'])->name('dashboard');
 });
 
 // Staff Routes
-Route::middleware(['auth', 'verified', 'role:staff'])->prefix('staff')->name('staff.')->group(function () {
+Route::middleware(['auth', 'verified', 'role:staff', 'no.cache'])->prefix('staff')->name('staff.')->group(function () {
     Route::get('/dashboard', [StaffController::class, 'dashboard'])->name('dashboard');
 });
 
 // Klien Routes
-Route::middleware(['auth', 'verified', 'role:klien'])->prefix('klien')->name('klien.')->group(function () {
+Route::middleware(['auth', 'verified', 'role:klien', 'no.cache'])->prefix('klien')->name('klien.')->group(function () {
     Route::get('/dashboard', [ClientController::class, 'dashboard'])->name('dashboard');
     Route::get('/projects', [ClientController::class, 'myProjects'])->name('projects.index');
     Route::get('/projects/{project}', [ClientController::class, 'showProject'])->name('projects.show');
@@ -275,7 +301,7 @@ Route::middleware(['auth', 'verified', 'role:klien'])->prefix('klien')->name('kl
 });
 
 // Public News Route (accessible by all authenticated users)
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'no.cache'])->group(function () {
     Route::get('/news', [\App\Http\Controllers\Admin\NewsController::class, 'indexPublic'])->name('news.index');
     Route::get('/news/{news:slug}', [\App\Http\Controllers\Admin\NewsController::class, 'showPublic'])->name('news.show');
 });

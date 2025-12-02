@@ -1,8 +1,20 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import { Link } from '@inertiajs/react';
-import { PropsWithChildren } from 'react';
+import { PropsWithChildren, useEffect } from 'react';
 
 export default function Guest({ children }: PropsWithChildren) {
+    useEffect(() => {
+        // Mark as guest page
+        sessionStorage.setItem('was_on_guest_page', 'true');
+        
+        // Clear history state for guest pages
+        window.history.replaceState({}, '', window.location.href);
+
+        return () => {
+            // Cleanup handled by authenticated layout
+        };
+    }, []);
+
     return (
         <div className="relative flex min-h-screen flex-col items-center pt-6 sm:justify-center sm:pt-0 overflow-hidden">
             {/* Background Image */}
