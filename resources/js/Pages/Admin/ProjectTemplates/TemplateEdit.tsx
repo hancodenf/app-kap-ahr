@@ -1019,8 +1019,9 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                         >
                                             <option value="read only">👁️ Read Only - Client can only view</option>
-                                            <option value="comment">💬 Comment - Client can view and comment</option>
+                                            {/* <option value="comment">💬 Comment - Client can view and comment</option> */}
                                             <option value="upload">📤 Upload - Client can upload files</option>
+                                            <option value="approval">✅ Approval - Client can approve or reject</option>
                                         </select>
                                         <p className="mt-1 text-xs text-gray-500">
                                             Set how clients can interact with this task
@@ -1203,8 +1204,9 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                             >
                                                 <option value="read only">👁️ Read Only - Client can only view</option>
-                                                <option value="comment">💬 Comment - Client can view and comment</option>
+                                                {/* <option value="comment">💬 Comment - Client can view and comment</option> */}
                                                 <option value="upload">📤 Upload - Client can upload files</option>
+                                                <option value="approval">✅ Approval - Client can approve or reject</option>
                                             </select>
                                             <p className="mt-1 text-xs text-gray-500">
                                                 Set how clients can interact with this task
