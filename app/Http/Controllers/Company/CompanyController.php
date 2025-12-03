@@ -967,7 +967,8 @@ class CompanyController extends Controller
         $latestAssignment->maker_can_edit = false;
         
         // Update status from pending to in-progress when detail page is opened (only if still pending)
-        if ($latestAssignment->status === $approval->status_name_pending) {
+        if ($latestAssignment->status === $approval->status_name_pending && $latestAssignment->maker_can_edit === true) {
+            $latestAssignment->maker_can_edit === false;
             $latestAssignment->status = $approval->status_name_progress;
             $latestAssignment->save();
         }
@@ -1046,8 +1047,10 @@ class CompanyController extends Controller
 
         // Get latest assignment
         $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
-        if ($latestAssignment->maker === 'client') {
+        if ($latestAssignment->maker === 'client' && $latestAssignment->maker_can_edit === true && $latestAssignment->status === 'Client Reply') {
+            $latestAssignment->status = 'Under Review by Team';
             $latestAssignment->maker_can_edit = false;
+            $latestAssignment->save();
         }
         
         // Check if task can be edited
@@ -1056,7 +1059,7 @@ class CompanyController extends Controller
         
         if ($lowestApproval && $latestAssignment) {
             // Can edit if at lowest approval pending
-            $canEdit = $latestAssignment->status === $lowestApproval->status_name_pending;
+            $canEdit = $latestAssignment->status === $lowestApproval->status_name_pending && $latestAssignment->maker_can_edit === true;
             
             // Or if rejected at any level
             if (!$canEdit) {
@@ -1412,6 +1415,8 @@ class CompanyController extends Controller
             'comment' => 'required|string|max:1000',
         ]);
 
+        $lowestApproval = $task->taskApprovals()->orderBy('order', 'asc')->first();
+
         // Create NEW task assignment (old one remains for history)
         $newAssignment = \App\Models\TaskAssignment::create([
             'task_id' => $task->id,
@@ -1423,7 +1428,7 @@ class CompanyController extends Controller
             'time' => now(),
             'notes' => "Re-upload requested\nComment:\n" . $request->comment,
             'maker' => 'client',
-            'status' => 'Submitted to Client', // Set status to request re-upload from client
+            'status' => $task->approval_type == 'Once' ? 'Submitted to Client' : $lowestApproval->status_name_pending, // Set status to request re-upload from client
         ]);
 
         // Copy team documents to new assignment (WITH files - keep team's uploaded documents)
