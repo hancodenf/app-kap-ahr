@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreign('task_assignment_id')->references('id')->on('task_assignments')->onDelete('set null');
             $table->string('name');
             $table->string('slug')->unique();
-            $table->string('file')->nullable();
+            $table->text('file')->nullable();
             $table->string('description')->nullable();
             $table->timestamp('uploaded_at')->nullable();
             $table->timestamps();

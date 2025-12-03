@@ -388,7 +388,7 @@ export default function AdminDashboard({
 
 					{/* Advanced Analytics Charts */}
 					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-						{/* Projects by Year - Horizontal Bar Chart */}
+						{/* Projects by Year - Horizontal Scroll Cards */}
 						<div className="bg-white shadow-sm rounded-lg p-6">
 							<div className="flex items-center justify-between mb-6">
 								<div>
@@ -402,87 +402,104 @@ export default function AdminDashboard({
 								</div>
 							</div>
 							{analytics.projectsByYear && analytics.projectsByYear.length > 0 ? (
-								<div className="space-y-5">
-									{/* Year Cards Grid */}
-									<div className="grid grid-cols-2 gap-3">
-										{(() => {
-											const totalProjects = analytics.projectsByYear.reduce((sum, item) => sum + item.count, 0);
-											const maxCount = Math.max(...analytics.projectsByYear.map(p => p.count));
-											const colors = [
-												{ from: 'from-emerald-400', to: 'to-emerald-600', bg: 'bg-emerald-500', icon: 'text-emerald-600', light: 'bg-emerald-50' },
-												{ from: 'from-blue-400', to: 'to-blue-600', bg: 'bg-blue-500', icon: 'text-blue-600', light: 'bg-blue-50' },
-												{ from: 'from-purple-400', to: 'to-purple-600', bg: 'bg-purple-500', icon: 'text-purple-600', light: 'bg-purple-50' },
-												{ from: 'from-orange-400', to: 'to-orange-600', bg: 'bg-orange-500', icon: 'text-orange-600', light: 'bg-orange-50' },
-												{ from: 'from-pink-400', to: 'to-pink-600', bg: 'bg-pink-500', icon: 'text-pink-600', light: 'bg-pink-50' },
-												{ from: 'from-indigo-400', to: 'to-indigo-600', bg: 'bg-indigo-500', icon: 'text-indigo-600', light: 'bg-indigo-50' },
-											];
-											
-											return analytics.projectsByYear.map((item, index) => {
-												const percentage = ((item.count / totalProjects) * 100).toFixed(1);
-												const heightPercentage = Math.max((item.count / maxCount) * 100, 15);
-												const color = colors[index % colors.length];
-												const isHighest = item.count === maxCount;
-												
-												return (
-													<div key={index} className={`relative ${color.light} rounded-xl border-2 border-transparent hover:border-gray-200 transition-all group overflow-hidden`}>
-														{/* Background gradient decoration */}
-														<div className={`absolute inset-0 bg-gradient-to-br ${color.from} ${color.to} opacity-5`}></div>
+								<div className="space-y-4">
+									{/* Scrollable Year Cards */}
+									<div className="relative">
+										<div className="overflow-x-auto pb-2 -mx-2 px-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+											<div className="flex gap-3 min-w-max">
+												{(() => {
+													const totalProjects = analytics.projectsByYear.reduce((sum, item) => sum + item.count, 0);
+													const maxCount = Math.max(...analytics.projectsByYear.map(p => p.count));
+													const colors = [
+														{ from: 'from-emerald-400', to: 'to-emerald-600', icon: 'text-emerald-600', light: 'bg-emerald-50', border: 'border-emerald-200' },
+														{ from: 'from-blue-400', to: 'to-blue-600', icon: 'text-blue-600', light: 'bg-blue-50', border: 'border-blue-200' },
+														{ from: 'from-purple-400', to: 'to-purple-600', icon: 'text-purple-600', light: 'bg-purple-50', border: 'border-purple-200' },
+														{ from: 'from-orange-400', to: 'to-orange-600', icon: 'text-orange-600', light: 'bg-orange-50', border: 'border-orange-200' },
+														{ from: 'from-pink-400', to: 'to-pink-600', icon: 'text-pink-600', light: 'bg-pink-50', border: 'border-pink-200' },
+														{ from: 'from-indigo-400', to: 'to-indigo-600', icon: 'text-indigo-600', light: 'bg-indigo-50', border: 'border-indigo-200' },
+													];
+													
+													return analytics.projectsByYear.map((item, index) => {
+														const percentage = ((item.count / totalProjects) * 100).toFixed(1);
+														const barHeight = Math.max((item.count / maxCount) * 100, 20);
+														const color = colors[index % colors.length];
+														const isHighest = item.count === maxCount;
 														
-														<div className="relative p-4">
-															{/* Header */}
-															<div className="flex items-start justify-between mb-3">
-																<div>
-																	<div className="flex items-center gap-2 mb-1">
-																		<span className="text-2xl font-bold text-gray-900">{item.year}</span>
+														return (
+															<div 
+																key={index} 
+																className={`flex-shrink-0 w-32 ${color.light} rounded-xl border-2 ${color.border} hover:shadow-lg transition-all group overflow-hidden`}
+															>
+																<div className="p-3">
+																	{/* Year & Badge */}
+																	<div className="flex items-center justify-between mb-2">
+																		<span className="text-xl font-bold text-gray-900">{item.year}</span>
 																		{isHighest && (
-																			<svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+																			<svg className="w-3.5 h-3.5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
 																				<path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
 																			</svg>
 																		)}
 																	</div>
-																	<p className="text-xs text-gray-500 font-medium">{percentage}% of total</p>
-																</div>
-																<div className={`p-2 ${color.light} rounded-lg border border-gray-200`}>
-																	<svg className={`w-4 h-4 ${color.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-																		<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-																	</svg>
+																	
+																	{/* Vertical Bar */}
+																	<div className="mb-3 flex items-end justify-center h-24">
+																		<div className="w-16 bg-gray-200 rounded-t-lg overflow-hidden flex flex-col justify-end" style={{ height: '100%' }}>
+																			<div 
+																				className={`w-full bg-gradient-to-t ${color.from} ${color.to} rounded-t-lg transition-all duration-700 ease-out flex items-center justify-center`}
+																				style={{ height: `${barHeight}%`, minHeight: '30px' }}
+																			>
+																				<span className="text-white font-bold text-lg drop-shadow">{item.count}</span>
+																			</div>
+																		</div>
+																	</div>
+																	
+																	{/* Stats */}
+																	<div className="text-center space-y-1">
+																		<p className="text-xs text-gray-500 font-medium">
+																			{item.count === 1 ? 'project' : 'projects'}
+																		</p>
+																		<p className="text-[10px] text-gray-400">
+																			{percentage}% of total
+																		</p>
+																	</div>
 																</div>
 															</div>
-															
-															{/* Mini Bar Visualization */}
-															<div className="mb-3">
-																<div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-																	<div 
-																		className={`h-full bg-gradient-to-r ${color.from} ${color.to} rounded-full transition-all duration-700 ease-out`}
-																		style={{ width: `${heightPercentage}%` }}
-																	></div>
-																</div>
-															</div>
-															
-															{/* Count */}
-															<div className="flex items-baseline justify-between">
-																<span className="text-3xl font-bold text-gray-900">{item.count}</span>
-																<span className="text-xs text-gray-500 font-medium">
-																	{item.count === 1 ? 'project' : 'projects'}
-																</span>
-															</div>
-														</div>
-													</div>
-												);
-											});
-										})()}
+														);
+													});
+												})()}
+											</div>
+										</div>
+										
+										{/* Scroll Hint */}
+										{analytics.projectsByYear.length > 3 && (
+											<div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white to-transparent pointer-events-none flex items-center justify-end pr-1">
+												<svg className="w-5 h-5 text-gray-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+												</svg>
+											</div>
+										)}
 									</div>
 									
 									{/* Summary Stats */}
 									<div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-200">
 										<div className="p-3 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg border border-emerald-200">
-											<p className="text-xs text-emerald-700 font-semibold mb-1">Total Projects</p>
+											<div className="flex items-center gap-2 mb-1">
+												<svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+												</svg>
+												<p className="text-xs text-emerald-700 font-semibold">Total Projects</p>
+											</div>
 											<p className="text-2xl font-bold text-emerald-900">
 												{analytics.projectsByYear.reduce((sum, item) => sum + item.count, 0)}
 											</p>
 										</div>
 										<div className="p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
-											<p className="text-xs text-blue-700 font-semibold mb-1">Total Years</p>
+											<div className="flex items-center gap-2 mb-1">
+												<svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+												</svg>
+												<p className="text-xs text-blue-700 font-semibold">Years Span</p>
+											</div>
 											<p className="text-2xl font-bold text-blue-900">
 												{analytics.projectsByYear.length}
 											</p>
@@ -630,9 +647,7 @@ export default function AdminDashboard({
 									{analytics.topTeamMembers.map((member, index) => (
 											<tr key={index} className="hover:bg-gray-50 transition-colors">
 												<td className="py-4 px-4">
-													<div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 font-bold text-sm">
 														{index + 1}
-													</div>
 												</td>
 												<td className="py-4 px-4">
 													<div className="font-medium text-gray-900">{member.user_name}</div>

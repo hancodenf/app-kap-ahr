@@ -16,11 +16,10 @@ return new class extends Migration
             
             // Foreign key reference (nullable untuk denormalisasi)
             $table->uuid('task_assignment_id')->nullable();
-            $table->foreign('task_assignment_id')->references('id')->on('task_assignments')->onDelete('set null');
-            
+            $table->foreign('task_assignment_id')->references('id')->on('task_assignments')->onDelete('set null');            
             $table->string('name');
             $table->string('slug')->unique();
-            $table->string('file')->nullable();
+            $table->text('file')->nullable();
             $table->timestamp('uploaded_at')->nullable();
             $table->timestamps();
         });
