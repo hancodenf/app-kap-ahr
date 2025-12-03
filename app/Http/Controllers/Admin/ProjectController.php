@@ -663,7 +663,7 @@ class ProjectController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'working_step_id' => 'required|exists:working_steps,id',
-            'client_interact' => 'required|string|in:read only,comment,upload',
+            'client_interact' => 'nullable|string|in:read only,comment,upload,approval',
             'multiple_files' => 'boolean',
             'is_required' => 'boolean',
         ]);
@@ -694,7 +694,7 @@ class ProjectController extends Controller
             'working_step_id' => $request->working_step_id,
             'project_id' => $workingStep->project_id,
             'order' => $nextOrder,
-            'client_interact' => $request->client_interact,
+            'client_interact' => $request->client_interact ? $request->client_interact : 'read only',
             'multiple_files' => $request->boolean('multiple_files'),
             'is_required' => $request->boolean('is_required'),
             'completion_status' => 'pending',
@@ -722,7 +722,7 @@ class ProjectController extends Controller
         // Generate new slug if name changed
         $updateData = [
             'name' => $request->name,
-            'client_interact' => $request->client_interact,
+            'client_interact' => $request->client_interact ? $request->client_interact : 'read only',
             'multiple_files' => $request->boolean('multiple_files'),
             'is_required' => $request->boolean('is_required'),
         ];

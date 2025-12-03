@@ -27,7 +27,8 @@ return new class extends Migration
             $table->longText('notes')->nullable();
             $table->longText('client_comment')->nullable();
             $table->string('status')->nullable();
-
+            $table->enum('maker', ['client', 'company'])->default('company');
+            $table->boolean('maker_can_edit')->default(true);
             $table->timestamps();
         });
     }

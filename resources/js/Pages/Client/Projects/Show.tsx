@@ -508,11 +508,6 @@ export default function Show({ project, workingSteps, projectTeams }: Props) {
                                                                         Belum Tersedia
                                                                     </span>
                                                                 )}
-                                                                {task.is_required && (
-                                                                    <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800 border border-red-200">
-                                                                        Required
-                                                                    </span>
-                                                                )}
                                                                 {task.client_interact === 'upload' && task.status === 'Submitted to Client' && (
                                                                     <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
                                                                         <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">

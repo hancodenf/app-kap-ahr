@@ -538,7 +538,10 @@ class ClientController extends Controller
 
         // Get latest assignment from filtered results (should be "Submitted to Client" or "Client Reply")
         $latestAssignment = $task->taskAssignments->first();
-        
+        if ($latestAssignment->maker === 'company') {
+            $latestAssignment->maker_can_edit = false;
+        }
+
         // Find pending client documents from LATEST filtered assignment ONLY
         $pendingClientDocs = [];
         if ($latestAssignment && $latestAssignment->clientDocuments) {

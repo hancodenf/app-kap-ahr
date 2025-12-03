@@ -704,9 +704,8 @@ class CompanyController extends Controller
                 } else {
                     // No approval, no client interaction - mark as completed
                     $latestAssignment->status = 'Completed';
-                    $task->completion_status = 'completed';
                     $task->completed_at = now();
-                    $task->save();
+                    $task->markAsCompleted(); // Use method to trigger unlock logic
                 }
             }
             $latestAssignment->save();
@@ -967,6 +966,7 @@ class CompanyController extends Controller
      */
     public function showTaskDetail(Task $task)
     {
+        // dd('hit');
         $user = Auth::user();
         
         // Get team member to verify access
@@ -980,6 +980,9 @@ class CompanyController extends Controller
 
         // Get latest assignment
         $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
+        if ($latestAssignment->maker === 'client') {
+            $latestAssignment->maker_can_edit = false;
+        }
         
         // Check if task can be edited
         $canEdit = false;
@@ -1157,9 +1160,8 @@ class CompanyController extends Controller
                 $latestAssignment->status = 'Submitted to Client';
                 $latestAssignment->save();
                 
-                $task->completion_status = 'completed';
                 $task->completed_at = now();
-                $task->save();
+                $task->markAsCompleted(); // Use method to trigger unlock logic
                 
                 $message = "Task approved and marked as completed!";
             }
@@ -1179,36 +1181,22 @@ class CompanyController extends Controller
         try {
             $user = Auth::user();
             
-            Log::info('Reject task attempt', [
-                'user_id' => $user->id,
-                'task_id' => $task->id,
-                'task_status' => $task->taskAssignments()->latest()->first()?->status ?? 'no assignment',
-            ]);
-            
             // Get team member to verify role
             $teamMember = ProjectTeam::where('project_id', $task->workingStep->project_id)
                 ->where('user_id', $user->id)
                 ->first();
                 
             if (!$teamMember) {
-                Log::warning('Reject denied: not a team member', [
-                    'user_id' => $user->id,
-                    'task_id' => $task->id,
-                ]);
                 return redirect()->back()->with('error', 'You are not a member of this project.');
             }
 
             $role = strtolower($teamMember->role);
             
-            Log::info('User role', ['role' => $role]);
             
             // Get latest assignment
             $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
             
             if (!$latestAssignment) {
-                Log::warning('Reject denied: no assignment', [
-                    'task_id' => $task->id,
-                ]);
                 return redirect()->back()->with('error', 'No assignment found for this task.');
             }
             
@@ -1218,28 +1206,13 @@ class CompanyController extends Controller
                 ->first();
                 
             if (!$currentApproval) {
-                Log::warning('Reject denied: not in approval workflow', [
-                    'user_id' => $user->id,
-                    'task_id' => $task->id,
-                    'role' => $role,
-                ]);
                 return redirect()->back()->with('error', 'You are not part of the approval workflow for this task.');
             }
             
-            Log::info('Current approval check', [
-                'current_status' => $latestAssignment->status,
-                'expected_pending' => $currentApproval->status_name_pending,
-                'expected_progress' => $currentApproval->status_name_progress,
-            ]);
             
             // Verify current status matches the pending OR progress status for this approval
             if ($latestAssignment->status !== $currentApproval->status_name_pending && 
                 $latestAssignment->status !== $currentApproval->status_name_progress) {
-                Log::warning('Reject denied: wrong status', [
-                    'task_id' => $task->id,
-                    'current_status' => $latestAssignment->status,
-                    'expected_statuses' => [$currentApproval->status_name_pending, $currentApproval->status_name_progress],
-                ]);
                 return redirect()->back()->with('error', 'You cannot reject this task in its current status.');
             }
             
@@ -1251,11 +1224,6 @@ class CompanyController extends Controller
             $latestAssignment->status = $currentApproval->status_name_reject;
             $latestAssignment->comment = $request->comment;
             $latestAssignment->save();
-            
-            Log::info('Task rejected successfully', [
-                'task_id' => $task->id,
-                'new_status' => $latestAssignment->status,
-            ]);
             
             // Redirect to project page after successful reject
             $projectId = $task->workingStep->project_id;
@@ -1315,8 +1283,7 @@ class CompanyController extends Controller
         $latestAssignment->save();
         
         // Mark task as completed
-        $task->completion_status = 'completed';
-        $task->save();
+        $task->markAsCompleted(); // Use method to trigger unlock logic
 
         // Log activity
         \App\Models\ActivityLog::create([
@@ -1380,6 +1347,7 @@ class CompanyController extends Controller
             'project_client_name' => $task->project_client_name,
             'time' => now(),
             'notes' => "Re-upload requested\nComment:\n" . $request->comment,
+            'maker' => 'client',
             'status' => 'Submitted to Client', // Set status to request re-upload from client
         ]);
 
