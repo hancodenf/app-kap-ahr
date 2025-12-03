@@ -65,7 +65,7 @@ class AdminController extends Controller
         $draftProjects = Project::where('status', 'Draft')->count();
         $inProgressProjects = Project::where('status', 'In Progress')->count();
         $completedProjects = Project::where('status', 'Completed')->count();
-        $archivedProjects = Project::where('status', 'Archived')->count();
+        $archivedProjects = Project::where('is_archived', true)->count();
         $newProjectsThisMonth = Project::whereMonth('created_at', Carbon::now()->month)
             ->whereYear('created_at', Carbon::now()->year)
             ->count();

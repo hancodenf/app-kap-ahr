@@ -41,6 +41,7 @@ interface Project {
     id: number;
     name: string;
     slug: string;
+    status: string;
 }
 
 interface Props extends PageProps {
@@ -54,6 +55,9 @@ export default function ApprovalDetail({ auth, task, project }: Props) {
     const [showApproveModal, setShowApproveModal] = useState(false);
     const [rejectComment, setRejectComment] = useState('');
     const { flash } = usePage<any>().props;
+    
+    // Check if project is active (only allow actions for In Progress projects)
+    const isProjectActive = project.status === 'In Progress';
 
     // Handle flash messages
     useEffect(() => {
@@ -249,10 +253,17 @@ export default function ApprovalDetail({ auth, task, project }: Props) {
                             )}
 
                             {/* Action Buttons */}
+                            {!isProjectActive && (
+                                <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <p className="text-sm text-yellow-800">
+                                        <strong>Read Only:</strong> This project is {project.status}. Actions are only available for projects In Progress.
+                                    </p>
+                                </div>
+                            )}
                             <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
                                 <button
                                     onClick={handleApprove}
-                                    disabled={processing}
+                                    disabled={processing || !isProjectActive}
                                     className="flex-1 inline-flex items-center justify-center px-6 py-3 text-base font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
                                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -262,7 +273,7 @@ export default function ApprovalDetail({ auth, task, project }: Props) {
                                 </button>
                                 <button
                                     onClick={() => setShowRejectModal(true)}
-                                    disabled={processing}
+                                    disabled={processing || !isProjectActive}
                                     className="flex-1 inline-flex items-center justify-center px-6 py-3 text-base font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
                                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -82,10 +82,11 @@ class CompanyController extends Controller
                 : 0,
         ];
         
-        // 3. Recent Projects (last 10)
+        // 3. Recent Projects (last 10) - exclude Draft projects
         $recentProjects = Project::whereHas('projectTeams', function($query) use ($user) {
             $query->where('user_id', $user->id);
         })
+        ->where('status', '!=', 'Draft')
         ->with(['projectTeams' => function($query) use ($user) {
             $query->where('user_id', $user->id);
         }])
@@ -103,15 +104,16 @@ class CompanyController extends Controller
             ];
         });
         
-        // 4. My Active Tasks (tasks assigned to me that are not completed)
-        $myActiveTasks = $hasProjects
+        // 4. My Assigned Tasks (tasks assigned to me via task_workers - not completed, ordered by newest)
+        $myAssignedTasks = $hasProjects
             ? \App\Models\TaskWorker::whereIn('project_team_id', $projectTeamIds)
                 ->with(['task' => function($query) {
-                    $query->with(['workingStep.project', 'taskAssignments' => function($q) {
+                    $query->with(['workingStep', 'taskAssignments' => function($q) {
                         $q->latest();
                     }])
                         ->where('completion_status', '!=', 'completed');
                 }])
+                ->latest('created_at')
                 ->get()
                 ->filter(function($taskWorker) {
                     return $taskWorker->task !== null;
@@ -121,15 +123,69 @@ class CompanyController extends Controller
                     return [
                         'id' => $taskWorker->task->id,
                         'name' => $taskWorker->task->name,
-                        'project_id' => $taskWorker->task->workingStep->project_id,
+                        'project_id' => $taskWorker->task->project_id,
                         'project_name' => $taskWorker->task->project_name,
                         'working_step_name' => $taskWorker->task->working_step_name,
                         'completion_status' => $taskWorker->task->completion_status,
                         'status' => $latestAssignment->status ?? 'Draft',
                         'is_required' => $taskWorker->task->is_required,
+                        'created_at' => $taskWorker->created_at,
                     ];
                 })
                 ->take(10)
+            : collect([]);
+        
+        // 5. Tasks Pending My Approval (based on user's role in projects)
+        $myRoles = $hasProjects
+            ? ProjectTeam::where('user_id', $user->id)
+                ->pluck('role', 'project_id')
+                ->toArray()
+            : [];
+        
+        $tasksPendingApproval = $hasProjects && !empty($myRoles)
+            ? \App\Models\TaskApproval::whereIn('role', array_values($myRoles))
+                ->with(['task' => function($query) {
+                    $query->with(['workingStep', 'taskAssignments' => function($q) {
+                        $q->latest();
+                    }]);
+                }])
+                ->get()
+                ->filter(function($approval) use ($myRoles) {
+                    if (!$approval->task) return false;
+                    
+                    // Check if user has the required role in this project
+                    $projectId = $approval->task->project_id;
+                    $userRoleInProject = $myRoles[$projectId] ?? null;
+                    
+                    if ($userRoleInProject !== $approval->role) return false;
+                    
+                    // Check if task needs approval from this role
+                    $latestAssignment = $approval->task->taskAssignments->first();
+                    $currentStatus = $latestAssignment->status ?? 'Draft';
+                    
+                    // Task is pending approval if status matches either "pending" or "progress" status for this role
+                    return $currentStatus === $approval->status_name_pending 
+                        || $currentStatus === $approval->status_name_progress;
+                })
+                ->map(function($approval) {
+                    $latestAssignment = $approval->task->taskAssignments->first();
+                    return [
+                        'id' => $approval->task->id,
+                        'approval_id' => $approval->id,
+                        'name' => $approval->task->name,
+                        'project_id' => $approval->task->project_id,
+                        'project_name' => $approval->task->project_name,
+                        'working_step_name' => $approval->task->working_step_name,
+                        'completion_status' => $approval->task->completion_status,
+                        'status' => $latestAssignment->status ?? 'Draft',
+                        'approval_role' => $approval->role,
+                        'is_required' => $approval->task->is_required,
+                        'updated_at' => $approval->task->updated_at,
+                    ];
+                })
+                ->sortByDesc('updated_at')
+                ->take(10)
+                ->values()
             : collect([]);
         
         // 5. Task Completion Trend (last 7 days)
@@ -227,7 +283,8 @@ class CompanyController extends Controller
                 'projects_by_status' => $projectsByStatus,
             ],
             'recentProjects' => $recentProjects,
-            'myActiveTasks' => $myActiveTasks,
+            'myAssignedTasks' => $myAssignedTasks,
+            'tasksPendingApproval' => $tasksPendingApproval,
             'taskTrend' => $taskTrend,
             'upcomingDeadlines' => $upcomingDeadlines,
             'latestNews' => $latestNews,
@@ -253,13 +310,8 @@ class CompanyController extends Controller
             $query->where('user_id', $user->id);
         }]);
         
-        // Apply status filter - exclude archived projects
-        if ($status === 'Archived') {
-            $query->where('is_archived', true);
-        } else {
-            $query->where('status', $status)
-                  ->where('is_archived', false);
-        }
+        // Apply status filter (no archive filtering - company sees all projects by status)
+        $query->where('status', $status);
         
         // Apply search filter
         if ($search) {
@@ -282,23 +334,20 @@ class CompanyController extends Controller
                 ];
             });
         
-        // Get status counts
+        // Get status counts (no archive filtering for company)
         $statusCounts = [
             'in_progress' => Project::whereHas('projectTeams', function($q) use ($user) {
                 $q->where('user_id', $user->id);
-            })->where('status', 'In Progress')->where('is_archived', false)->count(),
+            })->where('status', 'In Progress')->count(),
             'completed' => Project::whereHas('projectTeams', function($q) use ($user) {
                 $q->where('user_id', $user->id);
-            })->where('status', 'Completed')->where('is_archived', false)->count(),
+            })->where('status', 'Completed')->count(),
             'suspended' => Project::whereHas('projectTeams', function($q) use ($user) {
                 $q->where('user_id', $user->id);
-            })->where('status', 'Suspended')->where('is_archived', false)->count(),
+            })->where('status', 'Suspended')->count(),
             'canceled' => Project::whereHas('projectTeams', function($q) use ($user) {
                 $q->where('user_id', $user->id);
-            })->where('status', 'Canceled')->where('is_archived', false)->count(),
-            'archived' => Project::whereHas('projectTeams', function($q) use ($user) {
-                $q->where('user_id', $user->id);
-            })->where('is_archived', true)->count(),
+            })->where('status', 'Canceled')->count(),
         ];
 
         return Inertia::render('Company/Projects/Index', [
@@ -325,6 +374,11 @@ class CompanyController extends Controller
             
         if (!$teamMember) {
             abort(403, 'You are not a member of this project.');
+        }
+        
+        // Company users cannot access Draft projects
+        if ($project->status === 'Draft') {
+            abort(403, 'This project is still in draft status and cannot be accessed.');
         }
 
         // Get working steps with tasks
@@ -436,6 +490,16 @@ class CompanyController extends Controller
                             'is_assigned_to_me' => $myAssignment !== null,
                             'my_assignment_id' => $myAssignment ? $myAssignment->id : null,
                             'can_edit' => $canEdit,
+                            // Task workers (team members assigned)
+                            'task_workers' => $task->taskWorkers->map(function($worker) {
+                                return [
+                                    'id' => $worker->id,
+                                    'worker_name' => $worker->worker_name,
+                                    'worker_email' => $worker->worker_email,
+                                    'worker_role' => $worker->worker_role,
+                                    'project_team_id' => $worker->project_team_id,
+                                ];
+                            })->values()->toArray(),
                             // Latest assignment info for display
                             'latest_assignment' => $latestAssignment ? [
                                 'id' => $latestAssignment->id,
@@ -954,6 +1018,7 @@ class CompanyController extends Controller
             'id' => $task->workingStep->project_id,
             'name' => $task->project_name,
             'slug' => $task->project->slug ?? '',
+            'status' => $task->project->status ?? 'In Progress',
         ];
         
         return Inertia::render('Company/Tasks/ApprovalDetail', [
@@ -1080,6 +1145,14 @@ class CompanyController extends Controller
                     }),
                 ];
             }),
+            'task_workers' => $task->taskWorkers->map(function($worker) {
+                return [
+                    'id' => $worker->id,
+                    'worker_name' => $worker->worker_name,
+                    'worker_email' => $worker->worker_email,
+                    'worker_role' => $worker->worker_role,
+                ];
+            }),
         ];
 
         // Build project data
@@ -1087,6 +1160,7 @@ class CompanyController extends Controller
             'id' => $task->workingStep->project->id,
             'name' => $task->workingStep->project->name,
             'slug' => $task->workingStep->project->slug,
+            'status' => $task->workingStep->project->status,
         ];
 
         return Inertia::render('Company/Tasks/TaskDetail', [

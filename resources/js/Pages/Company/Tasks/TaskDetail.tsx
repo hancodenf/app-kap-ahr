@@ -30,6 +30,13 @@ interface TaskAssignment {
     client_documents: ClientDocument[];
 }
 
+interface TaskWorker {
+    id: number;
+    worker_name: string;
+    worker_email: string;
+    worker_role: string;
+}
+
 interface Task {
     id: number;
     name: string;
@@ -45,12 +52,14 @@ interface Task {
     };
     latest_assignment: TaskAssignment | null;
     assignments: TaskAssignment[];
+    task_workers: TaskWorker[];
 }
 
 interface Project {
     id: number;
     name: string;
     slug: string;
+    status: string;
 }
 
 interface Props extends PageProps {
@@ -59,6 +68,9 @@ interface Props extends PageProps {
 }
 
 export default function TaskDetail({ auth, task, project }: Props) {
+    // Check if project is active (only allow actions for In Progress projects)
+    const isProjectActive = project.status === 'In Progress';
+    
     // State for selected submission
     const [selectedSubmission, setSelectedSubmission] = useState<TaskAssignment | null>(
         task.assignments.length > 0 ? task.assignments[0] : null
@@ -417,18 +429,64 @@ export default function TaskDetail({ auth, task, project }: Props) {
             <div className="py-12">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
                     
+                    {/* Assigned Team Members */}
+                    {task.task_workers && task.task_workers.length > 0 && (
+                        <div className="bg-white shadow-sm sm:rounded-lg overflow-hidden">
+                            <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100">
+                                <h3 className="text-sm font-semibold text-gray-900 flex items-center">
+                                    <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                    Assigned Team Members ({task.task_workers.length})
+                                </h3>
+                            </div>
+                            <div className="p-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {task.task_workers.map((worker) => (
+                                        <div key={worker.id} className="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors">
+                                            <div className="flex-shrink-0">
+                                                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
+                                                    {worker.worker_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                                </div>
+                                            </div>
+                                            <div className="ml-3 flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-gray-900 truncate">
+                                                    {worker.worker_name}
+                                                </p>
+                                                <p className="text-xs text-gray-600 truncate">
+                                                    {worker.worker_email}
+                                                </p>
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800 mt-1">
+                                                    {worker.worker_role}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
                     {/* Add New Submission Button (show if no submissions or rejected/returned) */}
                     {(task.assignments.length === 0 || task.latest_assignment?.comment) && (
                         <div className="bg-white shadow-sm sm:rounded-lg p-4">
-                            <button
-                                onClick={openAddModal}
-                                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
-                            >
-                                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                </svg>
-                                Add New Submission
-                            </button>
+                            {isProjectActive ? (
+                                <button
+                                    onClick={openAddModal}
+                                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
+                                >
+                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Add New Submission
+                                </button>
+                            ) : (
+                                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <p className="text-sm text-yellow-800">
+                                        <strong>Read Only:</strong> This project is {project.status}. Submissions are only available for projects In Progress.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -504,7 +562,7 @@ export default function TaskDetail({ auth, task, project }: Props) {
                                                 <h3 className="text-lg font-semibold text-gray-900">
                                                     Submission Details
                                                 </h3>
-                                                {task.can_edit && selectedSubmission.id === task.latest_assignment?.id && (
+                                                {task.can_edit && selectedSubmission.id === task.latest_assignment?.id && isProjectActive && (
                                                     <button
                                                         onClick={openEditModal}
                                                         className="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
@@ -514,6 +572,11 @@ export default function TaskDetail({ auth, task, project }: Props) {
                                                         </svg>
                                                         Edit
                                                     </button>
+                                                )}
+                                                {!isProjectActive && (
+                                                    <span className="inline-flex items-center px-3 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-full">
+                                                        Read Only - Project {project.status}
+                                                    </span>
                                                 )}
                                             </div>
 

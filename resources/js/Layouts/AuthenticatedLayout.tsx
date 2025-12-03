@@ -37,6 +37,38 @@ export default function Authenticated({
         localStorage.setItem('sidebarCollapsed', String(sidebarCollapsed));
     }, [sidebarCollapsed]);
 
+    // Prevent back to guest pages after authentication
+    useEffect(() => {
+        // Check if user just came from guest page (login)
+        const wasOnGuestPage = sessionStorage.getItem('was_on_guest_page');
+        
+        if (wasOnGuestPage === 'true') {
+            // Clear the flag
+            sessionStorage.removeItem('was_on_guest_page');
+        }
+        
+        // Set current page as authenticated with preventBack flag
+        window.history.replaceState({ preventBack: true, authenticated: true }, '', window.location.href);
+        
+        // Prevent back button to guest pages
+        const handlePopState = (event: PopStateEvent) => {
+            // Check if user is trying to go back
+            const currentPath = window.location.pathname;
+            
+            // If trying to go back and no proper state, or trying to go to login
+            if (!event.state || !event.state.authenticated) {
+                // Prevent going back to login by pushing forward again
+                window.history.pushState({ preventBack: true, authenticated: true }, '', currentPath);
+            }
+        };
+        
+        window.addEventListener('popstate', handlePopState);
+        
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+        };
+    }, []);
+
     // Keyboard shortcut Ctrl+K for unlock/lock toggle
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {

@@ -1920,8 +1920,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                             </button>
                             
                             <form onSubmit={handleUpdateTeamMember} className="p-6">
-                                <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Team Member Role</h3>
-                                
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Team Member Role</h3> 
                                 <div className="mb-4">
                                     <p className="text-sm text-gray-600 mb-4">
                                         <strong>Member:</strong> {editingTeamMember.user_name}

@@ -113,7 +113,25 @@ class AuthenticatedSessionController extends Controller
             'is_active' => $user->is_active,
         ]);
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        // Redirect based on user role, NOT intended URL
+        // This ensures users go to their role-specific dashboard regardless of what URL they tried to access
+        $roleName = is_string($user->role) ? $user->role : $user->role->name;
+        
+        switch ($roleName) {
+            case 'admin':
+                return redirect()->route('admin.dashboard');
+            case 'company':
+                return redirect()->route('company.dashboard');
+            case 'partner':
+                return redirect()->route('partner.dashboard');
+            case 'staff':
+                return redirect()->route('staff.dashboard');
+            case 'klien':
+            case 'client':
+                return redirect()->route('klien.dashboard');
+            default:
+                return redirect()->route('dashboard');
+        }
     }
 
     /**

@@ -132,6 +132,9 @@ interface Props extends PageProps {
 export default function Show({ project, workingSteps, projectTeams }: Props) {
     const [activeTab, setActiveTab] = useState<number>(0);
     const [hoveredWorker, setHoveredWorker] = useState<string | null>(null);
+    
+    // Check if project is active (only In Progress allows interactions)
+    const isProjectActive = project.status === 'In Progress';
 
     // Calculate overall project statistics
     const allTasks = workingSteps.flatMap(step => step.tasks);
@@ -194,6 +197,25 @@ export default function Show({ project, workingSteps, projectTeams }: Props) {
 
             <div className="py-8">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    {/* Read-Only Warning */}
+                    {!isProjectActive && (
+                        <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                            <div className="flex items-start">
+                                <svg className="w-5 h-5 text-yellow-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                                <div className="ml-3">
+                                    <h3 className="text-sm font-medium text-yellow-800">
+                                        Project dalam mode Read-Only
+                                    </h3>
+                                    <p className="mt-1 text-sm text-yellow-700">
+                                        Project ini berstatus <strong>{project.status}</strong> sehingga tidak dapat diubah. Hanya project dengan status "In Progress" yang dapat dikelola.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Dashboard Statistics */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                         {/* Overall Progress */}
@@ -446,6 +468,8 @@ export default function Show({ project, workingSteps, projectTeams }: Props) {
                                     ) : (
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                             {workingSteps[activeTab].tasks.map((task, taskIndex) => {
+                                                // Only disable if task is truly pending (not started yet)
+                                                // Allow viewing details even if project is not active (read-only handled inside)
                                                 const isDisabled = task.completion_status === 'pending';
                                                 
                                                 return (

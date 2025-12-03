@@ -71,11 +71,15 @@ interface Props extends PageProps {
         id: number;
         name: string;
         slug: string;
+        status: string;
     };
     pendingClientDocs: ClientDocument[];
 }
 
 export default function TaskDetail({ task, project, pendingClientDocs }: Props) {
+    // Check if project is active (only allow interactions for In Progress projects)
+    const isProjectActive = project.status === 'In Progress';
+    
     const [hoveredWorker, setHoveredWorker] = useState<string | null>(null);
     
     const { data, setData, post, processing, errors, reset } = useForm<{
@@ -131,10 +135,12 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
     // 1. Task allows interaction (comment or upload)
     // 2. Latest assignment status is "Submitted to Client" (company is asking for client input)
     // 3. Task is not completed yet
+    // 4. Project is In Progress (read-only if not)
     const latestAssignment = task.assignments?.[0]; // assignments are sorted by latest first
     const canInteract = task.client_interact !== 'read only' && 
                        latestAssignment?.status === 'Submitted to Client' && 
-                       task.completion_status !== 'completed';
+                       task.completion_status !== 'completed' &&
+                       isProjectActive;
     
     const canUploadFiles = task.client_interact === 'upload' && canInteract;
 
@@ -560,12 +566,21 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                 </div>
                             ) : (
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                    {!isProjectActive && (
+                                        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                            <p className="text-sm text-yellow-800">
+                                                <strong>Read Only:</strong> Project ini berstatus {project.status}. Interaksi hanya tersedia untuk project In Progress.
+                                            </p>
+                                        </div>
+                                    )}
                                     <div className="text-center py-6">
                                         <svg className="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
                                         <p className="text-lg font-medium text-gray-900 mb-1">
-                                            {task.completion_status === 'completed' 
+                                            {!isProjectActive
+                                                ? 'Project Read Only'
+                                                : task.completion_status === 'completed' 
                                                 ? 'Task Selesai'
                                                 : latestAssignment?.status === 'Client Reply'
                                                     ? 'Menunggu Review'
@@ -575,7 +590,9 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                             }
                                         </p>
                                         <p className="text-sm text-gray-600">
-                                            {task.completion_status === 'completed'
+                                            {!isProjectActive
+                                                ? `Project dengan status ${project.status} tidak dapat diinteraksi`
+                                                : task.completion_status === 'completed'
                                                 ? 'Task ini sudah selesai dikerjakan'
                                                 : latestAssignment?.status === 'Client Reply'
                                                     ? 'Tim sedang mereview balasan Anda'

@@ -252,15 +252,7 @@ export default function AdminDashboard({
 								<div>
 									<h3 className="text-2xl font-bold mb-2 drop-shadow-lg">Welcome back, {user.name}! 👋</h3>
 									<p className="text-white/90 text-sm drop-shadow">{user.role.description}</p>
-								</div>
-								<div className="hidden md:block">
-									<div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 shadow-xl">
-										<div className="text-center">
-											<p className="text-3xl font-bold drop-shadow-lg">{statistics.activities.today}</p>
-											<p className="text-xs text-white/80 mt-1">Activities Today</p>
-										</div>
-									</div>
-								</div>
+								</div> 
 							</div>
 						</div>
 					</div>
@@ -342,53 +334,10 @@ export default function AdminDashboard({
 								<span className="text-gray-500">Docs: {statistics.system.documents}</span>
 							</div>
 						</div>
-					</div>
-
-					{/* Quick Actions */}
-					<div className="bg-white shadow-sm rounded-lg p-6">
-						<h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-						<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-							<Link href={route('admin.users.index')} className="flex flex-col items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-100 hover:border-emerald-300 hover:bg-emerald-100 transition-all group">
-								<div className="p-3 bg-emerald-100 rounded-full group-hover:bg-emerald-200 transition-colors mb-2">
-									<svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-									</svg>
-								</div>
-								<span className="text-sm font-medium text-emerald-900">Manage Users</span>
-							</Link>
-
-							<Link href={route('admin.clients.index')} className="flex flex-col items-center p-4 bg-emerald-50/70 rounded-lg border-2 border-emerald-100 hover:border-emerald-300 hover:bg-emerald-100 transition-all group">
-								<div className="p-3 bg-emerald-100 rounded-full group-hover:bg-emerald-200 transition-colors mb-2">
-									<svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-									</svg>
-								</div>
-								<span className="text-sm font-medium text-emerald-900">Manage Clients</span>
-							</Link>
-
-							<Link href={route('admin.projects.bundles.index')} className="flex flex-col items-center p-4 bg-emerald-50/50 rounded-lg border-2 border-emerald-100 hover:border-emerald-300 hover:bg-emerald-100 transition-all group">
-								<div className="p-3 bg-emerald-100 rounded-full group-hover:bg-emerald-200 transition-colors mb-2">
-									<svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-									</svg>
-								</div>
-								<span className="text-sm font-medium text-emerald-900">View Projects</span>
-							</Link>
-
-							<Link href={route('admin.project-templates.template-bundles.index')} className="flex flex-col items-center p-4 bg-emerald-50/30 rounded-lg border-2 border-emerald-100 hover:border-emerald-300 hover:bg-emerald-100 transition-all group">
-								<div className="p-3 bg-emerald-100 rounded-full group-hover:bg-emerald-200 transition-colors mb-2">
-									<svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-									</svg>
-								</div>
-								<span className="text-sm font-medium text-orange-900">Templates</span>
-							</Link>
-						</div>
-					</div>
-
+					</div> 
 					{/* Advanced Analytics Charts */}
 					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-						{/* Projects by Year - Vertical Bar Chart */}
+						{/* Projects by Year - Horizontal Scroll Cards */}
 						<div className="bg-white shadow-sm rounded-lg p-6">
 							<div className="flex items-center justify-between mb-6">
 								<div>
@@ -402,36 +351,117 @@ export default function AdminDashboard({
 								</div>
 							</div>
 							{analytics.projectsByYear && analytics.projectsByYear.length > 0 ? (
-								<div className="flex items-end justify-between h-64 gap-4 px-2">
-									{analytics.projectsByYear.map((item, index) => {
-										const maxCount = Math.max(...analytics.projectsByYear.map(p => p.count));
-										const heightPercentage = (item.count / maxCount) * 100;
-										const color = 'from-emerald-400 to-emerald-600';
-										return (
-											<div key={index} className="flex-1 flex flex-col items-center gap-3 group">
-												<div 
-													className={`w-full bg-gradient-to-t ${color} rounded-t-xl shadow-md hover:shadow-xl transition-all duration-300 relative cursor-pointer transform hover:scale-105`}
-													style={{ height: `${heightPercentage}%`, minHeight: '40px' }}
-												>
-													<div className="absolute inset-0 flex items-center justify-center">
-														<span className="text-white font-bold text-lg drop-shadow-lg">{item.count}</span>
-													</div>
-													<div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-3 py-2 rounded-lg text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-xl">
-														<div className="font-bold">{item.count} Projects</div>
-														<div className="text-gray-300 text-[10px]">in {item.year}</div>
-													</div>
-												</div>
-												<div className="text-center">
-													<div className="text-sm font-bold text-gray-900">{item.year}</div>
-													<div className="text-xs text-gray-500">{((item.count / analytics.projectsByYear.reduce((a, b) => a + b.count, 0)) * 100).toFixed(0)}%</div>
-												</div>
+								<div className="space-y-4">
+									{/* Scrollable Year Cards */}
+									<div className="relative">
+										<div className="overflow-x-auto pb-2 -mx-2 px-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+											<div className="flex gap-3 min-w-max">
+												{(() => {
+													const totalProjects = analytics.projectsByYear.reduce((sum, item) => sum + item.count, 0);
+													const maxCount = Math.max(...analytics.projectsByYear.map(p => p.count));
+													const colors = [
+														{ from: 'from-emerald-400', to: 'to-emerald-600', icon: 'text-emerald-600', light: 'bg-emerald-50', border: 'border-emerald-200' },
+														{ from: 'from-blue-400', to: 'to-blue-600', icon: 'text-blue-600', light: 'bg-blue-50', border: 'border-blue-200' },
+														{ from: 'from-purple-400', to: 'to-purple-600', icon: 'text-purple-600', light: 'bg-purple-50', border: 'border-purple-200' },
+														{ from: 'from-orange-400', to: 'to-orange-600', icon: 'text-orange-600', light: 'bg-orange-50', border: 'border-orange-200' },
+														{ from: 'from-pink-400', to: 'to-pink-600', icon: 'text-pink-600', light: 'bg-pink-50', border: 'border-pink-200' },
+														{ from: 'from-indigo-400', to: 'to-indigo-600', icon: 'text-indigo-600', light: 'bg-indigo-50', border: 'border-indigo-200' },
+													];
+													
+													return analytics.projectsByYear.map((item, index) => {
+														const percentage = ((item.count / totalProjects) * 100).toFixed(1);
+														const barHeight = Math.max((item.count / maxCount) * 100, 20);
+														const color = colors[index % colors.length];
+														const isHighest = item.count === maxCount;
+														
+														return (
+															<div 
+																key={index} 
+																className={`flex-shrink-0 w-32 ${color.light} rounded-xl border-2 ${color.border} hover:shadow-lg transition-all group overflow-hidden`}
+															>
+																<div className="p-3">
+																	{/* Year & Badge */}
+																	<div className="flex items-center justify-between mb-2">
+																		<span className="text-xl font-bold text-gray-900">{item.year}</span>
+																		{isHighest && (
+																			<svg className="w-3.5 h-3.5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+																				<path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+																			</svg>
+																		)}
+																	</div>
+																	
+																	{/* Vertical Bar */}
+																	<div className="mb-3 flex items-end justify-center h-24">
+																		<div className="w-16 bg-gray-200 rounded-t-lg overflow-hidden flex flex-col justify-end" style={{ height: '100%' }}>
+																			<div 
+																				className={`w-full bg-gradient-to-t ${color.from} ${color.to} rounded-t-lg transition-all duration-700 ease-out flex items-center justify-center`}
+																				style={{ height: `${barHeight}%`, minHeight: '30px' }}
+																			>
+																				<span className="text-white font-bold text-lg drop-shadow">{item.count}</span>
+																			</div>
+																		</div>
+																	</div>
+																	
+																	{/* Stats */}
+																	<div className="text-center space-y-1">
+																		<p className="text-xs text-gray-500 font-medium">
+																			{item.count === 1 ? 'project' : 'projects'}
+																		</p>
+																		<p className="text-[10px] text-gray-400">
+																			{percentage}% of total
+																		</p>
+																	</div>
+																</div>
+															</div>
+														);
+													});
+												})()}
 											</div>
-										);
-									})}
+										</div>
+										
+										{/* Scroll Hint */}
+										{analytics.projectsByYear.length > 3 && (
+											<div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white to-transparent pointer-events-none flex items-center justify-end pr-1">
+												<svg className="w-5 h-5 text-gray-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+												</svg>
+											</div>
+										)}
+									</div>
+									
+									{/* Summary Stats */}
+									<div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-200">
+										<div className="p-3 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg border border-emerald-200">
+											<div className="flex items-center gap-2 mb-1">
+												<svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+												</svg>
+												<p className="text-xs text-emerald-700 font-semibold">Total Projects</p>
+											</div>
+											<p className="text-2xl font-bold text-emerald-900">
+												{analytics.projectsByYear.reduce((sum, item) => sum + item.count, 0)}
+											</p>
+										</div>
+										<div className="p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+											<div className="flex items-center gap-2 mb-1">
+												<svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+												</svg>
+												<p className="text-xs text-blue-700 font-semibold">Years Span</p>
+											</div>
+											<p className="text-2xl font-bold text-blue-900">
+												{analytics.projectsByYear.length}
+											</p>
+										</div>
+									</div>
 								</div>
 							) : (
 								<div className="text-center py-8 text-gray-400">
-									<p className="text-sm">No project data available</p>
+									<svg className="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+									</svg>
+									<p className="text-sm font-medium">No project data available</p>
+									<p className="text-xs mt-1">Projects data will appear here once created</p>
 								</div>
 							)}
 						</div>
@@ -566,9 +596,7 @@ export default function AdminDashboard({
 									{analytics.topTeamMembers.map((member, index) => (
 											<tr key={index} className="hover:bg-gray-50 transition-colors">
 												<td className="py-4 px-4">
-													<div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 font-bold text-sm">
 														{index + 1}
-													</div>
 												</td>
 												<td className="py-4 px-4">
 													<div className="font-medium text-gray-900">{member.user_name}</div>
@@ -644,135 +672,137 @@ export default function AdminDashboard({
 						</div>
 					</div>
 
-					{/* Team Role Distribution & Task Completion */}
+					{/* Project Status Distribution & Task Completion */}
 					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-						{/* Team Role Distribution - Donut Chart */}
+						{/* Project Status Distribution - Donut Chart */}
 						<div className="bg-white shadow-sm rounded-lg p-6">
 							<div className="flex items-center justify-between mb-6">
 								<div>
-									<h3 className="text-lg font-semibold text-gray-900">Team Role Distribution</h3>
-									<p className="text-sm text-gray-500 mt-1">Distribution across all projects</p>
+									<h3 className="text-lg font-semibold text-gray-900">Project Status Overview</h3>
+									<p className="text-sm text-gray-500 mt-1">Current distribution of all projects</p>
 								</div>
 								<div className="p-2 bg-emerald-100 rounded-lg">
 									<svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
 									</svg>
 								</div>
-							</div>
-						{analytics.teamRoleDistribution && analytics.teamRoleDistribution.length > 0 ? (
-							<div className="flex flex-col md:flex-row items-center gap-6">
-								{/* Donut Chart */}
-								<div className="flex-shrink-0 w-full md:w-auto flex justify-center">
-									<div className="relative w-48 h-48">
-											<svg viewBox="0 0 100 100" className="transform -rotate-90">
-												{(() => {
-													const totalRoles = analytics.teamRoleDistribution.reduce((sum, r) => sum + r.count, 0);
-													let currentAngle = 0;
-													const colors = [
-														{ start: '#10b981', end: '#059669' }, // emerald-500 to emerald-600
-														{ start: '#34d399', end: '#10b981' }, // emerald-400 to emerald-500
-														{ start: '#6ee7b7', end: '#34d399' }, // emerald-300 to emerald-400
-														{ start: '#10b981', end: '#047857' }, // emerald-500 to emerald-700
-														{ start: '#34d399', end: '#059669' }, // emerald-400 to emerald-600
-													];
+							</div>	
+						{statistics.projects.total > 0 ? (
+							<div className="flex flex-col items-center gap-6">
+								{/* Donut Chart - Centered */}
+								<div className="flex justify-center w-full">
+									<div className="relative w-56 h-56">
+										<svg viewBox="0 0 100 100" className="transform -rotate-90">
+											{(() => {
+												const projectStatuses = [
+													{ label: 'Draft', count: statistics.projects.draft, colorStart: '#fbbf24', colorEnd: '#f59e0b' },
+													{ label: 'In Progress', count: statistics.projects.in_progress, colorStart: '#3b82f6', colorEnd: '#2563eb' },
+													{ label: 'Completed', count: statistics.projects.completed, colorStart: '#10b981', colorEnd: '#059669' },
+													{ label: 'Archived', count: statistics.projects.archived, colorStart: '#6b7280', colorEnd: '#4b5563' },
+												].filter(s => s.count > 0);
+												
+												const totalProjects = projectStatuses.reduce((sum, s) => sum + s.count, 0);
+												let currentAngle = 0;
+												
+												return projectStatuses.map((status, index) => {
+													const percentage = (status.count / totalProjects) * 100;
+													const angle = (percentage / 100) * 360;
+													const radius = 40;
+													const strokeWidth = 16;
+													const normalizedRadius = radius - strokeWidth / 2;
+													const circumference = normalizedRadius * 2 * Math.PI;
+													const strokeDasharray = `${(angle / 360) * circumference} ${circumference}`;
+													const rotation = currentAngle;
+													currentAngle += angle;
 													
-													return analytics.teamRoleDistribution.map((role, index) => {
-														const percentage = (role.count / totalRoles) * 100;
-														const angle = (percentage / 100) * 360;
-														const radius = 40;
-														const strokeWidth = 16;
-														const normalizedRadius = radius - strokeWidth / 2;
-														const circumference = normalizedRadius * 2 * Math.PI;
-														const strokeDasharray = `${(angle / 360) * circumference} ${circumference}`;
-														const rotation = currentAngle;
-														currentAngle += angle;
-														const color = colors[index % colors.length];
-														
-														return (
-															<circle
-																key={index}
-																cx="50"
-																cy="50"
-																r={normalizedRadius}
-																fill="transparent"
-																stroke={`url(#gradient-${index})`}
-																strokeWidth={strokeWidth}
-																strokeDasharray={strokeDasharray}
-																strokeLinecap="round"
-																style={{ transform: `rotate(${rotation}deg)`, transformOrigin: 'center' }}
-																className="transition-all duration-300 hover:opacity-80 cursor-pointer"
-															>
-																<title>{role.role}: {role.count} ({percentage.toFixed(1)}%)</title>
-															</circle>
-														);
-													});
-												})()}
-												{/* Gradients */}
-												<defs>
-													{analytics.teamRoleDistribution.map((_, index) => {
-														const colors = [
-															{ start: '#10b981', end: '#059669' },
-															{ start: '#34d399', end: '#10b981' },
-															{ start: '#6ee7b7', end: '#34d399' },
-															{ start: '#10b981', end: '#047857' },
-															{ start: '#34d399', end: '#059669' },
-														];
-														const color = colors[index % colors.length];
-														return (
-															<linearGradient key={index} id={`gradient-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
-																<stop offset="0%" stopColor={color.start} />
-																<stop offset="100%" stopColor={color.end} />
-															</linearGradient>
-														);
-													})}
-												</defs>
-											</svg>
-											{/* Center Circle */}
-											<div className="absolute inset-0 flex items-center justify-center">
-												<div className="bg-white rounded-full w-24 h-24 shadow-inner flex items-center justify-center border-4 border-gray-50">
-													<div className="text-center">
-														<div className="text-2xl font-bold text-gray-900">
-															{analytics.teamRoleDistribution.reduce((sum, r) => sum + r.count, 0)}
-														</div>
-														<div className="text-xs text-gray-500">Members</div>
+													return (
+														<circle
+															key={index}
+															cx="50"
+															cy="50"
+															r={normalizedRadius}
+															fill="transparent"
+															stroke={`url(#status-gradient-${index})`}
+															strokeWidth={strokeWidth}
+															strokeDasharray={strokeDasharray}
+															strokeLinecap="round"
+															style={{ transform: `rotate(${rotation}deg)`, transformOrigin: 'center' }}
+															className="transition-all duration-300 hover:opacity-80 cursor-pointer"
+														>
+															<title>{status.label}: {status.count} ({percentage.toFixed(1)}%)</title>
+														</circle>
+													);
+												});
+											})()}
+											{/* Gradients */}
+											<defs>
+												{[
+													{ start: '#fbbf24', end: '#f59e0b' },
+													{ start: '#3b82f6', end: '#2563eb' },
+													{ start: '#10b981', end: '#059669' },
+													{ start: '#6b7280', end: '#4b5563' },
+												].map((color, index) => (
+													<linearGradient key={index} id={`status-gradient-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
+														<stop offset="0%" stopColor={color.start} />
+														<stop offset="100%" stopColor={color.end} />
+													</linearGradient>
+												))}
+											</defs>
+										</svg>
+										{/* Center Circle */}
+										<div className="absolute inset-0 flex items-center justify-center">
+											<div className="bg-white rounded-full w-28 h-28 shadow-inner flex items-center justify-center border-4 border-gray-50">
+												<div className="text-center">
+													<div className="text-3xl font-bold text-gray-900">
+														{statistics.projects.total}
 													</div>
+													<div className="text-xs text-gray-500 mt-1">Projects</div>
 												</div>
 											</div>
 										</div>
 									</div>
-									
-									{/* Legend */}
-									<div className="flex-1 space-y-2">
-										{analytics.teamRoleDistribution.map((role, index) => {
-											const totalRoles = analytics.teamRoleDistribution.reduce((sum, r) => sum + r.count, 0);
-											const percentage = ((role.count / totalRoles) * 100).toFixed(1);
-											const bgColors = [
-												'bg-emerald-500',
-												'bg-emerald-400', 
-												'bg-emerald-300',
-												'bg-emerald-600',
-												'bg-emerald-200'
-											];
-											const bgColor = bgColors[index % bgColors.length];
-											return (
-												<div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors">
-													<div className="flex items-center gap-2">
-														<div className={`w-4 h-4 rounded ${bgColor} shadow-sm`}></div>
-														<span className="text-sm font-medium text-gray-700">{role.role}</span>
+								</div>
+								
+								{/* Legend - Grid Layout */}
+								<div className="w-full grid grid-cols-2 gap-3">
+									{[
+										{ label: 'Draft', count: statistics.projects.draft, bgColor: 'bg-yellow-500', textColor: 'text-yellow-700', icon: '📝' },
+										{ label: 'In Progress', count: statistics.projects.in_progress, bgColor: 'bg-blue-500', textColor: 'text-blue-700', icon: '⚙️' },
+										{ label: 'Completed', count: statistics.projects.completed, bgColor: 'bg-green-500', textColor: 'text-green-700', icon: '✅' },
+										{ label: 'Archived', count: statistics.projects.archived, bgColor: 'bg-gray-500', textColor: 'text-gray-700', icon: '📦' },
+									].map((status, index) => {
+										const percentage = ((status.count / statistics.projects.total) * 100).toFixed(1);
+										const isActive = status.count > 0;
+										return (
+											<div key={index} className={`flex items-center justify-between p-3 rounded-lg transition-all border ${
+												isActive 
+													? 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm' 
+													: 'bg-gray-50 border-gray-100 opacity-50'
+											}`}>
+												<div className="flex items-center gap-3">
+													<div className={`w-10 h-10 rounded-lg ${status.bgColor} flex items-center justify-center shadow-sm ${!isActive && 'opacity-50'}`}>
+														<span className="text-lg">{status.icon}</span>
 													</div>
-													<div className="flex items-center gap-3">
-														<span className="text-sm font-bold text-gray-900">{role.count}</span>
-														<span className="text-xs text-gray-500 w-12 text-right">{percentage}%</span>
+													<div>
+														<span className="text-sm font-semibold text-gray-900 block">{status.label}</span>
+														<span className="text-xs text-gray-500">{percentage}%</span>
 													</div>
 												</div>
-											);
-										})}
-									</div>
+												<div className="text-right">
+													<span className="text-lg font-bold text-gray-900 block">{status.count}</span>
+												</div>
+											</div>
+										);
+									})}
 								</div>
+							</div>
 							) : (
 								<div className="text-center py-8 text-gray-400">
-									<p className="text-sm">No role distribution data</p>
+									<svg className="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+									</svg>
+									<p className="text-sm font-medium">No projects yet</p>
+									<p className="text-xs mt-1">Create your first project to see the distribution</p>
 								</div>
 							)}
 						</div>
