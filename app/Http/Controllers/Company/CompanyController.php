@@ -900,6 +900,7 @@ class CompanyController extends Controller
              $latestAssignment->status !== $approval->status_name_progress)) {
             abort(403, 'This task is not waiting for your approval.');
         }
+        $latestAssignment->maker_can_edit = false;
         
         // Update status from pending to in-progress when detail page is opened (only if still pending)
         if ($latestAssignment->status === $approval->status_name_pending) {
