@@ -56,8 +56,9 @@ interface Task {
     is_required: boolean;
     completion_status: 'pending' | 'in_progress' | 'completed';
     status: string;
-    client_interact: 'read only' | 'comment' | 'upload';
+    client_interact: 'read only' | 'comment' | 'upload' | 'approval';
     multiple_files: boolean;
+    can_edit: boolean;
     project_name: string;
     working_step_name: string;
     workers: TaskWorker[];
@@ -79,9 +80,9 @@ interface Props extends PageProps {
 export default function TaskDetail({ task, project, pendingClientDocs }: Props) {
     // Check if project is active (only allow interactions for In Progress projects)
     const isProjectActive = project.status === 'In Progress';
-    
+
     const [hoveredWorker, setHoveredWorker] = useState<string | null>(null);
-    
+
     const { data, setData, post, processing, errors, reset } = useForm<{
         client_comment: string;
         files: File[];
@@ -99,7 +100,7 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
         if (docIndex !== -1) {
             const newFiles = [...data.files];
             const newLabels = [...data.file_labels];
-            
+
             if (file) {
                 newFiles[docIndex] = file;
                 newLabels[docIndex] = pendingClientDocs[docIndex].name;
@@ -107,7 +108,7 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                 newFiles.splice(docIndex, 1);
                 newLabels.splice(docIndex, 1);
             }
-            
+
             setData({
                 ...data,
                 files: newFiles,
@@ -118,7 +119,7 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
 
     const handleSubmit: FormEventHandler = (e) => {
         e.preventDefault();
-        
+
         // Always use submit-reply route for client interactions
         // The backend will handle whether to create new assignment or update existing
         post(route('klien.tasks.submit-reply', task.id), {
@@ -137,11 +138,11 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
     // 3. Task is not completed yet
     // 4. Project is In Progress (read-only if not)
     const latestAssignment = task.assignments?.[0]; // assignments are sorted by latest first
-    const canInteract = task.client_interact !== 'read only' && 
-                       latestAssignment?.status === 'Submitted to Client' && 
-                       task.completion_status !== 'completed' &&
-                       isProjectActive;
-    
+    const canInteract = task.client_interact !== 'read only' &&
+        latestAssignment?.status === 'Submitted to Client' &&
+        task.completion_status !== 'completed' &&
+        isProjectActive;
+
     const canUploadFiles = task.client_interact === 'upload' && canInteract;
 
     const getStatusBadgeClass = (status: string) => {
@@ -255,8 +256,8 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                         <div className="flex items-start gap-3">
                                                             {/* Avatar */}
                                                             {worker.user?.profile_photo ? (
-                                                                <img 
-                                                                    src={`/storage/${worker.user.profile_photo}`} 
+                                                                <img
+                                                                    src={`/storage/${worker.user.profile_photo}`}
                                                                     alt={worker.worker_name}
                                                                     className="w-12 h-12 rounded-full object-cover border-2 border-primary-200 shadow-md flex-shrink-0"
                                                                 />
@@ -272,31 +273,31 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                             <div className="flex-1 min-w-0">
                                                                 <h4 className="text-sm font-semibold text-gray-900 truncate">
                                                                     {worker.worker_name}
-                                                                </h4> 
-                                                                
+                                                                </h4>
+
                                                                 {/* WhatsApp - Show if available */}
                                                                 {worker.user?.whatsapp && (
                                                                     <>
-                                                                    <a
-                                                                        href={`https://wa.me/${worker.user.whatsapp.replace(/\+/g, '')}`}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="inline-flex items-center gap-1 text-xs text-green-600 hover:text-green-700 hover:underline mt-1"
-                                                                        title="Hubungi via WhatsApp"
-                                                                    >
-                                                                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                                                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-                                                                        </svg>
-                                                                        <span className="font-medium">Hubungi saya</span>
-                                                                    </a>
-                                                                    <br />
+                                                                        <a
+                                                                            href={`https://wa.me/${worker.user.whatsapp.replace(/\+/g, '')}`}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="inline-flex items-center gap-1 text-xs text-green-600 hover:text-green-700 hover:underline mt-1"
+                                                                            title="Hubungi via WhatsApp"
+                                                                        >
+                                                                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                                                                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                                                                            </svg>
+                                                                            <span className="font-medium">Hubungi saya</span>
+                                                                        </a>
+                                                                        <br />
                                                                     </>
                                                                 )}
-                                                                
-                                                                {/* Role Badge */} 
+
+                                                                {/* Role Badge */}
                                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${getRoleBadge(worker.worker_role)}`}>
                                                                     {worker.worker_role.charAt(0).toUpperCase() + worker.worker_role.slice(1)}
-                                                                </span> 
+                                                                </span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -321,7 +322,7 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                         </svg>
                                         Riwayat Interaksi ({task.assignments.length})
                                     </h3>
-                                    
+
                                     <div className="space-y-4">
                                         {task.assignments.map((assignment, index) => (
                                             <div key={assignment.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
@@ -347,11 +348,10 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                                 </p>
                                                             </div>
                                                         </div>
-                                                        <span className={`px-3 py-1 text-xs rounded-full font-medium ${
-                                                            assignment.status === 'Client Reply' 
-                                                                ? 'bg-green-100 text-green-800' 
+                                                        <span className={`px-3 py-1 text-xs rounded-full font-medium ${assignment.status === 'Client Reply'
+                                                                ? 'bg-green-100 text-green-800'
                                                                 : 'bg-purple-100 text-purple-800'
-                                                        }`}>
+                                                            }`}>
                                                             {assignment.status === 'Client Reply' ? '✓ Sudah Dibalas' : '⏳ Menunggu'}
                                                         </span>
                                                     </div>
@@ -451,35 +451,71 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
 
                         {/* Right Column - Upload Form */}
                         <div className="lg:col-span-1">
-                            {canInteract ? (
+                            {(canInteract && task.can_edit) ? (
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-6">
                                     <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                        {task.client_interact === 'upload' ? (
+                                        {task.can_edit ? (
                                             <>
-                                                <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                                </svg>
-                                                Kirim Balasan
+                                                {task.client_interact === 'upload' ? (
+                                                    <>
+                                                        <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                        </svg>
+                                                        Edit Balasan
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                                                        </svg>
+                                                        Edit Komentar
+                                                    </>
+                                                )}
                                             </>
                                         ) : (
                                             <>
-                                                <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                                                </svg>
-                                                Kirim Komentar
+                                                {task.client_interact === 'upload' ? (
+                                                    <>
+                                                        <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                        </svg>
+                                                        Kirim Balasan
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                                                        </svg>
+                                                        Kirim Komentar
+                                                    </>
+                                                )}
                                             </>
                                         )}
+
                                     </h3>
 
                                     <form onSubmit={handleSubmit} className="space-y-4">
                                         {canUploadFiles && pendingClientDocs.length > 0 && (
                                             <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                                                <p className="text-sm font-semibold text-purple-900 mb-1">
-                                                    📋 {pendingClientDocs.length} Dokumen Diminta
-                                                </p>
-                                                <p className="text-xs text-purple-800">
-                                                    Upload semua dokumen yang diminta
-                                                </p>
+                                                {task.can_edit ? (
+                                                    <>
+                                                        <p className="text-sm font-semibold text-purple-900 mb-1">
+                                                            📋 {pendingClientDocs.length} Edit Dokumen
+                                                        </p>
+                                                        <p className="text-xs text-purple-800">
+                                                            Edit atau ganti file dokumen yang diminta.
+                                                        </p>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <p className="text-sm font-semibold text-purple-900 mb-1">
+                                                            📋 {pendingClientDocs.length} Dokumen Diminta
+                                                        </p>
+                                                        <p className="text-xs text-purple-800">
+                                                            Upload semua dokumen yang diminta
+                                                        </p>
+                                                    </>
+                                                )}
                                             </div>
                                         )}
 
@@ -553,8 +589,8 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                             disabled={processing}
                                             className="w-full px-4 py-3 text-sm font-semibold text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                                         >
-                                            {processing 
-                                                ? 'Mengirim...' 
+                                            {processing
+                                                ? 'Mengirim...'
                                                 : task.client_interact === 'comment'
                                                     ? 'Kirim Komentar'
                                                     : task.client_interact === 'upload' && pendingClientDocs.length > 0
@@ -580,25 +616,25 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                         <p className="text-lg font-medium text-gray-900 mb-1">
                                             {!isProjectActive
                                                 ? 'Project Read Only'
-                                                : task.completion_status === 'completed' 
-                                                ? 'Task Selesai'
-                                                : latestAssignment?.status === 'Client Reply'
-                                                    ? 'Menunggu Review'
-                                                    : task.client_interact === 'read only'
-                                                        ? 'View Only'
-                                                        : 'Belum Ada Permintaan'
+                                                : task.completion_status === 'completed'
+                                                    ? 'Task Selesai'
+                                                    : latestAssignment?.status === 'Client Reply'
+                                                        ? 'Menunggu Review'
+                                                        : task.client_interact === 'read only'
+                                                            ? 'View Only'
+                                                            : 'Belum Ada Permintaan'
                                             }
                                         </p>
                                         <p className="text-sm text-gray-600">
                                             {!isProjectActive
                                                 ? `Project dengan status ${project.status} tidak dapat diinteraksi`
                                                 : task.completion_status === 'completed'
-                                                ? 'Task ini sudah selesai dikerjakan'
-                                                : latestAssignment?.status === 'Client Reply'
-                                                    ? 'Tim sedang mereview balasan Anda'
-                                                    : task.client_interact === 'read only'
-                                                        ? 'Task ini hanya untuk melihat informasi'
-                                                        : 'Menunggu permintaan dari tim audit'
+                                                    ? 'Task ini sudah selesai dikerjakan'
+                                                    : latestAssignment?.status === 'Client Reply'
+                                                        ? 'Tim sedang mereview balasan Anda'
+                                                        : task.client_interact === 'read only'
+                                                            ? 'Task ini hanya untuk melihat informasi'
+                                                            : 'Menunggu permintaan dari tim audit'
                                             }
                                         </p>
                                     </div>

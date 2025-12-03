@@ -411,7 +411,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     const { data: taskData, setData: setTaskData, post: postTask, reset: resetTask } = useForm({
         name: '',
         working_step_id: 0,
-        client_interact: 'read only' as 'read only' | 'comment' | 'upload',
+        client_interact: 'read only' as 'read only' | 'comment' | 'upload' | 'approval',
         multiple_files: false,
         is_required: false,
     });
@@ -452,7 +452,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
 
     const { data: editTaskData, setData: setEditTaskData, put: putTask, reset: resetEditTask } = useForm({
         name: '',
-        client_interact: 'read only' as 'read only' | 'comment' | 'upload',
+        client_interact: 'read only' as 'read only' | 'comment' | 'upload' | 'approval',
         multiple_files: false,
         is_required: false,
         worker_ids: [] as number[],
@@ -1393,6 +1393,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                             <option value="read only">👁️ Read Only - Client can only view</option>
                                             <option value="comment">💬 Comment - Client can view and comment</option>
                                             <option value="upload">📤 Upload - Client can upload files</option>
+                                            <option value="approval">✅ Approval - Client can approve or reject</option>
                                         </select>
                                         <p className="mt-1 text-xs text-gray-500">
                                             Set how clients can interact with this task
@@ -1659,6 +1660,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                 <option value="read only">👁️ Read Only - Client can only view</option>
                                                 <option value="comment">💬 Comment - Client can view and comment</option>
                                                 <option value="upload">📤 Upload - Client can upload files</option>
+                                                <option value="approval">✅ Approval - Client can approve or reject</option>
                                             </select>
                                             <p className="mt-1 text-xs text-gray-500">
                                                 Set how clients can interact with this task

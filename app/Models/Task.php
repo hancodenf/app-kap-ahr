@@ -31,6 +31,7 @@ class Task extends Model
         'working_step_name',
         'client_interact',
         'multiple_files',
+        'approval_type',
         'is_required',
         'completion_status',
         'completed_at',

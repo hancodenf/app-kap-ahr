@@ -36,6 +36,7 @@ return new class extends Migration
             // Task requirement & progress tracking
             $table->boolean('is_required')->default(false); // Required to unlock next step
             $table->enum('completion_status', ['pending', 'in_progress', 'completed'])->default('pending');
+            $table->enum('approval_type', ['Once', 'All Attempts'])->default('All Attempts');
             $table->timestamp('completed_at')->nullable();
             // $table->enum('status', [
             //     'Draft',

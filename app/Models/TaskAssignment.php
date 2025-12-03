@@ -27,6 +27,8 @@ class TaskAssignment extends Model
         'comment',
         'notes',
         'client_comment',
+        'maker',
+        'maker_can_edit',
         'status',
     ];
 
