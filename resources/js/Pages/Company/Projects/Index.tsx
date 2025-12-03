@@ -23,7 +23,6 @@ interface Props extends PageProps {
         completed: number;
         suspended: number;
         canceled: number;
-        archived: number;
     };
 }
 
@@ -210,24 +209,6 @@ export default function ProjectsIndex({ auth, projects, filters, statusCounts }:
                                             {statusCounts.canceled}
                                         </span>
                                     </button>
-                                    <button
-                                        onClick={() => handleStatusChange('Archived')}
-                                        className={`${
-                                            activeStatus === 'Archived'
-                                                ? 'border-gray-500 text-gray-700'
-                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                        } whitespace-nowrap py-2 sm:py-3 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm transition-colors flex items-center gap-1 sm:gap-2`}
-                                    >
-                                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                                        </svg>
-                                        <span>Archived</span>
-                                        <span className={`${
-                                            activeStatus === 'Archived' ? 'bg-gray-200 text-gray-800' : 'bg-gray-100 text-gray-600'
-                                        } inline-flex items-center px-1.5 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium`}>
-                                            {statusCounts.archived}
-                                        </span>
-                                    </button>
                                 </nav>
                             </div>
 
@@ -274,22 +255,22 @@ export default function ProjectsIndex({ auth, projects, filters, statusCounts }:
                                             <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
                                                 No
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '35%', maxWidth: '400px' }}>
                                                 Project Name
                                             </th>
-                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '20%', minWidth: '180px' }}>
                                                 Client
                                             </th>
                                             <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
                                                 My Role
                                             </th>
-                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
                                                 Status
                                             </th>
-                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
                                                 Created
                                             </th>
-                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                                                 Action
                                             </th>
                                         </tr>
@@ -300,20 +281,25 @@ export default function ProjectsIndex({ auth, projects, filters, statusCounts }:
                                                 <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
                                                     {index + 1}
                                                 </td>
-                                                <td className="px-4 py-4">
+                                                <td className="px-4 py-4" style={{ maxWidth: '400px' }}>
                                                     <Link
                                                         href={route('company.projects.show', project.id)}
-                                                        className="text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline"
+                                                        className="text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline block"
+                                                        title={project.name}
                                                     >
-                                                        {project.name}
+                                                        <div className="line-clamp-2">
+                                                            {project.name}
+                                                        </div>
                                                     </Link>
                                                 </td>
-                                                <td className="px-3 py-4">
+                                                <td className="px-3 py-4" style={{ minWidth: '180px' }}>
                                                     <div className="flex items-center text-sm text-gray-700">
-                                                        <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <svg className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                                         </svg>
-                                                        {project.client_name}
+                                                        <span className="truncate" title={project.client_name}>
+                                                            {project.client_name}
+                                                        </span>
                                                     </div>
                                                 </td>
                                                 <td className="px-3 py-4 whitespace-nowrap">

@@ -33,45 +33,39 @@ class ClientController extends Controller
         // Get client name for denormalized queries
         $clientName = $hasClient ? $client->name : '';
         
-        // 1. Project Statistics - exclude Draft and archived projects
+        // 1. Project Statistics - exclude Draft projects only (archive filter not applicable for clients)
         $projectStats = [
             'total' => $hasClient 
                 ? Project::where('client_id', $user->client_id)
                     ->whereNotIn('status', ['Draft'])
-                    ->where('is_archived', false)
                     ->count()
                 : 0,
             'in_progress' => $hasClient 
                 ? Project::where('client_id', $user->client_id)
                     ->where('status', 'In Progress')
-                    ->where('is_archived', false)
                     ->count()
                 : 0,
             'completed' => $hasClient 
                 ? Project::where('client_id', $user->client_id)
                     ->where('status', 'Completed')
-                    ->where('is_archived', false)
                     ->count()
                 : 0,
             'suspended' => $hasClient 
                 ? Project::where('client_id', $user->client_id)
                     ->where('status', 'Suspended')
-                    ->where('is_archived', false)
                     ->count()
                 : 0,
             'canceled' => $hasClient 
                 ? Project::where('client_id', $user->client_id)
                     ->where('status', 'Canceled')
-                    ->where('is_archived', false)
                     ->count()
                 : 0,
         ];
         
-        // Get project IDs for task queries - exclude Draft and archived
+        // Get project IDs for task queries - exclude Draft only
         $projectIds = $hasClient 
             ? Project::where('client_id', $user->client_id)
                 ->whereNotIn('status', ['Draft'])
-                ->where('is_archived', false)
                 ->pluck('id')
             : collect([]);
         
@@ -283,26 +277,21 @@ class ClientController extends Controller
         }
         $search = $request->get('search');
 
-        // Get status counts - exclude Draft and archived projects
+        // Get status counts - exclude Draft only (no archive filter for clients)
         $statusCounts = [
             'in_progress' => Project::where('client_id', $user->client_id)
-                ->where('status', 'In Progress')
-                ->where('is_archived', false)->count(),
+                ->where('status', 'In Progress')->count(),
             'completed' => Project::where('client_id', $user->client_id)
-                ->where('status', 'Completed')
-                ->where('is_archived', false)->count(),
+                ->where('status', 'Completed')->count(),
             'suspended' => Project::where('client_id', $user->client_id)
-                ->where('status', 'Suspended')
-                ->where('is_archived', false)->count(),
+                ->where('status', 'Suspended')->count(),
             'canceled' => Project::where('client_id', $user->client_id)
-                ->where('status', 'Canceled')
-                ->where('is_archived', false)->count(),
+                ->where('status', 'Canceled')->count(),
         ];
 
-        // Build query - exclude Draft and archived projects
+        // Build query - exclude Draft only (no archive filter for clients)
         $query = Project::where('client_id', $user->client_id)
             ->where('status', $status)
-            ->where('is_archived', false)
             ->whereNotIn('status', ['Draft'])
             ->withCount(['workingSteps', 'tasks'])
             ->with(['client', 'projectTeams.user']);
@@ -616,6 +605,7 @@ class ClientController extends Controller
                 'id' => $task->project->id,
                 'name' => $task->project->name,
                 'slug' => $task->project->slug,
+                'status' => $task->project->status,
             ],
             'pendingClientDocs' => $pendingClientDocs,
         ]);

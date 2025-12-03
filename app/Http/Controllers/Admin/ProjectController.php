@@ -121,8 +121,17 @@ class ProjectController extends Controller
             'not_started_projects' => $projectsNotStarted,
         ];
 
-        // Calculate status counts
-        $allProjectsForCounts = Project::all();
+        // Calculate status counts based on archived filter
+        $projectsForCounts = Project::query();
+        
+        if ($archived === 'true') {
+            $projectsForCounts->where('is_archived', true);
+        } else {
+            $projectsForCounts->where('is_archived', false);
+        }
+        
+        $allProjectsForCounts = $projectsForCounts->get();
+        
         $statusCounts = [
             'total' => $allProjectsForCounts->count(),
             'draft' => $allProjectsForCounts->where('status', 'Draft')->count(),
@@ -130,8 +139,8 @@ class ProjectController extends Controller
             'completed' => $allProjectsForCounts->where('status', 'Completed')->count(),
             'suspended' => $allProjectsForCounts->where('status', 'Suspended')->count(),
             'canceled' => $allProjectsForCounts->where('status', 'Canceled')->count(),
-            'active' => $allProjectsForCounts->where('is_archived', false)->count(),
-            'archived' => $allProjectsForCounts->where('is_archived', true)->count(),
+            'active' => Project::where('is_archived', false)->count(),
+            'archived' => Project::where('is_archived', true)->count(),
         ];
 
         // Get available years from year column

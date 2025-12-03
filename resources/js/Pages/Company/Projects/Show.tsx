@@ -30,6 +30,14 @@ interface TaskAssignment {
     client_documents?: ClientDocument[];
 }
 
+interface TaskWorker {
+    id: number;
+    worker_name: string;
+    worker_email: string;
+    worker_role: string;
+    project_team_id: number;
+}
+
 interface Task {
     id: number;
     name: string;
@@ -45,6 +53,7 @@ interface Task {
     can_edit: boolean;
     latest_assignment: TaskAssignment | null;
     assignments: TaskAssignment[];
+    task_workers?: TaskWorker[];
 }
 
 interface RequiredProgress {
@@ -116,6 +125,9 @@ interface ApprovalTask {
 }
 
 export default function ShowProject({ auth, project, workingSteps, myRole, teamMembers }: Props) {
+    // Check if project is active (only allow actions for In Progress projects)
+    const isProjectActive = project.status === 'In Progress';
+    
     const [activeTab, setActiveTab] = useState<'my-tasks' | 'approval-requests'>('my-tasks');
     const [approvalTasks, setApprovalTasks] = useState<ApprovalTask[]>([]);
     const [loadingApprovals, setLoadingApprovals] = useState(false);
@@ -124,7 +136,10 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
     const [approvalAction, setApprovalAction] = useState<'approve' | 'reject'>('approve');
     const [rejectComment, setRejectComment] = useState('');
     const [processingApproval, setProcessingApproval] = useState(false);
-    const [expandedSteps, setExpandedSteps] = useState<number[]>([]);
+    // Expand all steps by default for better visibility
+    const [expandedSteps, setExpandedSteps] = useState<number[]>(
+        workingSteps.map(step => step.id)
+    );
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [showTaskModal, setShowTaskModal] = useState(false);
     const [showForm, setShowForm] = useState(false);
@@ -591,45 +606,45 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
         }
     };
 
-    const getTaskStatusBadgeClass = (status: string) => {
-        // For approval workflow status
-        if (status.includes('Approved')) {
-            return 'bg-green-100 text-green-800 border border-green-200';
-        } else if (status.includes('Under Review')) {
-            return 'bg-blue-100 text-blue-800 border border-blue-200';
-        } else if (status.includes('Returned')) {
-            return 'bg-red-100 text-red-800 border border-red-200';
-        } else if (status === 'Submitted to Client' || status === 'Client Reply') {
-            return 'bg-purple-100 text-purple-800 border border-purple-200';
-        } else if (status === 'Submitted') {
-            return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
-        } else if (status === 'Draft') {
-            return 'bg-gray-100 text-gray-800 border border-gray-200';
-        }
-        return 'bg-gray-100 text-gray-800 border border-gray-200';
-    };
-
     const getStatusIcon = (status: string) => {
         switch (status) {
             case 'completed':
                 return (
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
                 );
             case 'in_progress':
                 return (
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                     </svg>
                 );
             default:
                 return (
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
                     </svg>
                 );
         }
+    };
+
+    const getTaskStatusBadgeClass = (status: string) => {
+        const statusLower = status.toLowerCase();
+        if (statusLower.includes('not started') || statusLower.includes('belum') || statusLower === 'draft') {
+            return 'bg-gray-100 text-gray-700 border border-gray-200';
+        } else if (statusLower.includes('progress') || statusLower.includes('working') || statusLower.includes('dikerjakan')) {
+            return 'bg-blue-100 text-blue-800 border border-blue-200';
+        } else if (statusLower.includes('review') || statusLower.includes('waiting') || statusLower.includes('menunggu')) {
+            return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+        } else if (statusLower.includes('approved') || statusLower.includes('disetujui')) {
+            return 'bg-green-100 text-green-800 border border-green-200';
+        } else if (statusLower.includes('rejected') || statusLower.includes('ditolak')) {
+            return 'bg-red-100 text-red-800 border border-red-200';
+        } else if (statusLower.includes('completed') || statusLower.includes('selesai') || statusLower.includes('done')) {
+            return 'bg-purple-100 text-purple-800 border border-purple-200';
+        }
+        return 'bg-gray-100 text-gray-700 border border-gray-200';
     };
 
     return (
@@ -937,6 +952,85 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
                                     <p className="text-gray-500">No working steps in this project yet.</p>
                                 </div>
                             ) : (
+                                <>
+                                {/* Quick Overview Cards */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                    {/* Total Progress */}
+                                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h4 className="text-sm font-semibold text-blue-900">Overall Progress</h4>
+                                            <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div className="flex items-baseline gap-2 mb-2">
+                                            <span className="text-3xl font-bold text-blue-900">
+                                                {Math.round((workingSteps.reduce((acc, step) => acc + step.tasks.filter(t => t.completion_status === 'completed').length, 0) / 
+                                                Math.max(workingSteps.reduce((acc, step) => acc + step.tasks.length, 0), 1)) * 100)}%
+                                            </span>
+                                            <span className="text-sm text-blue-700">
+                                                {workingSteps.reduce((acc, step) => acc + step.tasks.filter(t => t.completion_status === 'completed').length, 0)}/
+                                                {workingSteps.reduce((acc, step) => acc + step.tasks.length, 0)} tasks
+                                            </span>
+                                        </div>
+                                        <div className="w-full bg-blue-200 rounded-full h-2">
+                                            <div 
+                                                className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                                                style={{
+                                                    width: `${Math.round((workingSteps.reduce((acc, step) => acc + step.tasks.filter(t => t.completion_status === 'completed').length, 0) / 
+                                                    Math.max(workingSteps.reduce((acc, step) => acc + step.tasks.length, 0), 1)) * 100)}%`
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* My Tasks */}
+                                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h4 className="text-sm font-semibold text-purple-900">My Tasks</h4>
+                                            <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div className="flex items-baseline gap-2 mb-2">
+                                            <span className="text-3xl font-bold text-purple-900">
+                                                {workingSteps.reduce((acc, step) => acc + step.tasks.filter(t => t.is_assigned_to_me).length, 0)}
+                                            </span>
+                                            <span className="text-sm text-purple-700">assigned</span>
+                                        </div>
+                                        <div className="flex gap-2 text-xs">
+                                            <span className="px-2 py-0.5 bg-green-200 text-green-800 rounded-full font-medium">
+                                                ✓ {workingSteps.reduce((acc, step) => acc + step.tasks.filter(t => t.is_assigned_to_me && t.completion_status === 'completed').length, 0)} done
+                                            </span>
+                                            <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded-full font-medium">
+                                                ⏳ {workingSteps.reduce((acc, step) => acc + step.tasks.filter(t => t.is_assigned_to_me && t.completion_status !== 'completed').length, 0)} pending
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Steps Status */}
+                                    <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h4 className="text-sm font-semibold text-green-900">Steps Status</h4>
+                                            <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M3 3a1 1 0 000 2h11a1 1 0 100-2H3zM3 7a1 1 0 000 2h7a1 1 0 100-2H3zM3 11a1 1 0 100 2h4a1 1 0 100-2H3zM15 8a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L15 13.586V8z" />
+                                            </svg>
+                                        </div>
+                                        <div className="flex items-baseline gap-2 mb-2">
+                                            <span className="text-3xl font-bold text-green-900">{workingSteps.length}</span>
+                                            <span className="text-sm text-green-700">total steps</span>
+                                        </div>
+                                        <div className="flex gap-2 text-xs">
+                                            <span className="px-2 py-0.5 bg-green-200 text-green-800 rounded-full font-medium">
+                                                🔓 {workingSteps.filter(s => !s.is_locked || s.can_access).length} unlocked
+                                            </span>
+                                            <span className="px-2 py-0.5 bg-red-200 text-red-800 rounded-full font-medium">
+                                                🔒 {workingSteps.filter(s => s.is_locked && !s.can_access).length} locked
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div className="space-y-4">
                                     {workingSteps.map((step, stepIndex) => (
                                         <div
@@ -949,78 +1043,112 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
                                         >
                                             {/* Step Header */}
                                             <div
-                                                className={`p-4 flex items-center justify-between cursor-pointer ${
-                                                    step.is_locked && !step.can_access ? 'opacity-60' : ''
+                                                className={`p-4 cursor-pointer ${
+                                                    step.is_locked && !step.can_access ? 'opacity-75' : ''
                                                 }`}
                                                 onClick={() => toggleStep(step.id)}
                                             >
-                                                <div className="flex items-center space-x-3 flex-1">
-                                                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary-100 text-primary-700 font-semibold text-sm">
-                                                        {stepIndex + 1}
+                                                <div className="flex items-start gap-4">
+                                                    {/* Step Number Badge */}
+                                                    <span className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm flex-shrink-0 ${
+                                                        step.tasks.filter(t => t.completion_status === 'completed').length === step.tasks.length && step.tasks.length > 0
+                                                            ? 'bg-green-500 text-white'
+                                                            : step.is_locked && !step.can_access
+                                                            ? 'bg-gray-300 text-gray-600'
+                                                            : 'bg-primary-500 text-white'
+                                                    }`}>
+                                                        {step.tasks.filter(t => t.completion_status === 'completed').length === step.tasks.length && step.tasks.length > 0 ? '✓' : stepIndex + 1}
                                                     </span>
-                                                    <div className="flex-1">
-                                                        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                                            {step.name}
-                                                            {step.is_locked && !step.can_access && (
-                                                                <svg
-                                                                    className="w-5 h-5 text-red-500"
-                                                                    fill="currentColor"
-                                                                    viewBox="0 0 20 20"
-                                                                >
-                                                                    <path
-                                                                        fillRule="evenodd"
-                                                                        d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                                                                        clipRule="evenodd"
-                                                                    />
-                                                                </svg>
-                                                            )}
-                                                            {!step.is_locked && (
-                                                                <svg
-                                                                    className="w-5 h-5 text-green-500"
-                                                                    fill="currentColor"
-                                                                    viewBox="0 0 20 20"
-                                                                >
-                                                                    <path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 015.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z" />
-                                                                </svg>
-                                                            )}
-                                                        </h3>
-                                                        {step.is_locked && !step.can_access && step.required_progress && (
-                                                            <div className="mt-1">
-                                                                <p className="text-sm text-red-600 font-medium">
-                                                                    🔒 Locked - Complete required tasks in previous step
-                                                                </p>
-                                                                <div className="flex items-center gap-2 mt-1">
-                                                                    <div className="flex-1 bg-gray-200 rounded-full h-2">
-                                                                        <div
-                                                                            className="bg-red-500 h-2 rounded-full transition-all"
-                                                                            style={{
-                                                                                width: `${step.required_progress.percentage}%`,
-                                                                            }}
-                                                                        ></div>
-                                                                    </div>
-                                                                    <span className="text-xs text-gray-600 min-w-[60px]">
-                                                                        {step.required_progress.completed}/{step.required_progress.total} tasks
+
+                                                    {/* Step Info */}
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-start justify-between gap-3 mb-2">
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    <h3 className="text-lg font-bold text-gray-900">
+                                                                        {step.name}
+                                                                    </h3>
+                                                                    {step.is_locked && !step.can_access && (
+                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
+                                                                            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                                                            </svg>
+                                                                            Locked
+                                                                        </span>
+                                                                    )}
+                                                                    {!step.is_locked && (
+                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+                                                                            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                                <path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 015.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z" />
+                                                                            </svg>
+                                                                            Unlocked
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                
+                                                                {/* Task Statistics */}
+                                                                <div className="flex flex-wrap gap-3 mt-2 text-sm">
+                                                                    <span className="text-gray-700">
+                                                                        <span className="font-semibold text-gray-900">{step.tasks.length}</span> tasks total
+                                                                    </span>
+                                                                    <span className="text-green-700">
+                                                                        <span className="font-semibold text-green-900">{step.tasks.filter(t => t.completion_status === 'completed').length}</span> completed
+                                                                    </span>
+                                                                    <span className="text-blue-700">
+                                                                        <span className="font-semibold text-blue-900">{step.tasks.filter(t => t.completion_status === 'in_progress').length}</span> in progress
+                                                                    </span>
+                                                                    <span className="text-gray-600">
+                                                                        <span className="font-semibold text-gray-800">{step.tasks.filter(t => t.completion_status === 'pending').length}</span> pending
                                                                     </span>
                                                                 </div>
+                                                            </div>
+
+                                                            {/* Collapse Toggle */}
+                                                            <button className="flex-shrink-0 p-1 hover:bg-gray-100 rounded transition-colors">
+                                                                <svg
+                                                                    className={`w-6 h-6 text-gray-500 transition-transform duration-200 ${
+                                                                        expandedSteps.includes(step.id) ? 'transform rotate-180' : ''
+                                                                    }`}
+                                                                    fill="none"
+                                                                    stroke="currentColor"
+                                                                    viewBox="0 0 24 24"
+                                                                >
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Progress Bar */}
+                                                        <div className="mt-3">
+                                                            <div className="flex items-center justify-between text-xs mb-1">
+                                                                <span className="font-medium text-gray-700">Progress</span>
+                                                                <span className="font-semibold text-gray-900">
+                                                                    {step.tasks.length > 0 ? Math.round((step.tasks.filter(t => t.completion_status === 'completed').length / step.tasks.length) * 100) : 0}%
+                                                                </span>
+                                                            </div>
+                                                            <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                                                                <div 
+                                                                    className="h-2.5 rounded-full transition-all duration-500 bg-gradient-to-r from-green-500 to-green-600"
+                                                                    style={{
+                                                                        width: `${step.tasks.length > 0 ? Math.round((step.tasks.filter(t => t.completion_status === 'completed').length / step.tasks.length) * 100) : 0}%`
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Lock Message */}
+                                                        {step.is_locked && !step.can_access && step.required_progress && (
+                                                            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                                                <p className="text-sm text-red-800 font-medium flex items-center gap-2">
+                                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                                    </svg>
+                                                                    Complete {step.required_progress.total - step.required_progress.completed} more required task(s) in previous step to unlock
+                                                                </p>
                                                             </div>
                                                         )}
                                                     </div>
                                                 </div>
-                                                <svg
-                                                    className={`w-5 h-5 text-gray-500 transition-transform ${
-                                                        expandedSteps.includes(step.id) ? 'transform rotate-180' : ''
-                                                    }`}
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M19 9l-7 7-7-7"
-                                                    />
-                                                </svg>
                                             </div>
 
                                             {/* Tasks List */}
@@ -1036,19 +1164,20 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
                                                                     onClick={() => handleTaskClick(task, step)}
                                                                     className={`p-4 rounded-lg border ${
                                                                         task.is_assigned_to_me && step.can_access
-                                                                            ? 'bg-white border-gray-200 hover:border-primary-300 hover:shadow-sm cursor-pointer'
-                                                                            : 'bg-gray-100 border-gray-200 cursor-not-allowed'
+                                                                            ? 'bg-white border-gray-200 hover:border-primary-300 hover:shadow-md cursor-pointer'
+                                                                            : 'bg-gray-50 border-gray-200 cursor-not-allowed opacity-75'
                                                                     } transition-all`}
                                                                 >
-                                                                    <div className="flex items-start justify-between">
-                                                                        <div className="flex-1">
-                                                                            <div className="flex items-center gap-2">
+                                                                    <div className="flex items-start justify-between gap-4">
+                                                                        <div className="flex-1 min-w-0">
+                                                                            {/* Task Title & Badges */}
+                                                                            <div className="flex items-center gap-2 flex-wrap mb-2">
                                                                                 {getStatusIcon(task.completion_status)}
-                                                                                <h4 className="font-medium text-gray-900">
+                                                                                <h4 className="font-semibold text-gray-900 text-base">
                                                                                     {task.name}
                                                                                 </h4>
                                                                                 {task.is_required && (
-                                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
                                                                                         <svg
                                                                                             className="w-3 h-3 mr-1"
                                                                                             fill="currentColor"
@@ -1063,30 +1192,88 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
                                                                                         Required
                                                                                     </span>
                                                                                 )}
-                                                                                {!task.is_assigned_to_me && (
-                                                                                    <span className="text-xs text-gray-500 italic">
-                                                                                        (Not assigned to you)
-                                                                                    </span>
+                                                                            </div>
+
+                                                                            {/* Status Workflow */}
+                                                                            <div className="flex items-center gap-2 mb-3">
+                                                                                <span className="text-xs font-medium text-gray-600">Status:</span>
+                                                                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${getTaskStatusBadgeClass(task.status)}`}>
+                                                                                    {task.status}
+                                                                                </span>
+                                                                                <span className="text-gray-400">→</span>
+                                                                                <span
+                                                                                    className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${getStatusBadgeClass(
+                                                                                        task.completion_status
+                                                                                    )}`}
+                                                                                >
+                                                                                    {task.completion_status.replace('_', ' ').toUpperCase()}
+                                                                                </span>
+                                                                            </div>
+
+                                                                            {/* Team Assignment */}
+                                                                            {task.task_workers && task.task_workers.length > 0 && (
+                                                                                <div className="mb-2">
+                                                                                    <div className="flex items-start gap-2">
+                                                                                        <svg className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                                                            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                                                                                        </svg>
+                                                                                        <div className="flex-1">
+                                                                                            <span className="text-xs font-semibold text-gray-700 block mb-1">Tim Bertugas:</span>
+                                                                                            <div className="flex flex-wrap gap-1.5">
+                                                                                                {task.task_workers.map((worker, idx) => (
+                                                                                                    <span
+                                                                                                        key={idx}
+                                                                                                        className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${
+                                                                                                            task.is_assigned_to_me && worker.worker_email === auth.user.email
+                                                                                                                ? 'bg-purple-100 text-purple-800 border border-purple-300 ring-2 ring-purple-200'
+                                                                                                                : 'bg-gray-100 text-gray-700 border border-gray-200'
+                                                                                                        }`}
+                                                                                                        title={`${worker.worker_email} - ${worker.worker_role}`}
+                                                                                                    >
+                                                                                                        <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                                                            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                                                                                        </svg>
+                                                                                                        {worker.worker_name}
+                                                                                                        {task.is_assigned_to_me && worker.worker_email === auth.user.email && (
+                                                                                                            <span className="ml-1 text-purple-600">●</span>
+                                                                                                        )}
+                                                                                                    </span>
+                                                                                                ))}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+
+                                                                            {!task.is_assigned_to_me && (
+                                                                                <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded-md border border-amber-200 w-fit">
+                                                                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                                                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                                                    </svg>
+                                                                                    Not assigned to you
+                                                                                </div>
+                                                                            )}
+
+                                                                            {/* Additional Info */}
+                                                                            <div className="flex flex-wrap gap-3 mt-2 text-sm text-gray-600">
+                                                                                {task.latest_assignment?.time && (
+                                                                                    <div className="flex items-center gap-1">
+                                                                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                                                        </svg>
+                                                                                        <span className="text-xs">{new Date(task.latest_assignment.time).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                                                    </div>
+                                                                                )}
+                                                                                {task.latest_assignment?.comment && (
+                                                                                    <div className="flex items-center gap-1">
+                                                                                        <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                                                                            <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+                                                                                        </svg>
+                                                                                        <span className="text-xs truncate max-w-xs">{task.latest_assignment.comment}</span>
+                                                                                    </div>
                                                                                 )}
                                                                             </div>
-                                                                            {task.latest_assignment?.comment && (
-                                                                                <p className="text-sm text-gray-600 mt-1">
-                                                                                    💬 {task.latest_assignment.comment}
-                                                                                </p>
-                                                                            )}
-                                                                            {task.latest_assignment?.time && (
-                                                                                <p className="text-sm text-gray-500 mt-1">
-                                                                                    ⏱️ {new Date(task.latest_assignment.time).toLocaleDateString('id-ID')}
-                                                                                </p>
-                                                                            )}
                                                                         </div>
-                                                                        <span
-                                                                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(
-                                                                                task.completion_status
-                                                                            )}`}
-                                                                        >
-                                                                            {task.completion_status.replace('_', ' ')}
-                                                                        </span>
                                                                     </div>
                                                                 </div>
                                                                 ))}
@@ -1097,6 +1284,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
                                         </div>
                                     ))}
                                 </div>
+                                </>
                             )}
                             </>
                             )}
@@ -1245,7 +1433,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
                             </button>
                             <button
                                 onClick={submitApproval}
-                                disabled={processingApproval || (approvalAction === 'reject' && !rejectComment.trim())}
+                                disabled={processingApproval || (approvalAction === 'reject' && !rejectComment.trim()) || !isProjectActive}
                                 className={`flex-1 px-4 py-2 text-sm font-medium text-white rounded-md disabled:opacity-50 ${
                                     approvalAction === 'approve'
                                         ? 'bg-green-600 hover:bg-green-700'
@@ -1757,7 +1945,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
                                     </button>
                                     <button
                                         type="submit"
-                                        disabled={processing}
+                                        disabled={processing || !isProjectActive}
                                         className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
                                     >
                                         {processing ? 'Saving...' : 'Save Changes'}
@@ -1962,16 +2150,24 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
                                         {/* Add New Submission button - only show if can_edit (pending at lowest approval) */}
                                         {selectedTask.can_edit && selectedTask.assignments.length > 0 && (
                                             <div className="mt-6 flex justify-center">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowForm(true)}
-                                                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                                                >
-                                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                                    </svg>
-                                                    Add New Submission
-                                                </button>
+                                                {isProjectActive ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowForm(true)}
+                                                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                                                    >
+                                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                        </svg>
+                                                        Add New Submission
+                                                    </button>
+                                                ) : (
+                                                    <div className="text-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                                        <p className="text-sm text-yellow-800">
+                                                            <strong>Read Only:</strong> This project is {project.status}. Submissions are only available for projects In Progress.
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>

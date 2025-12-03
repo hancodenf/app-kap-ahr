@@ -26,6 +26,14 @@ class UserController extends Controller
         
         $users = User::with('belongsToClient:id,name')
             ->withCount(['projectTeams', 'activityLogs', 'registeredAp'])
+            // For client role users, also count projects from their client
+            ->when($roleFilter === 'client', function ($query) {
+                $query->withCount([
+                    'belongsToClient as client_projects_count' => function ($q) {
+                        $q->join('projects', 'clients.id', '=', 'projects.client_id');
+                    }
+                ]);
+            })
             ->when($request->search, function ($query, $search) {
                 $query->where('name', 'like', '%' . $search . '%')
                     ->orWhere('email', 'like', '%' . $search . '%')
@@ -33,12 +41,18 @@ class UserController extends Controller
             })
             ->where('role', $roleFilter)
             ->where('id', '!=', Auth::id())
-            ->orderBy('created_at', 'desc')
+            ->orderBy('name', 'asc')
             ->paginate(10)
             ->withQueryString();
 
         // Transform data to match frontend expectations
         $users->getCollection()->transform(function ($user) use ($roleFilter) {
+            // For client users, count projects from their client
+            // For company users, count their project teams
+            $projectCount = $roleFilter === 'client' 
+                ? ($user->client_projects_count ?? 0)
+                : ($user->project_teams_count ?? 0);
+                
             $data = [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -58,7 +72,7 @@ class UserController extends Controller
                 'created_at' => $user->created_at,
                 'updated_at' => $user->updated_at,
                 // Add relation counts
-                'project_teams_count' => $user->project_teams_count ?? 0,
+                'project_teams_count' => $projectCount,
                 'activity_logs_count' => $user->activity_logs_count ?? 0,
                 'registered_ap_count' => $user->registered_ap_count ?? 0,
             ];
@@ -207,7 +221,10 @@ class UserController extends Controller
                 $query->orderBy('created_at', 'desc')->limit(20);
             },
             'registeredAp',
-            'belongsToClient'
+            'belongsToClient',
+            'belongsToClient.projects' => function($query) {
+                $query->orderBy('created_at', 'desc');
+            }
         ]);
 
         // Transform user data to match frontend expectations
@@ -260,10 +277,22 @@ class UserController extends Controller
                 'status' => $user->registeredAp->status,
                 'created_at' => $user->registeredAp->created_at,
             ] : null,
+            'client_projects' => $user->belongsToClient && $user->belongsToClient->projects ? $user->belongsToClient->projects->map(function($project) {
+                return [
+                    'id' => $project->id,
+                    'name' => $project->name,
+                    'description' => $project->description,
+                    'start_date' => $project->start_date,
+                    'end_date' => $project->end_date,
+                    'status' => $project->status,
+                    'created_at' => $project->created_at,
+                ];
+            }) : [],
 
             // Counts
             'project_teams_count' => $user->projectTeams->count(),
             'activity_logs_count' => $user->activityLogs->count(),
+            'client_projects_count' => $user->belongsToClient && $user->belongsToClient->projects ? $user->belongsToClient->projects->count() : 0,
         ];
 
         return Inertia::render('Admin/Users/Show', [

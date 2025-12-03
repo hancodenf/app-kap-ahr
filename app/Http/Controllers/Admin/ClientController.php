@@ -15,6 +15,11 @@ class ClientController extends Controller
 {
     public function index(Request $request)
     {
+        // Validate that user is admin
+        if (!$request->user() || $request->user()->role !== 'admin') {
+            abort(403, 'Unauthorized access. Admin only.');
+        }
+
         $search = $request->get('search', '');
 
         $clients = Client::withCount(['clientUsers', 'projects']) // Count related user accounts and projects

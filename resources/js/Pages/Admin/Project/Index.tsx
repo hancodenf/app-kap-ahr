@@ -194,113 +194,6 @@ export default function Index({ bundles, filters, availableYears, overallStats, 
                         </div>
                     )}
 
-                    {/* Stats Section - Compact Modern Cards */}
-                    <div className="mb-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-3">
-                        {/* Total Projects */}
-                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border-2 border-blue-200 shadow-sm hover:shadow-md transition-all p-4 group cursor-pointer">
-                            <div className="flex flex-col items-center text-center">
-                                <div className="rounded-full bg-blue-500 p-3 mb-2 group-hover:scale-110 transition-transform">
-                                    <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                                    </svg>
-                                </div>
-                                <p className="text-3xl font-bold text-blue-900 mb-1">{statusCounts.total}</p>
-                                <p className="text-xs font-semibold text-blue-700 truncate w-full">Total</p>
-                            </div>
-                        </div>
-
-                        {/* Draft Projects */}
-                        <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-gray-300 shadow-sm hover:shadow-md transition-all p-4 group cursor-pointer">
-                            <div className="flex flex-col items-center text-center">
-                                <div className="rounded-full bg-gray-500 p-3 mb-2 group-hover:scale-110 transition-transform">
-                                    <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                </div>
-                                <p className="text-3xl font-bold text-gray-900 mb-1">{statusCounts.draft || 0}</p>
-                                <p className="text-xs font-semibold text-gray-700 truncate w-full">Draft</p>
-                            </div>
-                        </div>
-
-                        {/* In Progress Projects */}
-                        <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl border-2 border-yellow-300 shadow-sm hover:shadow-md transition-all p-4 group cursor-pointer">
-                            <div className="flex flex-col items-center text-center">
-                                <div className="rounded-full bg-yellow-500 p-3 mb-2 group-hover:scale-110 transition-transform">
-                                    <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                                <p className="text-3xl font-bold text-yellow-900 mb-1">{statusCounts.in_progress || 0}</p>
-                                <p className="text-xs font-semibold text-yellow-700 truncate w-full">In Progress</p>
-                            </div>
-                        </div>
-
-                        {/* Completed Projects */}
-                        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl border-2 border-green-300 shadow-sm hover:shadow-md transition-all p-4 group cursor-pointer">
-                            <div className="flex flex-col items-center text-center">
-                                <div className="rounded-full bg-green-500 p-3 mb-2 group-hover:scale-110 transition-transform">
-                                    <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                                <p className="text-3xl font-bold text-green-900 mb-1">{statusCounts.completed || 0}</p>
-                                <p className="text-xs font-semibold text-green-700 truncate w-full">Completed</p>
-                            </div>
-                        </div>
-
-                        {/* Suspended Projects */}
-                        <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border-2 border-orange-300 shadow-sm hover:shadow-md transition-all p-4 group cursor-pointer">
-                            <div className="flex flex-col items-center text-center">
-                                <div className="rounded-full bg-orange-500 p-3 mb-2 group-hover:scale-110 transition-transform">
-                                    <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                                <p className="text-3xl font-bold text-orange-900 mb-1">{statusCounts.suspended || 0}</p>
-                                <p className="text-xs font-semibold text-orange-700 truncate w-full">Suspended</p>
-                            </div>
-                        </div>
-
-                        {/* Canceled Projects */}
-                        <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl border-2 border-red-300 shadow-sm hover:shadow-md transition-all p-4 group cursor-pointer">
-                            <div className="flex flex-col items-center text-center">
-                                <div className="rounded-full bg-red-500 p-3 mb-2 group-hover:scale-110 transition-transform">
-                                    <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                                <p className="text-3xl font-bold text-red-900 mb-1">{statusCounts.canceled || 0}</p>
-                                <p className="text-xs font-semibold text-red-700 truncate w-full">Canceled</p>
-                            </div>
-                        </div>
-
-                        {/* Active Projects */}
-                        <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl border-2 border-indigo-300 shadow-sm hover:shadow-md transition-all p-4 group cursor-pointer">
-                            <div className="flex flex-col items-center text-center">
-                                <div className="rounded-full bg-indigo-500 p-3 mb-2 group-hover:scale-110 transition-transform">
-                                    <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                    </svg>
-                                </div>
-                                <p className="text-3xl font-bold text-indigo-900 mb-1">{statusCounts.active || 0}</p>
-                                <p className="text-xs font-semibold text-indigo-700 truncate w-full">Active</p>
-                            </div>
-                        </div>
-
-                        {/* Archived Projects */}
-                        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border-2 border-purple-300 shadow-sm hover:shadow-md transition-all p-4 group cursor-pointer">
-                            <div className="flex flex-col items-center text-center">
-                                <div className="rounded-full bg-purple-500 p-3 mb-2 group-hover:scale-110 transition-transform">
-                                    <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8l6 6m-6 0l6-6m2-5v20m6-19a2 2 0 012 2v14a2 2 0 01-2 2H9a2 2 0 01-2-2V5a2 2 0 012-2h10z" />
-                                    </svg>
-                                </div>
-                                <p className="text-3xl font-bold text-purple-900 mb-1">{statusCounts.archived || 0}</p>
-                                <p className="text-xs font-semibold text-purple-700 truncate w-full">Archived</p>
-                            </div>
-                        </div>
-                    </div>
-
                     {/* Status Navigation Tabs */}
                     <div className="mb-6 bg-white rounded-lg shadow-sm p-4">
                         <div className="flex flex-wrap gap-2">
@@ -312,7 +205,7 @@ export default function Index({ bundles, filters, availableYears, overallStats, 
                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
                                 }`}
                             >
-                                All Status
+                                All Status ({statusCounts.total})
                             </button>
                             <button
                                 onClick={() => setStatus('Draft')}
@@ -322,7 +215,7 @@ export default function Index({ bundles, filters, availableYears, overallStats, 
                                         : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
                                 }`}
                             >
-                                Draft
+                                Draft ({statusCounts.draft || 0})
                             </button>
                             <button
                                 onClick={() => setStatus('In Progress')}
@@ -332,7 +225,7 @@ export default function Index({ bundles, filters, availableYears, overallStats, 
                                         : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
                                 }`}
                             >
-                                In Progress
+                                In Progress ({statusCounts.in_progress || 0})
                             </button>
                             <button
                                 onClick={() => setStatus('Completed')}
@@ -342,7 +235,7 @@ export default function Index({ bundles, filters, availableYears, overallStats, 
                                         : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
                                 }`}
                             >
-                                Completed
+                                Completed ({statusCounts.completed || 0})
                             </button>
                             <button
                                 onClick={() => setStatus('Suspended')}
@@ -352,7 +245,7 @@ export default function Index({ bundles, filters, availableYears, overallStats, 
                                         : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
                                 }`}
                             >
-                                Suspended
+                                Suspended ({statusCounts.suspended || 0})
                             </button>
                             <button
                                 onClick={() => setStatus('Canceled')}
@@ -362,7 +255,7 @@ export default function Index({ bundles, filters, availableYears, overallStats, 
                                         : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
                                 }`}
                             >
-                                Canceled
+                                Canceled ({statusCounts.canceled || 0})
                             </button>
                         </div>
                         

@@ -252,15 +252,7 @@ export default function AdminDashboard({
 								<div>
 									<h3 className="text-2xl font-bold mb-2 drop-shadow-lg">Welcome back, {user.name}! 👋</h3>
 									<p className="text-white/90 text-sm drop-shadow">{user.role.description}</p>
-								</div>
-								<div className="hidden md:block">
-									<div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 shadow-xl">
-										<div className="text-center">
-											<p className="text-3xl font-bold drop-shadow-lg">{statistics.activities.today}</p>
-											<p className="text-xs text-white/80 mt-1">Activities Today</p>
-										</div>
-									</div>
-								</div>
+								</div> 
 							</div>
 						</div>
 					</div>
@@ -342,50 +334,7 @@ export default function AdminDashboard({
 								<span className="text-gray-500">Docs: {statistics.system.documents}</span>
 							</div>
 						</div>
-					</div>
-
-					{/* Quick Actions */}
-					<div className="bg-white shadow-sm rounded-lg p-6">
-						<h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-						<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-							<Link href={route('admin.users.index')} className="flex flex-col items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-100 hover:border-emerald-300 hover:bg-emerald-100 transition-all group">
-								<div className="p-3 bg-emerald-100 rounded-full group-hover:bg-emerald-200 transition-colors mb-2">
-									<svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-									</svg>
-								</div>
-								<span className="text-sm font-medium text-emerald-900">Manage Users</span>
-							</Link>
-
-							<Link href={route('admin.clients.index')} className="flex flex-col items-center p-4 bg-emerald-50/70 rounded-lg border-2 border-emerald-100 hover:border-emerald-300 hover:bg-emerald-100 transition-all group">
-								<div className="p-3 bg-emerald-100 rounded-full group-hover:bg-emerald-200 transition-colors mb-2">
-									<svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-									</svg>
-								</div>
-								<span className="text-sm font-medium text-emerald-900">Manage Clients</span>
-							</Link>
-
-							<Link href={route('admin.projects.bundles.index')} className="flex flex-col items-center p-4 bg-emerald-50/50 rounded-lg border-2 border-emerald-100 hover:border-emerald-300 hover:bg-emerald-100 transition-all group">
-								<div className="p-3 bg-emerald-100 rounded-full group-hover:bg-emerald-200 transition-colors mb-2">
-									<svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-									</svg>
-								</div>
-								<span className="text-sm font-medium text-emerald-900">View Projects</span>
-							</Link>
-
-							<Link href={route('admin.project-templates.template-bundles.index')} className="flex flex-col items-center p-4 bg-emerald-50/30 rounded-lg border-2 border-emerald-100 hover:border-emerald-300 hover:bg-emerald-100 transition-all group">
-								<div className="p-3 bg-emerald-100 rounded-full group-hover:bg-emerald-200 transition-colors mb-2">
-									<svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-									</svg>
-								</div>
-								<span className="text-sm font-medium text-orange-900">Templates</span>
-							</Link>
-						</div>
-					</div>
-
+					</div> 
 					{/* Advanced Analytics Charts */}
 					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 						{/* Projects by Year - Horizontal Scroll Cards */}

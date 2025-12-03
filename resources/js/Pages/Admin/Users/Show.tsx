@@ -35,6 +35,16 @@ interface RegisteredAp {
 	created_at: string;
 }
 
+interface ClientProject {
+	id: number;
+	name: string;
+	description: string | null;
+	start_date: string;
+	end_date: string | null;
+	status: string;
+	created_at: string;
+}
+
 interface User {
 	id: number;
 	name: string;
@@ -52,8 +62,10 @@ interface User {
 	project_teams?: ProjectTeam[];
 	activity_logs?: ActivityLog[];
 	registered_ap?: RegisteredAp | null;
+	client_projects?: ClientProject[];
 	project_teams_count?: number;
 	activity_logs_count?: number;
+	client_projects_count?: number;
 }
 
 interface Props {
@@ -348,6 +360,82 @@ export default function Show({ user }: Props) {
 									</div>
 								)}
 
+								{/* Client Projects */}
+								{user.client_projects && user.client_projects.length > 0 && (
+									<div>
+										<h4 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b flex items-center justify-between">
+											<div className="flex items-center gap-2">
+												<svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+												</svg>
+												Client Projects
+											</div>
+											<span className="text-sm font-medium text-gray-500">
+												{user.client_projects_count} {user.client_projects_count === 1 ? 'project' : 'projects'}
+											</span>
+										</h4>
+										<div className="space-y-3">
+											{user.client_projects.map((project, index) => (
+												<div key={project.id} className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 hover:bg-indigo-100 transition-colors">
+													<div className="flex items-start gap-3">
+														{/* Number */}
+														<div className="flex-shrink-0 w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+															{index + 1}
+														</div>
+														
+														{/* Content */}
+														<div className="flex-1 min-w-0">
+															<div className="flex items-start justify-between mb-2">
+																<div className="flex-1">
+																	<Link 
+																		href={route('admin.projects.bundles.show', project.id)}
+																		className="font-semibold text-indigo-700 hover:text-indigo-900 hover:underline mb-1 inline-block"
+																	>
+																		{project.name}
+																	</Link>
+																	{project.description && (
+																		<p className="text-sm text-gray-600 mt-1 line-clamp-2">{project.description}</p>
+																	)}
+																</div>
+																<span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+																	project.status === 'active' ? 'bg-green-100 text-green-800' :
+																	project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+																	project.status === 'on_hold' ? 'bg-yellow-100 text-yellow-800' :
+																	'bg-gray-100 text-gray-800'
+																}`}>
+																	{project.status.replace('_', ' ').charAt(0).toUpperCase() + project.status.slice(1).replace('_', ' ')}
+																</span>
+															</div>
+															<div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
+																<div className="flex items-center gap-1">
+																	<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																		<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+																	</svg>
+																	<span>Start: {formatShortDate(project.start_date)}</span>
+																</div>
+																{project.end_date && (
+																	<div className="flex items-center gap-1">
+																		<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																			<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+																		</svg>
+																		<span>End: {formatShortDate(project.end_date)}</span>
+																	</div>
+																)}
+																<div className="flex items-center gap-1">
+																	<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																		<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+																	</svg>
+																	<span>Created {formatShortDate(project.created_at)}</span>
+																</div>
+															</div>
+														</div>
+													</div>
+												</div>
+											))}
+										</div>
+									</div>
+								)}
+
 								{/* Project Teams */}
 								{user.project_teams && user.project_teams.length > 0 && (
 									<div>
@@ -463,16 +551,17 @@ export default function Show({ user }: Props) {
 									</div>
 								)}
 
-								{/* Empty State for Relations */}
-								{(!user.project_teams || user.project_teams.length === 0) && 
-								 (!user.activity_logs || user.activity_logs.length === 0) && 
-								 !user.registered_ap && (
+							{/* Empty State for Relations */}
+							{(!user.project_teams || user.project_teams.length === 0) && 
+							 (!user.activity_logs || user.activity_logs.length === 0) && 
+							 (!user.client_projects || user.client_projects.length === 0) && 
+							 !user.registered_ap && (
 									<div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
 										<svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
 										</svg>
-										<p className="text-gray-500 text-sm">No related data found</p>
-										<p className="text-gray-400 text-xs mt-1">This user has no project teams, activity logs, or registered AP yet</p>
+									<p className="text-gray-500 text-sm">No related data found</p>
+									<p className="text-gray-400 text-xs mt-1">This user has no client projects, project teams, activity logs, or registered AP yet</p>
 									</div>
 								)}
 							</div>

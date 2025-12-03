@@ -26,15 +26,30 @@ interface RecentProject {
 	created_at: string;
 }
 
-interface ActiveTask {
-	id: number;
+interface AssignedTask {
+	id: string;
 	name: string;
-	project_id: number;
+	project_id: string;
 	project_name: string;
 	working_step_name: string;
 	completion_status: string;
 	status: string;
 	is_required: boolean;
+	created_at: string;
+}
+
+interface PendingApprovalTask {
+	id: string;
+	approval_id: string;
+	name: string;
+	project_id: string;
+	project_name: string;
+	working_step_name: string;
+	completion_status: string;
+	status: string;
+	approval_role: string;
+	is_required: boolean;
+	updated_at: string;
 }
 
 interface TaskTrendItem {
@@ -80,7 +95,8 @@ interface CompanyDashboardProps extends PageProps {
 		projects_by_status: Record<string, number>;
 	};
 	recentProjects: RecentProject[];
-	myActiveTasks: ActiveTask[];
+	myAssignedTasks: AssignedTask[];
+	tasksPendingApproval: PendingApprovalTask[];
 	taskTrend: TaskTrendItem[];
 	upcomingDeadlines: UpcomingDeadline[];
 	latestNews: NewsItem[];
@@ -90,7 +106,8 @@ export default function CompanyDashboard({
 	user,
 	statistics,
 	recentProjects,
-	myActiveTasks,
+	myAssignedTasks,
+	tasksPendingApproval,
 	taskTrend,
 	upcomingDeadlines,
 	latestNews,
@@ -193,21 +210,7 @@ export default function CompanyDashboard({
 								<div>
 									<h3 className="text-2xl font-bold mb-2 drop-shadow-lg">Welcome back, {user.name}! 👋</h3>
 									<p className="text-white/90 text-sm drop-shadow">{user.position} • {user.role.description}</p>
-								</div>
-								<div className="hidden md:flex gap-4">
-									<div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 shadow-xl">
-										<div className="text-center">
-											<p className="text-3xl font-bold drop-shadow-lg">{statistics.projects.active}</p>
-											<p className="text-xs text-white/80 mt-1">Active Projects</p>
-										</div>
-									</div>
-									<div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 shadow-xl">
-										<div className="text-center">
-											<p className="text-3xl font-bold drop-shadow-lg">{statistics.tasks.pending + statistics.tasks.in_progress}</p>
-											<p className="text-xs text-white/80 mt-1">Pending Tasks</p>
-										</div>
-									</div>
-								</div>
+								</div> 
 							</div>
 						</div>
 					</div>
@@ -311,8 +314,8 @@ export default function CompanyDashboard({
 						</div>
 					</div>
 
-					{/* Two Column Layout */}
-					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+					{/* Three Column Layout */}
+					<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 						{/* Recent Projects */}
 						<div className="bg-white shadow-lg rounded-xl p-6 hover:shadow-xl transition-shadow">
 							<div className="flex justify-between items-center mb-4">
@@ -348,40 +351,113 @@ export default function CompanyDashboard({
 							</div>
 						</div>
 
-						{/* My Active Tasks */}
-						<div className="bg-white shadow-lg rounded-xl p-6 hover:shadow-xl transition-shadow">
+						{/* My Assigned Tasks */}
+						<div className="bg-white shadow-lg rounded-xl p-6 hover:shadow-xl transition-shadow border-t-4 border-blue-500">
 							<div className="flex justify-between items-center mb-4">
-								<h3 className="text-lg font-semibold text-gray-900">My Active Tasks</h3>
-								<span className="text-sm text-gray-500">{myActiveTasks.length} tasks</span>
+								<div className="flex items-center gap-2">
+									<svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+									</svg>
+									<h3 className="text-lg font-semibold text-gray-900">My Assigned Tasks</h3>
+								</div>
+								<span className="text-sm font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded-full">{myAssignedTasks.length}</span>
 							</div>
 							<div className="space-y-3 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
-								{myActiveTasks.length > 0 ? (
-									myActiveTasks.map((task: any) => (
+								{myAssignedTasks.length > 0 ? (
+									myAssignedTasks.map((task) => (
 										<Link
 											key={task.id}
-											href={route('company.projects.show', task.project_id)}
-											className="block p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-primary-50 hover:border-primary-300 transition-colors cursor-pointer"
+											href={route('company.tasks.detail', task.id)}
+											className="block p-3 bg-gradient-to-r from-blue-50 to-white rounded-lg border border-blue-200 hover:from-blue-100 hover:to-blue-50 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
 										>
 											<div className="flex items-start justify-between mb-2">
 												<div className="flex-1">
-													<h4 className="text-sm font-medium text-gray-900">{task.name}</h4>
+													<h4 className="text-sm font-medium text-gray-900 flex items-center gap-2">
+														{task.name}
+														{task.is_required && (
+															<span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold rounded bg-red-100 text-red-700">
+																REQUIRED
+															</span>
+														)}
+													</h4>
 													<p className="text-xs text-gray-600 mt-1">{task.project_name}</p>
 													<p className="text-xs text-gray-500 mt-0.5">{task.working_step_name}</p>
 												</div>
-												{task.is_required && (
-													<span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-														Required
-													</span>
-												)}
 											</div>
-											<div className="flex items-center gap-2">
-												{getStatusBadge(task.completion_status)}
-												{getStatusBadge(task.status)}
+											<div className="flex items-center justify-between gap-2 mt-2">
+												<div className="flex items-center gap-2">
+													{getStatusBadge(task.completion_status)}
+													{getStatusBadge(task.status)}
+												</div>
+												<span className="text-[10px] text-gray-400">{formatDate(task.created_at)}</span>
 											</div>
 										</Link>
 									))
 								) : (
-									<p className="text-sm text-gray-500 text-center py-8">No active tasks</p>
+									<div className="text-center py-8">
+										<svg className="w-12 h-12 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+										</svg>
+										<p className="text-sm text-gray-500">No assigned tasks</p>
+									</div>
+								)}
+							</div>
+						</div>
+
+						{/* Tasks Pending My Approval */}
+						<div className="bg-white shadow-lg rounded-xl p-6 hover:shadow-xl transition-shadow border-t-4 border-orange-500">
+							<div className="flex justify-between items-center mb-4">
+								<div className="flex items-center gap-2">
+									<svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+									</svg>
+									<h3 className="text-lg font-semibold text-gray-900">Pending Approval</h3>
+								</div>
+								<span className="text-sm font-medium text-orange-600 bg-orange-100 px-2 py-1 rounded-full">{tasksPendingApproval.length}</span>
+							</div>
+							<div className="space-y-3 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+								{tasksPendingApproval.length > 0 ? (
+									tasksPendingApproval.map((task) => (
+										<Link
+											key={task.id}
+											href={route('company.tasks.approval-detail', task.id)}
+											className="block p-3 bg-gradient-to-r from-orange-50 to-white rounded-lg border border-orange-200 hover:from-orange-100 hover:to-orange-50 hover:border-orange-300 hover:shadow-md transition-all cursor-pointer"
+										>
+											<div className="flex items-start justify-between mb-2">
+												<div className="flex-1">
+													<h4 className="text-sm font-medium text-gray-900 flex items-center gap-2">
+														{task.name}
+														{task.is_required && (
+															<span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold rounded bg-red-100 text-red-700">
+																REQUIRED
+															</span>
+														)}
+													</h4>
+													<p className="text-xs text-gray-600 mt-1">{task.project_name}</p>
+													<p className="text-xs text-gray-500 mt-0.5">{task.working_step_name}</p>
+													<div className="mt-1">
+														<span className="inline-flex items-center px-2 py-0.5 text-[10px] font-semibold rounded-full bg-purple-100 text-purple-700">
+															Approve as {task.approval_role}
+														</span>
+													</div>
+												</div>
+											</div>
+											<div className="flex items-center justify-between gap-2 mt-2">
+												<div className="flex items-center gap-2">
+													{getStatusBadge(task.completion_status)}
+													{getStatusBadge(task.status)}
+												</div>
+												<span className="text-[10px] text-gray-400">{formatDateTime(task.updated_at)}</span>
+											</div>
+										</Link>
+									))
+								) : (
+									<div className="text-center py-8">
+										<svg className="w-12 h-12 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+										</svg>
+										<p className="text-sm text-gray-500">No tasks pending approval</p>
+									</div>
 								)}
 							</div>
 						</div>
