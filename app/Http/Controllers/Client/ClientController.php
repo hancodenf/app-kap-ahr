@@ -33,39 +33,45 @@ class ClientController extends Controller
         // Get client name for denormalized queries
         $clientName = $hasClient ? $client->name : '';
         
-        // 1. Project Statistics - exclude Draft projects only (archive filter not applicable for clients)
+        // 1. Project Statistics - exclude Draft and archived projects
         $projectStats = [
             'total' => $hasClient 
                 ? Project::where('client_id', $user->client_id)
-                    ->whereNotIn('status', ['Draft'])
+                    ->where('status', '!=', 'Draft')
+                    ->where('is_archived', false)
                     ->count()
                 : 0,
             'in_progress' => $hasClient 
                 ? Project::where('client_id', $user->client_id)
                     ->where('status', 'In Progress')
+                    ->where('is_archived', false)
                     ->count()
                 : 0,
             'completed' => $hasClient 
                 ? Project::where('client_id', $user->client_id)
                     ->where('status', 'Completed')
+                    ->where('is_archived', false)
                     ->count()
                 : 0,
             'suspended' => $hasClient 
                 ? Project::where('client_id', $user->client_id)
                     ->where('status', 'Suspended')
+                    ->where('is_archived', false)
                     ->count()
                 : 0,
             'canceled' => $hasClient 
                 ? Project::where('client_id', $user->client_id)
                     ->where('status', 'Canceled')
+                    ->where('is_archived', false)
                     ->count()
                 : 0,
         ];
         
-        // Get project IDs for task queries - exclude Draft only
+        // Get project IDs for task queries - exclude Draft and archived
         $projectIds = $hasClient 
             ? Project::where('client_id', $user->client_id)
-                ->whereNotIn('status', ['Draft'])
+                ->where('status', '!=', 'Draft')
+                ->where('is_archived', false)
                 ->pluck('id')
             : collect([]);
         
@@ -110,9 +116,11 @@ class ClientController extends Controller
                 : 0,
         ];
         
-        // 4. Recent Projects (last 5)
+        // 4. Recent Projects (last 5) - exclude Draft and archived
         $recentProjects = $hasClient
             ? Project::where('client_id', $user->client_id)
+                ->where('status', '!=', 'Draft')
+                ->where('is_archived', false)
                 ->withCount(['workingSteps', 'tasks'])
                 ->orderBy('created_at', 'desc')
                 ->limit(5)
@@ -277,22 +285,30 @@ class ClientController extends Controller
         }
         $search = $request->get('search');
 
-        // Get status counts - exclude Draft only (no archive filter for clients)
+        // Get status counts - exclude Draft and archived
         $statusCounts = [
             'in_progress' => Project::where('client_id', $user->client_id)
-                ->where('status', 'In Progress')->count(),
+                ->where('status', 'In Progress')
+                ->where('is_archived', false)
+                ->count(),
             'completed' => Project::where('client_id', $user->client_id)
-                ->where('status', 'Completed')->count(),
+                ->where('status', 'Completed')
+                ->where('is_archived', false)
+                ->count(),
             'suspended' => Project::where('client_id', $user->client_id)
-                ->where('status', 'Suspended')->count(),
+                ->where('status', 'Suspended')
+                ->where('is_archived', false)
+                ->count(),
             'canceled' => Project::where('client_id', $user->client_id)
-                ->where('status', 'Canceled')->count(),
+                ->where('status', 'Canceled')
+                ->where('is_archived', false)
+                ->count(),
         ];
 
-        // Build query - exclude Draft only (no archive filter for clients)
+        // Build query - exclude Draft and archived
         $query = Project::where('client_id', $user->client_id)
             ->where('status', $status)
-            ->whereNotIn('status', ['Draft'])
+            ->where('is_archived', false)
             ->withCount(['workingSteps', 'tasks'])
             ->with(['client', 'projectTeams.user']);
 
@@ -353,6 +369,11 @@ class ClientController extends Controller
         // Make sure client can only view their own projects
         if ($project->client_id !== Auth::user()->client_id) {
             abort(403, 'Unauthorized access to this project.');
+        }
+        
+        // Don't allow access to Draft or archived projects
+        if ($project->status === 'Draft' || $project->is_archived) {
+            abort(404, 'Project not found.');
         }
 
         // Get project team members
@@ -508,6 +529,11 @@ class ClientController extends Controller
         if ($task->project->client_id !== Auth::user()->client_id) {
             abort(403, 'Unauthorized access to this task.');
         }
+        
+        // Don't allow access to tasks from Draft or archived projects
+        if ($task->project->status === 'Draft' || $task->project->is_archived) {
+            abort(404, 'Task not found.');
+        }
 
         // Load task with all necessary relationships
         $task->load([
@@ -619,6 +645,11 @@ class ClientController extends Controller
         // Make sure client can only upload to their own projects
         if ($task->project->client_id !== Auth::user()->client_id) {
             abort(403, 'Unauthorized access to this task.');
+        }
+        
+        // Don't allow access to tasks from Draft or archived projects
+        if ($task->project->status === 'Draft' || $task->project->is_archived) {
+            abort(404, 'Task not found.');
         }
 
         // Validate that this task allows client upload (not 'read only' or 'comment')
@@ -733,6 +764,11 @@ class ClientController extends Controller
         // Make sure client can only upload to their own projects
         if ($task->project->client_id !== Auth::user()->client_id) {
             abort(403, 'Unauthorized access to this task.');
+        }
+        
+        // Don't allow access to tasks from Draft or archived projects
+        if ($task->project->status === 'Draft' || $task->project->is_archived) {
+            abort(404, 'Task not found.');
         }
 
         // Validate that this task allows client interaction (not 'read only')

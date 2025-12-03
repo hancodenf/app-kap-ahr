@@ -182,7 +182,7 @@ export default function Dashboard({
                             className="absolute inset-0 bg-cover bg-center"
                             style={{ backgroundImage: 'url(/AHR-horizontal.jpg)' }}
                         ></div>
-                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/90 via-emerald-800/85 to-emerald-900/90"></div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/90 via-emerald-800/85 "></div>
                         <div className="relative p-8">
                             <div className="flex flex-col lg:flex-row items-start justify-between gap-6">
                                 <div className="flex-1">

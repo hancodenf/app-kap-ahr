@@ -28,18 +28,45 @@ class CompanyController extends Controller
         $hasProjects = $projectTeamIds->isNotEmpty();
         
         // 1. Project Statistics
+        $inProgressCount = ProjectTeam::where('user_id', $user->id)
+            ->whereHas('project', function($query) {
+                $query->where('status', 'In Progress');
+            })
+            ->count();
+            
+        $completedCount = ProjectTeam::where('user_id', $user->id)
+            ->whereHas('project', function($query) {
+                $query->where('status', 'Completed');
+            })
+            ->count();
+            
+        $suspendedCount = ProjectTeam::where('user_id', $user->id)
+            ->whereHas('project', function($query) {
+                $query->where('status', 'Suspended');
+            })
+            ->count();
+            
+        $canceledCount = ProjectTeam::where('user_id', $user->id)
+            ->whereHas('project', function($query) {
+                $query->where('status', 'Canceled');
+            })
+            ->count();
+            
+        $draftCount = ProjectTeam::where('user_id', $user->id)
+            ->whereHas('project', function($query) {
+                $query->where('status', 'Draft');
+            })
+            ->count();
+            
         $projectStats = [
             'total' => ProjectTeam::where('user_id', $user->id)->count(),
-            'in_progress' => ProjectTeam::where('user_id', $user->id)
-                ->whereHas('project', function($query) {
-                    $query->where('status', 'In Progress');
-                })
-                ->count(),
-            'completed' => ProjectTeam::where('user_id', $user->id)
-                ->whereHas('project', function($query) {
-                    $query->where('status', 'Completed');
-                })
-                ->count(),
+            'active' => $inProgressCount, // In Progress = Active
+            'closed' => $completedCount + $suspendedCount + $canceledCount, // All finished states
+            'draft' => $draftCount,
+            'in_progress' => $inProgressCount,
+            'completed' => $completedCount,
+            'suspended' => $suspendedCount,
+            'canceled' => $canceledCount,
             'archived' => ProjectTeam::where('user_id', $user->id)
                 ->whereHas('project', function($query) {
                     $query->where('is_archived', true);

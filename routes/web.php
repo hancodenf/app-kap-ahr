@@ -54,9 +54,12 @@ Route::get('/', function () {
         return redirect()->route('dashboard');
     }
     
-    // If not authenticated, show welcome page or redirect to login
-    return redirect()->route('login');
-});
+    // If not authenticated, show welcome page
+    return Inertia::render('Welcome', [
+        'canLogin' => Route::has('login'),
+        'canRegister' => Route::has('register'),
+    ]);
+})->name('welcome');
 
 Route::get('/dashboard', function () {
     $user = Auth::user();
@@ -278,6 +281,10 @@ Route::middleware(['auth', 'verified', 'role:company', 'no.cache'])->prefix('com
     // Client Routes for Company
     Route::get('/clients', [CompanyClientController::class, 'index'])->name('clients.index');
     Route::get('/clients/{client}', [CompanyClientController::class, 'show'])->name('clients.show');
+    
+    // Teams Routes for Company
+    Route::get('/teams', [\App\Http\Controllers\Company\TeamController::class, 'index'])->name('teams.index');
+    Route::get('/teams/{user}', [\App\Http\Controllers\Company\TeamController::class, 'show'])->name('teams.show');
 });
 
 // Partner Routes

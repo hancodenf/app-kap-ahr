@@ -7,6 +7,12 @@ interface ProjectStats {
 	total: number;
 	active: number;
 	closed: number;
+	draft: number;
+	in_progress: number;
+	completed: number;
+	suspended: number;
+	canceled: number;
+	archived: number;
 	by_role: Record<string, number>;
 }
 
@@ -164,14 +170,14 @@ export default function CompanyDashboard({
 		);
 	};
 
-	// Calculate percentages
+	// Calculate percentages with safety checks
 	const taskCompletionRate =
 		statistics.tasks.total > 0
 			? Math.round((statistics.tasks.completed / statistics.tasks.total) * 100)
 			: 0;
 
 	const projectActiveRate =
-		statistics.projects.total > 0
+		statistics.projects && statistics.projects.total > 0
 			? Math.round((statistics.projects.active / statistics.projects.total) * 100)
 			: 0;
 
@@ -225,13 +231,83 @@ export default function CompanyDashboard({
 										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
 									</svg>
 								</div>
-								<span className="text-xs text-green-600 font-medium">{projectActiveRate}% active</span>
+								{(statistics.projects?.total || 0) > 0 && (
+									<span className="text-xs text-green-600 font-medium">{projectActiveRate}% active</span>
+								)}
 							</div>
-							<h4 className="text-2xl font-bold text-gray-900">{statistics.projects.total}</h4>
+							<h4 className="text-2xl font-bold text-gray-900">{statistics.projects?.total || 0}</h4>
 							<p className="text-sm text-gray-600 mt-1">My Projects</p>
-							<div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-								<span className="text-green-600 font-medium">Active: {statistics.projects.active}</span>
-								<span className="text-gray-500">Closed: {statistics.projects.closed}</span>
+							<div className="mt-3 pt-3 border-t border-gray-100">
+								{/* Simple horizontal stacked bar chart */}
+								<div className="flex h-3 rounded-full overflow-hidden bg-gray-200">
+									{(statistics.projects?.draft || 0) > 0 && (
+										<div 
+											className="bg-gray-400 hover:opacity-80 transition-opacity" 
+											style={{ width: `${((statistics.projects?.draft || 0) / (statistics.projects?.total || 1)) * 100}%` }}
+											title={`Draft: ${statistics.projects?.draft || 0}`}
+										></div>
+									)}
+									{(statistics.projects?.in_progress || 0) > 0 && (
+										<div 
+											className="bg-blue-500 hover:opacity-80 transition-opacity" 
+											style={{ width: `${((statistics.projects?.in_progress || 0) / (statistics.projects?.total || 1)) * 100}%` }}
+											title={`Progress: ${statistics.projects?.in_progress || 0}`}
+										></div>
+									)}
+									{(statistics.projects?.completed || 0) > 0 && (
+										<div 
+											className="bg-green-500 hover:opacity-80 transition-opacity" 
+											style={{ width: `${((statistics.projects?.completed || 0) / (statistics.projects?.total || 1)) * 100}%` }}
+											title={`Done: ${statistics.projects?.completed || 0}`}
+										></div>
+									)}
+									{(statistics.projects?.suspended || 0) > 0 && (
+										<div 
+											className="bg-yellow-500 hover:opacity-80 transition-opacity" 
+											style={{ width: `${((statistics.projects?.suspended || 0) / (statistics.projects?.total || 1)) * 100}%` }}
+											title={`Suspended: ${statistics.projects?.suspended || 0}`}
+										></div>
+									)}
+									{(statistics.projects?.canceled || 0) > 0 && (
+										<div 
+											className="bg-red-500 hover:opacity-80 transition-opacity" 
+											style={{ width: `${((statistics.projects?.canceled || 0) / (statistics.projects?.total || 1)) * 100}%` }}
+											title={`Canceled: ${statistics.projects?.canceled || 0}`}
+										></div>
+									)}
+								</div>
+								{/* Legend */}
+								<div className="grid grid-cols-3 gap-x-3 gap-y-1.5 mt-3 text-[10px]">
+									<div className="flex items-center gap-1">
+										<div className="w-2 h-2 rounded-full bg-gray-400"></div>
+										<span className="text-gray-600">Draft {statistics.projects?.draft || 0}</span>
+									</div>
+									<div className="flex items-center gap-1">
+										<div className="w-2 h-2 rounded-full bg-blue-500"></div>
+										<span className="text-gray-600">Progress {statistics.projects?.in_progress || 0}</span>
+									</div>
+									<div className="flex items-center gap-1">
+										<div className="w-2 h-2 rounded-full bg-green-500"></div>
+										<span className="text-gray-600">Done {statistics.projects?.completed || 0}</span>
+									</div>
+									<div className="flex items-center gap-1">
+										<div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+										<span className="text-gray-600">Suspended {statistics.projects?.suspended || 0}</span>
+									</div>
+									<div className="flex items-center gap-1">
+										<div className="w-2 h-2 rounded-full bg-red-500"></div>
+										<span className="text-gray-600">Canceled {statistics.projects?.canceled || 0}</span>
+									</div>
+									{(statistics.projects?.archived || 0) > 0 && (
+										<div className="flex items-center gap-1 text-orange-600">
+											<svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
+												<path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z" />
+												<path fillRule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clipRule="evenodd" />
+											</svg>
+											<span>Archived {statistics.projects?.archived || 0}</span>
+										</div>
+									)}
+								</div>
 							</div>
 						</div>
 

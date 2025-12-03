@@ -1031,6 +1031,379 @@ class NewsSeeder extends Seeder
                 'status' => 'published',
                 'published_at' => now()->subDays(7),
             ],
+            [
+                'title' => 'Tips Meningkatkan Efisiensi Audit dengan Teknologi Digital',
+                'excerpt' => 'Pelajari cara meningkatkan efisiensi proses audit hingga 60% dengan memanfaatkan teknologi digital modern.',
+                'content' => '
+                <h1 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-4 border-primary-600">Tips Meningkatkan Efisiensi Audit dengan Teknologi Digital</h1>
+                
+                <p class="text-gray-700 leading-relaxed mb-4 text-justify">
+                    Dalam era digital saat ini, proses audit tradisional yang manual sudah tidak efisien lagi. Teknologi digital menawarkan berbagai solusi untuk meningkatkan produktivitas tim audit Anda.
+                </p>
+
+                <h2 class="text-2xl font-bold text-primary-600 mt-8 mb-4 flex items-center">
+                    💡 5 Cara Meningkatkan Efisiensi Audit
+                </h2>
+
+                <ol class="space-y-3 my-6">
+                    <li class="flex items-start">
+                        <span class="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center font-bold mr-3">1</span>
+                        <span class="text-gray-700 leading-relaxed pt-1"><strong>Otomatisasi Pengumpulan Data:</strong> Gunakan tools untuk mengumpulkan data secara otomatis dari berbagai sumber.</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center font-bold mr-3">2</span>
+                        <span class="text-gray-700 leading-relaxed pt-1"><strong>Cloud-Based Collaboration:</strong> Tingkatkan kolaborasi tim dengan platform berbasis cloud.</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center font-bold mr-3">3</span>
+                        <span class="text-gray-700 leading-relaxed pt-1"><strong>Template dan Checklist Digital:</strong> Standarisasi proses dengan template yang dapat disesuaikan.</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center font-bold mr-3">4</span>
+                        <span class="text-gray-700 leading-relaxed pt-1"><strong>Real-Time Monitoring:</strong> Pantau progress audit secara real-time dengan dashboard analytics.</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center font-bold mr-3">5</span>
+                        <span class="text-gray-700 leading-relaxed pt-1"><strong>Automated Reporting:</strong> Generate laporan audit secara otomatis dengan format profesional.</span>
+                    </li>
+                </ol>
+
+                <div class="bg-primary-50 border-l-4 border-primary-600 p-6 my-6 rounded-r-lg">
+                    <h4 class="font-bold text-primary-600 mb-2 text-lg">💡 Pro Tip</h4>
+                    <p class="text-gray-700 leading-relaxed">Mulai dengan mengotomatisasi satu proses terlebih dahulu, kemudian perluas ke area lain setelah tim Anda familiar dengan sistem baru.</p>
+                </div>
+                ',
+                'status' => 'published',
+                'published_at' => now()->subDays(6),
+            ],
+            [
+                'title' => 'Panduan Lengkap Audit Internal untuk Perusahaan',
+                'excerpt' => 'Panduan komprehensif untuk melakukan audit internal yang efektif di perusahaan Anda.',
+                'content' => '
+                <h1 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-4 border-primary-600">Panduan Lengkap Audit Internal untuk Perusahaan</h1>
+                
+                <p class="text-gray-700 leading-relaxed mb-4 text-justify">
+                    Audit internal adalah proses penting untuk memastikan operasional perusahaan berjalan sesuai standar dan regulasi yang berlaku. Berikut adalah panduan lengkapnya.
+                </p>
+
+                <h2 class="text-2xl font-bold text-primary-600 mt-8 mb-4">📋 Tahapan Audit Internal</h2>
+
+                <ul class="space-y-3 my-6">
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-gray-700 leading-relaxed">Perencanaan dan penyusunan program audit</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-gray-700 leading-relaxed">Pengumpulan dan analisis bukti audit</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-gray-700 leading-relaxed">Evaluasi temuan dan penyusunan rekomendasi</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-gray-700 leading-relaxed">Penyusunan dan presentasi laporan audit</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-gray-700 leading-relaxed">Monitoring tindak lanjut rekomendasi</span>
+                    </li>
+                </ul>
+                ',
+                'status' => 'published',
+                'published_at' => now()->subDays(5),
+            ],
+            [
+                'title' => 'Keamanan Data dalam Sistem Audit Digital',
+                'excerpt' => 'Memahami pentingnya keamanan data dalam sistem audit digital dan best practices untuk melindunginya.',
+                'content' => '
+                <h1 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-4 border-primary-600">Keamanan Data dalam Sistem Audit Digital</h1>
+                
+                <p class="text-gray-700 leading-relaxed mb-4 text-justify">
+                    Keamanan data adalah prioritas utama dalam sistem audit digital. Data audit mengandung informasi sensitif yang harus dilindungi dengan baik.
+                </p>
+
+                <div class="bg-yellow-50 border-l-4 border-yellow-500 p-6 my-6 rounded-r-lg">
+                    <h4 class="font-bold text-yellow-700 mb-2 text-lg">⚠️ Penting!</h4>
+                    <p class="text-gray-700 leading-relaxed">Kebocoran data audit dapat menyebabkan kerugian finansial dan reputasi yang signifikan bagi perusahaan.</p>
+                </div>
+
+                <h3 class="text-xl font-semibold text-gray-800 mt-6 mb-3 pl-4 border-l-4 border-primary-600">Langkah-langkah Keamanan</h3>
+
+                <p class="text-gray-700 leading-relaxed mb-4 text-justify">
+                    Implementasikan enkripsi end-to-end, autentikasi multi-faktor, dan audit trail lengkap untuk memastikan keamanan data Anda.
+                </p>
+                ',
+                'status' => 'published',
+                'published_at' => now()->subDays(4),
+            ],
+            [
+                'title' => 'Tren Audit Teknologi di Tahun 2025',
+                'excerpt' => 'Kenali tren terbaru dalam dunia audit teknologi yang akan mendominasi tahun 2025.',
+                'content' => '
+                <h1 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-4 border-primary-600">Tren Audit Teknologi di Tahun 2025</h1>
+                
+                <p class="text-gray-700 leading-relaxed mb-4 text-justify">
+                    Teknologi audit terus berkembang pesat. Berikut adalah tren-tren yang akan mendominasi industri audit di tahun 2025.
+                </p>
+
+                <div class="overflow-x-auto my-8">
+                    <table class="min-w-full divide-y divide-gray-300 border border-gray-300 rounded-lg overflow-hidden">
+                        <thead class="bg-primary-600">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Tren</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Deskripsi</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Impact</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 text-sm text-gray-700 font-semibold">AI & Machine Learning</td>
+                                <td class="px-6 py-4 text-sm text-gray-700">Otomasi analisis data dan deteksi anomali</td>
+                                <td class="px-6 py-4 text-sm text-gray-700">Sangat Tinggi</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 text-sm text-gray-700 font-semibold">Cloud Computing</td>
+                                <td class="px-6 py-4 text-sm text-gray-700">Akses data dan kolaborasi real-time</td>
+                                <td class="px-6 py-4 text-sm text-gray-700">Tinggi</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 text-sm text-gray-700 font-semibold">Blockchain</td>
+                                <td class="px-6 py-4 text-sm text-gray-700">Audit trail yang tidak dapat diubah</td>
+                                <td class="px-6 py-4 text-sm text-gray-700">Sedang</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                ',
+                'status' => 'published',
+                'published_at' => now()->subDays(3),
+            ],
+            [
+                'title' => 'Cara Memilih Software Audit yang Tepat',
+                'excerpt' => 'Panduan praktis untuk memilih software audit yang sesuai dengan kebutuhan perusahaan Anda.',
+                'content' => '
+                <h1 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-4 border-primary-600">Cara Memilih Software Audit yang Tepat</h1>
+                
+                <p class="text-gray-700 leading-relaxed mb-4 text-justify">
+                    Memilih software audit yang tepat adalah keputusan penting yang akan mempengaruhi efisiensi tim audit Anda dalam jangka panjang.
+                </p>
+
+                <h2 class="text-2xl font-bold text-primary-600 mt-8 mb-4">🎯 Kriteria Pemilihan</h2>
+
+                <ul class="space-y-3 my-6">
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-gray-700 leading-relaxed">Kemudahan penggunaan dan user interface yang intuitif</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-gray-700 leading-relaxed">Fitur kolaborasi dan komunikasi tim</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-gray-700 leading-relaxed">Keamanan data dan compliance dengan regulasi</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-gray-700 leading-relaxed">Integrasi dengan sistem existing</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-gray-700 leading-relaxed">Support dan training yang memadai</span>
+                    </li>
+                </ul>
+                ',
+                'status' => 'published',
+                'published_at' => now()->subDays(2),
+            ],
+            [
+                'title' => 'Best Practices Dokumentasi Audit',
+                'excerpt' => 'Pelajari best practices dalam mendokumentasikan proses audit untuk hasil yang optimal.',
+                'content' => '
+                <h1 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-4 border-primary-600">Best Practices Dokumentasi Audit</h1>
+                
+                <p class="text-gray-700 leading-relaxed mb-4 text-justify">
+                    Dokumentasi yang baik adalah kunci kesuksesan audit. Dokumentasi yang lengkap dan terstruktur memudahkan review dan follow-up di masa depan.
+                </p>
+
+                <blockquote class="border-l-4 border-primary-600 bg-gray-50 pl-6 pr-4 py-4 my-6 italic">
+                    <p class="text-gray-700 leading-relaxed mb-2">"Dokumentasi yang baik adalah investasi untuk masa depan audit yang lebih efisien."</p>
+                    <footer class="text-sm text-gray-600">— Best Practice Audit Management</footer>
+                </blockquote>
+
+                <h3 class="text-xl font-semibold text-gray-800 mt-6 mb-3 pl-4 border-l-4 border-primary-600">Tips Dokumentasi Efektif</h3>
+
+                <p class="text-gray-700 leading-relaxed mb-4 text-justify">
+                    Gunakan template standar, simpan semua dokumen secara digital, dan pastikan versioning yang jelas untuk setiap dokumen audit.
+                </p>
+                ',
+                'status' => 'published',
+                'published_at' => now()->subDays(1),
+            ],
+            [
+                'title' => 'Manajemen Risiko dalam Proses Audit',
+                'excerpt' => 'Strategi efektif untuk mengelola risiko dalam setiap tahapan proses audit.',
+                'content' => '
+                <h1 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-4 border-primary-600">Manajemen Risiko dalam Proses Audit</h1>
+                
+                <p class="text-gray-700 leading-relaxed mb-4 text-justify">
+                    Manajemen risiko adalah komponen kritis dalam proses audit. Identifikasi dan mitigasi risiko sejak awal akan meningkatkan kualitas hasil audit.
+                </p>
+
+                <h2 class="text-2xl font-bold text-primary-600 mt-8 mb-4">⚡ Jenis-jenis Risiko Audit</h2>
+
+                <ol class="space-y-3 my-6">
+                    <li class="flex items-start">
+                        <span class="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center font-bold mr-3">1</span>
+                        <span class="text-gray-700 leading-relaxed pt-1"><strong>Inherent Risk:</strong> Risiko yang melekat pada akun atau transaksi sebelum mempertimbangkan pengendalian internal.</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center font-bold mr-3">2</span>
+                        <span class="text-gray-700 leading-relaxed pt-1"><strong>Control Risk:</strong> Risiko bahwa pengendalian internal tidak mencegah atau mendeteksi kesalahan material.</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center font-bold mr-3">3</span>
+                        <span class="text-gray-700 leading-relaxed pt-1"><strong>Detection Risk:</strong> Risiko bahwa prosedur audit tidak mendeteksi kesalahan yang material.</span>
+                    </li>
+                </ol>
+
+                <div class="bg-primary-50 border-l-4 border-primary-600 p-6 my-6 rounded-r-lg">
+                    <h4 class="font-bold text-primary-600 mb-2 text-lg">💡 Best Practice</h4>
+                    <p class="text-gray-700 leading-relaxed">Lakukan risk assessment secara berkala dan update risk register Anda sesuai dengan perkembangan bisnis.</p>
+                </div>
+                ',
+                'status' => 'published',
+                'published_at' => now()->subHours(12),
+            ],
+            [
+                'title' => 'Integrasi AI dalam Proses Audit Modern',
+                'excerpt' => 'Bagaimana kecerdasan buatan mengubah landscape audit modern dan meningkatkan akurasi.',
+                'content' => '
+                <h1 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-4 border-primary-600">Integrasi AI dalam Proses Audit Modern</h1>
+                
+                <p class="text-gray-700 leading-relaxed mb-4 text-justify">
+                    Artificial Intelligence (AI) membawa revolusi dalam dunia audit. Dari analisis data hingga deteksi fraud, AI membantu auditor bekerja lebih cerdas dan efisien.
+                </p>
+
+                <h2 class="text-2xl font-bold text-primary-600 mt-8 mb-4">🤖 Aplikasi AI dalam Audit</h2>
+
+                <ul class="space-y-3 my-6">
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-gray-700 leading-relaxed">Automated data extraction dan cleansing</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-gray-700 leading-relaxed">Anomaly detection dan fraud identification</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-gray-700 leading-relaxed">Predictive analytics untuk risk assessment</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-gray-700 leading-relaxed">Natural language processing untuk analisis dokumen</span>
+                    </li>
+                </ul>
+                ',
+                'status' => 'published',
+                'published_at' => now()->subHours(6),
+            ],
+            [
+                'title' => 'Kolaborasi Tim yang Efektif dalam Audit',
+                'excerpt' => 'Strategi membangun kolaborasi tim audit yang solid untuk hasil yang maksimal.',
+                'content' => '
+                <h1 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-4 border-primary-600">Kolaborasi Tim yang Efektif dalam Audit</h1>
+                
+                <p class="text-gray-700 leading-relaxed mb-4 text-justify">
+                    Kolaborasi tim yang baik adalah fondasi kesuksesan setiap proyek audit. Komunikasi yang efektif dan koordinasi yang solid menghasilkan audit yang berkualitas.
+                </p>
+
+                <h3 class="text-xl font-semibold text-gray-800 mt-6 mb-3 pl-4 border-l-4 border-primary-600">Kunci Kolaborasi Sukses</h3>
+
+                <p class="text-gray-700 leading-relaxed mb-4 text-justify">
+                    Gunakan tools kolaborasi modern, adakan meeting reguler, dan pastikan semua anggota tim memiliki akses ke informasi yang sama. Transparansi adalah kunci.
+                </p>
+
+                <div class="bg-primary-50 border-l-4 border-primary-600 p-6 my-6 rounded-r-lg">
+                    <h4 class="font-bold text-primary-600 mb-2 text-lg">💡 Tips Kolaborasi</h4>
+                    <p class="text-gray-700 leading-relaxed">Manfaatkan platform cloud-based untuk real-time collaboration dan pastikan semua komunikasi terdokumentasi dengan baik.</p>
+                </div>
+                ',
+                'status' => 'published',
+                'published_at' => now()->subHours(3),
+            ],
+            [
+                'title' => 'Compliance dan Regulasi Audit Terbaru',
+                'excerpt' => 'Update terkini tentang compliance dan regulasi audit yang perlu Anda ketahui.',
+                'content' => '
+                <h1 class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-4 border-primary-600">Compliance dan Regulasi Audit Terbaru</h1>
+                
+                <p class="text-gray-700 leading-relaxed mb-4 text-justify">
+                    Regulasi audit terus berkembang mengikuti dinamika bisnis global. Penting bagi auditor untuk selalu update dengan peraturan terbaru.
+                </p>
+
+                <div class="bg-yellow-50 border-l-4 border-yellow-500 p-6 my-6 rounded-r-lg">
+                    <h4 class="font-bold text-yellow-700 mb-2 text-lg">⚠️ Update Penting</h4>
+                    <p class="text-gray-700 leading-relaxed">Pastikan tim audit Anda familiar dengan standar audit internasional terbaru dan regulasi lokal yang berlaku.</p>
+                </div>
+
+                <h2 class="text-2xl font-bold text-primary-600 mt-8 mb-4">📜 Standar Audit Utama</h2>
+
+                <ul class="space-y-3 my-6">
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-gray-700 leading-relaxed">International Standards on Auditing (ISA)</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-gray-700 leading-relaxed">Generally Accepted Auditing Standards (GAAS)</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-gray-700 leading-relaxed">Public Company Accounting Oversight Board (PCAOB) Standards</span>
+                    </li>
+                </ul>
+                ',
+                'status' => 'published',
+                'published_at' => now()->subHours(1),
+            ],
         ];
 
         foreach ($newsData as $data) {

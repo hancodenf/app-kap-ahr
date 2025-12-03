@@ -75,6 +75,7 @@ export default function UpdateProfileInformation({
     const [zoom, setZoom] = useState(1);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
     const [rotation, setRotation] = useState(0);
+    const [isCompressing, setIsCompressing] = useState(false);
 
     // Daftar kode negara populer
     const countryCodes = [
@@ -162,12 +163,29 @@ export default function UpdateProfileInformation({
             Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
         );
 
+        // Compression logic - max 200KB
         return new Promise((resolve) => {
-            canvas.toBlob((blob) => {
-                if (blob) {
-                    resolve(blob);
-                }
-            }, 'image/jpeg', 0.95);
+            const maxSizeKB = 200;
+            const maxSizeBytes = maxSizeKB * 1024;
+            let quality = 0.95;
+
+            const attemptCompress = () => {
+                canvas.toBlob((currentBlob) => {
+                    if (!currentBlob) return;
+
+                    console.log(`Compression attempt - Quality: ${(quality * 100).toFixed(0)}%, Size: ${(currentBlob.size / 1024).toFixed(2)} KB`);
+
+                    if (currentBlob.size <= maxSizeBytes || quality <= 0.1) {
+                        console.log(`Final compressed size: ${(currentBlob.size / 1024).toFixed(2)} KB`);
+                        resolve(currentBlob);
+                    } else {
+                        quality -= 0.05;
+                        attemptCompress();
+                    }
+                }, 'image/jpeg', quality);
+            };
+
+            attemptCompress();
         });
     };
 
@@ -187,6 +205,7 @@ export default function UpdateProfileInformation({
         if (!imageSrc || !croppedAreaPixels) return;
 
         try {
+            setIsCompressing(true);
             const croppedImageBlob = await getCroppedImg(imageSrc, croppedAreaPixels, rotation);
             const croppedFile = new File([croppedImageBlob], 'profile.jpg', { type: 'image/jpeg' });
             
@@ -205,6 +224,8 @@ export default function UpdateProfileInformation({
             setRotation(0);
         } catch (error) {
             console.error('Error cropping image:', error);
+        } finally {
+            setIsCompressing(false);
         }
     };
 
@@ -283,21 +304,39 @@ export default function UpdateProfileInformation({
                             </div>
                         </div>
                         
-                        <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
-                            <button
-                                type="button"
-                                onClick={handleCropCancel}
-                                className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                            >
-                                Batal
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleCropSave}
-                                className="px-4 py-2 bg-primary-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                            >
-                                Simpan & Gunakan
-                            </button>
+                        <div className="p-4 border-t border-gray-200">
+                            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-3">
+                                <div className="flex">
+                                    <div className="flex-shrink-0">
+                                        <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div className="ml-3">
+                                        <p className="text-sm text-blue-700">
+                                            Foto akan otomatis dikompres hingga maksimal 200 KB untuk menghemat ruang penyimpanan.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleCropCancel}
+                                    disabled={isCompressing}
+                                    className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleCropSave}
+                                    disabled={isCompressing}
+                                    className="px-4 py-2 bg-primary-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isCompressing ? 'Mengkompress...' : 'Simpan & Gunakan'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { PageProps } from '@/types';
-import { FormEventHandler, useEffect, useRef } from 'react';
+import { FormEventHandler, useEffect, useRef, useState } from 'react';
 
 // Import Summernote CSS
 import 'summernote/dist/summernote-lite.css';
@@ -27,6 +27,121 @@ export default function Edit({ auth, news }: PageProps<{ news: News }>) {
     });
 
     const editorRef = useRef<HTMLTextAreaElement>(null);
+    const [showCopyToast, setShowCopyToast] = useState(false);
+
+    const copyPromptToClipboard = async () => {
+        const prompt = `Saya ingin Anda membantu mengkonversi artikel berikut menjadi format HTML yang clean, profesional, kreatif, dan mudah dibaca menggunakan Tailwind CSS classes.
+
+Persyaratan:
+1. Jangan sertakan tag <html>, <head>, atau <body>
+2. Langsung mulai dengan konten artikel (misal: <article> atau <div>)
+3. Gunakan Tailwind CSS classes untuk styling dengan prinsip:
+   - Typography yang readable (text-base, text-lg, leading-relaxed)
+   - Heading hierarchy yang jelas (text-2xl, text-xl, font-bold)
+   - Spacing yang konsisten (space-y-4, space-y-6, mb-4, mt-6)
+   - Warna profesional dengan accent hijau (#primary-600)
+
+4. Format khusus dengan desain kreatif:
+
+   📝 Paragraf:
+   class="text-gray-700 leading-relaxed mb-4 text-justify"
+
+   📌 Heading H1:
+   class="text-3xl font-bold text-gray-900 mb-4 pb-2 border-b-4 border-primary-600"
+
+   📌 Heading H2:
+   class="text-2xl font-bold text-primary-600 mt-8 mb-4 flex items-center"
+   (tambahkan icon/emoji di awal jika relevan)
+
+   📌 Heading H3:
+   class="text-xl font-semibold text-gray-800 mt-6 mb-3 pl-4 border-l-4 border-primary-600"
+
+   🔹 Unordered List (Poin):
+   <ul class="space-y-3 my-6">
+     <li class="flex items-start">
+       <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+       </svg>
+       <span class="text-gray-700 leading-relaxed">[ISI POIN]</span>
+     </li>
+   </ul>
+
+   🔢 Ordered List (Numbering):
+   <ol class="space-y-3 my-6">
+     <li class="flex items-start">
+       <span class="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center font-bold mr-3">1</span>
+       <span class="text-gray-700 leading-relaxed pt-1">[ISI POIN]</span>
+     </li>
+   </ol>
+
+   💬 Blockquote:
+   <blockquote class="border-l-4 border-primary-600 bg-gray-50 pl-6 pr-4 py-4 my-6 italic">
+     <p class="text-gray-700 leading-relaxed mb-2">[QUOTE TEXT]</p>
+     <footer class="text-sm text-gray-600">— [AUTHOR]</footer>
+   </blockquote>
+
+   🖼️ Images:
+   <figure class="my-8">
+     <img src="[URL]" alt="[ALT]" class="w-full rounded-xl shadow-lg" />
+     <figcaption class="text-sm text-gray-600 text-center mt-3 italic">[CAPTION]</figcaption>
+   </figure>
+
+   📊 Tabel:
+   <div class="overflow-x-auto my-8">
+     <table class="min-w-full divide-y divide-gray-300 border border-gray-300 rounded-lg overflow-hidden">
+       <thead class="bg-primary-600">
+         <tr>
+           <th class="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Header 1</th>
+           <th class="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Header 2</th>
+         </tr>
+       </thead>
+       <tbody class="bg-white divide-y divide-gray-200">
+         <tr class="hover:bg-gray-50 transition-colors">
+           <td class="px-6 py-4 text-sm text-gray-700">Data 1</td>
+           <td class="px-6 py-4 text-sm text-gray-700">Data 2</td>
+         </tr>
+       </tbody>
+     </table>
+   </div>
+
+   📦 Box/Card Highlight:
+   <div class="bg-primary-50 border-l-4 border-primary-600 p-6 my-6 rounded-r-lg">
+     <h4 class="font-bold text-primary-600 mb-2 text-lg">💡 [JUDUL]</h4>
+     <p class="text-gray-700 leading-relaxed">[KONTEN]</p>
+   </div>
+
+   ⚠️ Warning/Alert Box:
+   <div class="bg-yellow-50 border-l-4 border-yellow-500 p-6 my-6 rounded-r-lg">
+     <h4 class="font-bold text-yellow-700 mb-2 text-lg">⚠️ [JUDUL]</h4>
+     <p class="text-gray-700 leading-relaxed">[KONTEN]</p>
+   </div>
+
+5. Desain harus:
+   - Clean dan modern dengan sedikit kreativitas
+   - Mudah dibaca untuk artikel panjang
+   - Responsif untuk semua device
+   - Fokus pada readability dengan visual enhancement
+   - Gunakan icon SVG atau emoji untuk mempercantik
+   - Warna accent: primary-600 (hijau)
+
+Silakan konversi artikel di bawah ini:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[PASTE ARTIKEL ANDA DI SINI]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Berikan output dalam format kode HTML yang siap digunakan, tanpa penjelasan tambahan. Pastikan menggunakan elemen yang sesuai dengan jenis konten (heading, list, tabel, dll).`;
+
+        try {
+            await navigator.clipboard.writeText(prompt);
+            setShowCopyToast(true);
+            setTimeout(() => setShowCopyToast(false), 3000);
+        } catch (err) {
+            alert('Gagal menyalin prompt. Silakan coba lagi.');
+        }
+    };
 
     // Transform data before sending - only include featured_image if it's not null
     transform((data) => {
@@ -179,12 +294,37 @@ export default function Edit({ auth, news }: PageProps<{ news: News }>) {
 
                             {/* Content - Summernote Editor */}
                             <div>
-                                <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Content *
-                                </label>
+                                <div className="flex justify-between items-center mb-2">
+                                    <label htmlFor="content" className="block text-sm font-medium text-gray-700">
+                                        Content *
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={copyPromptToClipboard}
+                                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md transition-colors"
+                                    >
+                                        <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                        </svg>
+                                        Copy Prompt AI
+                                    </button>
+                                </div>
+                                <p className="text-xs text-gray-500 mb-2">
+                                    💡 <strong>Tip:</strong> Klik "Copy Prompt AI" → Paste ke ChatGPT/Claude → Paste artikel mentah Anda → Copy hasil HTML → Paste di Summernote (mode Code View)
+                                </p>
                                 <textarea ref={editorRef} id="content" style={{ display: 'none' }} />
                                 {errors.content && <p className="mt-1 text-sm text-red-600">{errors.content}</p>}
                             </div>
+
+                            {/* Toast Notification */}
+                            {showCopyToast && (
+                                <div className="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 animate-fade-in-up z-50">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <span className="font-medium">Prompt berhasil disalin! Paste ke AI platform Anda.</span>
+                                </div>
+                            )}
 
                             {/* Status */}
                             <div>

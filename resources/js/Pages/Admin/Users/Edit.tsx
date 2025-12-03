@@ -184,12 +184,32 @@ export default function Edit({ user, roles, positions, userTypes, clients }: Edi
             Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
         );
 
-        return new Promise((resolve) => {
-            canvas.toBlob((blob) => {
-                if (blob) {
-                    resolve(blob);
-                }
-            }, 'image/jpeg', 0.95);
+        // Compress image to max 200KB
+        const maxSizeKB = 200;
+        const maxSizeBytes = maxSizeKB * 1024;
+        let quality = 0.95;
+        let blob: Blob | null = null;
+
+        return new Promise((resolve, reject) => {
+            const attemptCompress = () => {
+                canvas.toBlob((currentBlob) => {
+                    if (!currentBlob) {
+                        reject(new Error('Failed to create blob'));
+                        return;
+                    }
+
+                    // Check if size is acceptable or quality is too low
+                    if (currentBlob.size <= maxSizeBytes || quality <= 0.1) {
+                        resolve(currentBlob);
+                    } else {
+                        // Reduce quality and try again
+                        quality -= 0.05;
+                        attemptCompress();
+                    }
+                }, 'image/jpeg', quality);
+            };
+
+            attemptCompress();
         });
     };
 
@@ -209,8 +229,19 @@ export default function Edit({ user, roles, positions, userTypes, clients }: Edi
         if (!imageSrc || !croppedAreaPixels) return;
 
         try {
+            // Show loading state
+            const saveButton = document.getElementById('crop-save-button');
+            if (saveButton) {
+                saveButton.textContent = 'Mengkompress...';
+                saveButton.setAttribute('disabled', 'true');
+            }
+
             const croppedImageBlob = await getCroppedImg(imageSrc, croppedAreaPixels, rotation);
             const croppedFile = new File([croppedImageBlob], 'profile.jpg', { type: 'image/jpeg' });
+            
+            // Show file size info
+            const sizeKB = (croppedImageBlob.size / 1024).toFixed(2);
+            console.log(`Compressed image size: ${sizeKB} KB`);
             
             setData('profile_photo', croppedFile);
             
@@ -227,6 +258,7 @@ export default function Edit({ user, roles, positions, userTypes, clients }: Edi
             setRotation(0);
         } catch (error) {
             console.error('Error cropping image:', error);
+            alert('Gagal memproses gambar. Silakan coba lagi.');
         }
     };
 
@@ -287,6 +319,12 @@ export default function Edit({ user, roles, positions, userTypes, clients }: Edi
                                 <div className="p-4 border-b border-gray-200">
                                     <h3 className="text-lg font-semibold text-gray-900">Crop Profile Photo</h3>
                                     <p className="text-sm text-gray-500 mt-1">Adjust photo position and size (1:1 Ratio)</p>
+                                    <div className="mt-2 flex items-center gap-2 text-xs text-gray-600 bg-blue-50 border border-blue-200 rounded-md p-2">
+                                        <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                        </svg>
+                                        <span>Foto akan otomatis dikompress maksimal 200KB saat disimpan</span>
+                                    </div>
                                 </div>
                                 
                                 <div className="p-4">
@@ -348,9 +386,10 @@ export default function Edit({ user, roles, positions, userTypes, clients }: Edi
                                         Batal
                                     </button>
                                     <button
+                                        id="crop-save-button"
                                         type="button"
                                         onClick={handleCropSave}
-                                        className="px-4 py-2 bg-primary-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                                        className="px-4 py-2 bg-primary-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         Simpan & Gunakan
                                     </button>
