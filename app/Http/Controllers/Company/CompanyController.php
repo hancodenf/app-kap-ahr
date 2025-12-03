@@ -969,7 +969,6 @@ class CompanyController extends Controller
         // Update status from pending to in-progress when detail page is opened (only if still pending)
         if ($latestAssignment->status === $approval->status_name_pending && $latestAssignment->maker_can_edit === true) {
             $latestAssignment->maker_can_edit === false;
-            $latestAssignment->status = $approval->status_name_progress;
             $latestAssignment->save();
         }
         
@@ -1427,7 +1426,8 @@ class CompanyController extends Controller
             'project_client_name' => $task->project_client_name,
             'time' => now(),
             'notes' => "Re-upload requested\nComment:\n" . $request->comment,
-            'maker' => 'client',
+            'maker' => $task->approval_type == 'Once' ? 'client' : 'company',
+            'maker_can_edit' => true,
             'status' => $task->approval_type == 'Once' ? 'Submitted to Client' : $lowestApproval->status_name_pending, // Set status to request re-upload from client
         ]);
 

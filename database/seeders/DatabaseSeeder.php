@@ -41,5 +41,18 @@ class DatabaseSeeder extends Seeder
             RegisteredApSeeder::class,
             NewsSeeder::class,
         ]);
+
+        // Clean up existing storage directories before creating new ones
+        $this->command->info('Cleaning up existing storage directories...');
+        $clientsPath = storage_path('app/public/clients');
+        if (file_exists($clientsPath)) {
+            \Illuminate\Support\Facades\File::deleteDirectory($clientsPath);
+            $this->command->info('Existing clients directory removed.');
+        }
+
+        // After all seeders completed, create storage directories
+        $this->command->info('Creating storage directories...');
+        \Illuminate\Support\Facades\Artisan::call('storage:create-directories');
+        $this->command->info('Storage directories created successfully!');
     }
 }

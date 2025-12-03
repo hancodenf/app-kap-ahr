@@ -533,6 +533,9 @@ class ClientController extends Controller
             $latestAssignment->save();
         }
 
+        $canEdit = false;
+        $canEdit = $latestAssignment->maker === 'client' && $latestAssignment->status === 'Client Reply' && $latestAssignment->maker_can_edit === true;
+
         // Find pending client documents from LATEST filtered assignment ONLY
         $pendingClientDocs = [];
         if ($latestAssignment && $latestAssignment->clientDocuments) {
@@ -576,6 +579,7 @@ class ClientController extends Controller
             'project_name' => $task->project->name,
             'working_step_name' => $task->workingStep->name,
             'workers' => $workers,
+            'can_edit' => $canEdit,
             'latest_assignment' => $latestAssignment ? [
                 'id' => $latestAssignment->id,
                 'time' => $latestAssignment->time,
@@ -704,6 +708,8 @@ class ClientController extends Controller
             // Update assignment status to Client Reply
             $latestAssignment->update([
                 'status' => 'Client Reply',
+                'maker' => 'client',
+                'maker_can_edit' => true,
             ]);
             
             // Update task completion status
@@ -770,6 +776,8 @@ class ClientController extends Controller
         $latestAssignment->update([
             'client_comment' => $request->client_comment,
             'status' => 'Client Reply',
+            'maker' => 'client',
+            'maker_can_edit' => true,
         ]);
         
         $assignment = $latestAssignment;
