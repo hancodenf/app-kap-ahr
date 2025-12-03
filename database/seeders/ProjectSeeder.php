@@ -173,7 +173,7 @@ class ProjectSeeder extends Seeder
         }
         
         // Add some historical projects for analytics (2023-2025)
-        $this->createHistoricalProjects();
+        // $this->createHistoricalProjects();
     }
     
     private function createHistoricalProjects()

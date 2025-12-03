@@ -170,6 +170,9 @@ export default function Index({ users, filters, positionCounts }: TeamsPageProps
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            No.
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             User
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -194,8 +197,13 @@ export default function Index({ users, filters, positionCounts }: TeamsPageProps
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {users.data.length > 0 ? (
-                                        users.data.map((user) => (
+                                        users.data.map((user, index) => (
                                             <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm font-medium text-gray-900">
+                                                        {(users.current_page - 1) * users.per_page + index + 1}
+                                                    </div>
+                                                </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center">
                                                         {user.profile_photo ? (
@@ -297,7 +305,7 @@ export default function Index({ users, filters, positionCounts }: TeamsPageProps
                                     <div className="flex-1 flex justify-between sm:hidden">
                                         {users.links[0].url && (
                                             <Link
-                                                href={users.links[0].url}
+                                                href={users.links[0].url || ''}
                                                 className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                                             >
                                                 Previous
@@ -305,7 +313,7 @@ export default function Index({ users, filters, positionCounts }: TeamsPageProps
                                         )}
                                         {users.links[users.links.length - 1].url && (
                                             <Link
-                                                href={users.links[users.links.length - 1].url}
+                                                href={users.links[users.links.length - 1].url || ''}
                                                 className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                                             >
                                                 Next

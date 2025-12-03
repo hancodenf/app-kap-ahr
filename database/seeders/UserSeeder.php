@@ -45,17 +45,17 @@ class UserSeeder extends Seeder
             ["name" => "Purwanto", "position" => "Tenaga Ahli - Supervisor", "user_type" => "Staff", "email" => "purwanto@kap-ahr.com"],
             
             ["name" => "Bayu Dwi Cahyanto", "position" => "Senior Auditor", "user_type" => "Staff", "email" => "bayu_dwich@kap-ahr.com"],
-            ["name" => "Ananda Mohammad Rizky Setiawan", "position" => "Senior Auditor", "user_type" => "Staff", "email" => "anandamoris@kap-ahr.com"],
+            ["name" => "Ananda Mohammad Rizky", "position" => "Senior Auditor", "user_type" => "Staff", "email" => "anandamoris@kap-ahr.com"],
             ["name" => "Khairunnissa", "position" => "Senior Auditor", "user_type" => "Staff", "email" => "khairunnissa@kap-ahr.com"],
             ["name" => "Zuhaira Fadla Fachrina", "position" => "Junior Auditor", "user_type" => "Staff", "email" => "zuhairafadla@kap-ahr.com"],
-            ["name" => "Muhammad Rifky Effendi", "position" => "Junior Auditor", "user_type" => "Staff", "email" => "rifky@kap-ahr.com"],
+            ["name" => "Muhammad Rifky Effendy", "position" => "Junior Auditor", "user_type" => "Staff", "email" => "rifky@kap-ahr.com"],
             ["name" => "Ria Afrizal", "position" => "Junior Auditor", "user_type" => "Staff", "email" => "ria_afrizal@kap-ahr.com"],
             ["name" => "Muhamad Rizky", "position" => "Junior Auditor", "user_type" => "Staff", "email" => "mhmd.rizk@kap-ahr.com"],
             ["name" => "Raden Panji Rangga Prasetyo", "position" => "Junior Auditor", "user_type" => "Staff", "email" => "rp.rangga@kap-ahr.com"],
             ["name" => "Satrio Bayu Wibowo", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "satriobw@kap-ahr.com"],
             ["name" => "Fakhira Rifa Adinda", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "fakhirarf@kap-ahr.com"],
-            ["name" => "Muhammad Luthfian", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "luthfian@kap-ahr.com"],
-            ["name" => "Muhammad Husni Faris Rasyid", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "husnifaris@kap-ahr.com"],
+            ["name" => "Muhammad Luthfian Arif", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "luthfian@kap-ahr.com"],
+            ["name" => "Muhammad Husni Faris", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "husnifaris@kap-ahr.com"],
             ["name" => "Ahmad Reski Tiarah", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "ahmadreski@kap-ahr.com"],
             ["name" => "Fitri Indah Ayuningsih", "position" => "Internship Finance", "user_type" => "Staff", "email" => "fitriindah@kap-ahr.com"],
             ["name" => "Hartono", "position" => "Support", "user_type" => "Staff", "email" => "hartono@kap-ahr.com"],
@@ -63,7 +63,7 @@ class UserSeeder extends Seeder
             
             // Tenaga Ahli
             ["name" => "Irma Nuranisa", "position" => "Tenaga Ahli - Supervisor", "user_type" => "Tenaga Ahli", "email" => "irmanuranisa@kap-ahr.com"],
-            ["name" => "Jeremi Oktavianus", "position" => "Senior Auditor", "user_type" => "Tenaga Ahli", "email" => "jeremi@kap-ahr.com"],
+            ["name" => "Jeremi Octavianus Iroth", "position" => "Senior Auditor", "user_type" => "Tenaga Ahli", "email" => "jeremi@kap-ahr.com"],
             ["name" => "Audy Alifia Rudy", "position" => "Senior Auditor", "user_type" => "Tenaga Ahli", "email" => "audyrudy@kap-ahr.com"],
             
             // ========== NEWLY ADDED USERS ==========

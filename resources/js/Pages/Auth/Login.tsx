@@ -48,6 +48,7 @@ export default function Login({
     const [showClient, setShowClient] = useState(false);
     const [failedAttempts, setFailedAttempts] = useState(0);
     const [showWarning, setShowWarning] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -76,6 +77,19 @@ export default function Login({
             password,
             remember: false,
         });
+    };
+
+    // Filter users based on search query
+    const filterUsers = (users: DemoUser[]) => {
+        if (!searchQuery.trim()) return users;
+        
+        const query = searchQuery.toLowerCase();
+        return users.filter(user => 
+            user.name.toLowerCase().includes(query) ||
+            user.email.toLowerCase().includes(query) ||
+            user.position?.toLowerCase().includes(query) ||
+            user.client_name?.toLowerCase().includes(query)
+        );
     };
 
     const renderUserCard = (user: DemoUser, colorClass: string) => (
@@ -267,10 +281,46 @@ export default function Login({
                             Click any account below to autofill login credentials
                         </p>
                     </div>
+
+                    {/* Search Input */}
+                    <div className="mb-4">
+                        <div className="relative">
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search by name, email, position, or client..."
+                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                            />
+                            <svg 
+                                className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            {searchQuery && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
+                    </div>
                     
                     <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                         {/* Admin Section */}
-                        {demoUsers?.admin && demoUsers.admin.length > 0 && (
+                        {demoUsers?.admin && demoUsers.admin.length > 0 && (() => {
+                            const filteredAdmins = filterUsers(demoUsers.admin);
+                            if (filteredAdmins.length === 0 && searchQuery) return null;
+                            
+                            return (
                             <div className="bg-red-50 rounded-lg border border-red-200 overflow-hidden">
                                 <button
                                     type="button"
@@ -283,7 +333,9 @@ export default function Login({
                                         </svg>
                                         <div className="text-left">
                                             <p className="text-sm font-semibold text-red-700">Admin</p>
-                                            <p className="text-xs text-red-600">{demoUsers.admin.length} users</p>
+                                            <p className="text-xs text-red-600">
+                                                {filteredAdmins.length} {searchQuery && `of ${demoUsers.admin.length}`} users
+                                            </p>
                                         </div>
                                     </div>
                                     <svg 
@@ -298,7 +350,7 @@ export default function Login({
                                 
                                 {showAdmin && (
                                     <div className="px-3 pb-3 space-y-2">
-                                        {demoUsers.admin.map((user, index) => (
+                                        {filteredAdmins.map((user, index) => (
                                             <button
                                                 key={index}
                                                 type="button"
@@ -311,10 +363,19 @@ export default function Login({
                                     </div>
                                 )}
                             </div>
-                        )}
+                            );
+                        })()}
 
                         {/* Company Section with Sub-groups */}
-                        {demoUsers?.company && (
+                        {demoUsers?.company && (() => {
+                            const filteredTenagaAhli = filterUsers(demoUsers.company.tenaga_ahli);
+                            const filteredStaff = filterUsers(demoUsers.company.staff);
+                            const hasTenagaAhli = filteredTenagaAhli.length > 0;
+                            const hasStaff = filteredStaff.length > 0;
+                            
+                            if (!hasTenagaAhli && !hasStaff && searchQuery) return null;
+                            
+                            return (
                             <div className="bg-blue-50 rounded-lg border border-blue-200 overflow-hidden">
                                 <button
                                     type="button"
@@ -328,7 +389,7 @@ export default function Login({
                                         <div className="text-left">
                                             <p className="text-sm font-semibold text-blue-700">Company</p>
                                             <p className="text-xs text-blue-600">
-                                                {demoUsers.company.tenaga_ahli.length + demoUsers.company.staff.length} users
+                                                {filteredTenagaAhli.length + filteredStaff.length} {searchQuery && `of ${demoUsers.company.tenaga_ahli.length + demoUsers.company.staff.length}`} users
                                             </p>
                                         </div>
                                     </div>
@@ -345,7 +406,7 @@ export default function Login({
                                 {showCompany && (
                                     <div className="px-3 pb-3 space-y-2">
                                         {/* Tenaga Ahli Sub-group */}
-                                        {demoUsers.company.tenaga_ahli.length > 0 && (
+                                        {hasTenagaAhli && (
                                             <div className="bg-purple-50 rounded-lg border border-purple-200 overflow-hidden">
                                                 <button
                                                     type="button"
@@ -354,7 +415,9 @@ export default function Login({
                                                 >
                                                     <div className="text-left">
                                                         <p className="text-xs font-semibold text-purple-700">Tenaga Ahli</p>
-                                                        <p className="text-[10px] text-purple-600">{demoUsers.company.tenaga_ahli.length} users</p>
+                                                        <p className="text-[10px] text-purple-600">
+                                                            {filteredTenagaAhli.length} {searchQuery && `of ${demoUsers.company.tenaga_ahli.length}`} users
+                                                        </p>
                                                     </div>
                                                     <svg 
                                                         className={`w-4 h-4 text-purple-600 transition-transform ${showTenagaAhli ? 'rotate-180' : ''}`}
@@ -368,7 +431,7 @@ export default function Login({
                                                 
                                                 {showTenagaAhli && (
                                                     <div className="px-2 pb-2 space-y-1.5 max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-purple-100">
-                                                        {demoUsers.company.tenaga_ahli.map((user, index) => (
+                                                        {filteredTenagaAhli.map((user, index) => (
                                                             <button
                                                                 key={index}
                                                                 type="button"
@@ -384,7 +447,7 @@ export default function Login({
                                         )}
 
                                         {/* Staff Sub-group */}
-                                        {demoUsers.company.staff.length > 0 && (
+                                        {hasStaff && (
                                             <div className="bg-cyan-50 rounded-lg border border-cyan-200 overflow-hidden">
                                                 <button
                                                     type="button"
@@ -393,7 +456,9 @@ export default function Login({
                                                 >
                                                     <div className="text-left">
                                                         <p className="text-xs font-semibold text-cyan-700">Staff</p>
-                                                        <p className="text-[10px] text-cyan-600">{demoUsers.company.staff.length} users</p>
+                                                        <p className="text-[10px] text-cyan-600">
+                                                            {filteredStaff.length} {searchQuery && `of ${demoUsers.company.staff.length}`} users
+                                                        </p>
                                                     </div>
                                                     <svg 
                                                         className={`w-4 h-4 text-cyan-600 transition-transform ${showStaff ? 'rotate-180' : ''}`}
@@ -407,7 +472,7 @@ export default function Login({
                                                 
                                                 {showStaff && (
                                                     <div className="px-2 pb-2 space-y-1.5 max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-cyan-300 scrollbar-track-cyan-100">
-                                                        {demoUsers.company.staff.map((user, index) => (
+                                                        {filteredStaff.map((user, index) => (
                                                             <button
                                                                 key={index}
                                                                 type="button"
@@ -424,10 +489,15 @@ export default function Login({
                                     </div>
                                 )}
                             </div>
-                        )}
+                            );
+                        })()}
 
                         {/* Client Section */}
-                        {demoUsers?.client && demoUsers.client.length > 0 && (
+                        {demoUsers?.client && demoUsers.client.length > 0 && (() => {
+                            const filteredClients = filterUsers(demoUsers.client);
+                            if (filteredClients.length === 0 && searchQuery) return null;
+                            
+                            return (
                             <div className="bg-green-50 rounded-lg border border-green-200 overflow-hidden">
                                 <button
                                     type="button"
@@ -440,7 +510,9 @@ export default function Login({
                                         </svg>
                                         <div className="text-left">
                                             <p className="text-sm font-semibold text-green-700">Client</p>
-                                            <p className="text-xs text-green-600">{demoUsers.client.length} users</p>
+                                            <p className="text-xs text-green-600">
+                                                {filteredClients.length} {searchQuery && `of ${demoUsers.client.length}`} users
+                                            </p>
                                         </div>
                                     </div>
                                     <svg 
@@ -455,7 +527,7 @@ export default function Login({
                                 
                                 {showClient && (
                                     <div className="px-3 pb-3 space-y-2">
-                                        {demoUsers.client.map((user, index) => (
+                                        {filteredClients.map((user, index) => (
                                             <button
                                                 key={index}
                                                 type="button"
@@ -467,6 +539,22 @@ export default function Login({
                                         ))}
                                     </div>
                                 )}
+                            </div>
+                            );
+                        })()}
+
+                        {/* No results message */}
+                        {searchQuery && demoUsers && 
+                            filterUsers(demoUsers.admin || []).length === 0 &&
+                            filterUsers(demoUsers.company?.tenaga_ahli || []).length === 0 &&
+                            filterUsers(demoUsers.company?.staff || []).length === 0 &&
+                            filterUsers(demoUsers.client || []).length === 0 && (
+                            <div className="text-center py-8">
+                                <svg className="w-16 h-16 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <h3 className="text-lg font-medium text-gray-900 mb-1">No users found</h3>
+                                <p className="text-sm text-gray-500">Try searching with different keywords</p>
                             </div>
                         )}
                     </div>
