@@ -198,8 +198,15 @@ class ProjectController extends Controller
             'team_members' => 'nullable|array',
             'team_members.*.user_id' => 'required|exists:users,id',
             'team_members.*.role' => 'required|in:partner,manager,supervisor,team leader,member',
-            'template_id' => 'nullable|exists:project_templates,id',
+            'template_id' => 'nullable|integer|min:0',
         ]);
+
+        // Additional validation for template_id if not 0
+        if ($request->template_id && $request->template_id > 0) {
+            $request->validate([
+                'template_id' => 'exists:project_templates,id',
+            ]);
+        }
 
         // Check if project with same client and year already exists
         $existingProject = Project::where('client_id', $request->client_id)
@@ -246,8 +253,8 @@ class ProjectController extends Controller
             }
         }
 
-        // Copy from template if provided
-        if ($request->template_id) {
+        // Copy from template if provided and not 0
+        if ($request->template_id && $request->template_id > 0) {
             $this->copyTemplateToProject($request->template_id, $project->id);
         }
 

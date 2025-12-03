@@ -101,7 +101,7 @@ class Project extends Model
         // Get client slug from denormalized data or from relationship
         $clientSlug = $this->client ? $this->client->slug : \Illuminate\Support\Str::slug($this->client_name);
         
-        return "clients/{$clientSlug}/{$this->slug}";
+        return "clients/{$clientSlug}/projects/{$this->slug}";
     }
 
     /**

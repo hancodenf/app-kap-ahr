@@ -150,7 +150,7 @@ class Task extends Model
             ? $this->project->slug 
             : \Illuminate\Support\Str::slug($this->project_name);
         
-        return "clients/{$clientSlug}/{$projectSlug}/{$this->slug}";
+        return "clients/{$clientSlug}/projects/{$projectSlug}/{$this->slug}";
     }
 
     /**

@@ -1153,7 +1153,8 @@ class CompanyController extends Controller
                 $message = "Task approved! Waiting for client to upload requested documents.";
             } else {
                 // No client interaction needed - mark as completed
-                $latestAssignment->status = $currentApproval->status_name_complete;
+                // $latestAssignment->status = $currentApproval->status_name_complete;
+                $latestAssignment->status = 'Submitted to Client';
                 $latestAssignment->save();
                 
                 $task->completion_status = 'completed';

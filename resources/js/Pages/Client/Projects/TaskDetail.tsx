@@ -80,25 +80,44 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
     
     const { data, setData, post, processing, errors, reset } = useForm<{
         client_comment: string;
-        client_document_files: { [key: number]: File | null };
+        files: File[];
+        file_labels: string[];
+        client_document_ids: number[];
     }>({
         client_comment: '',
-        client_document_files: pendingClientDocs.reduce((acc, doc) => {
-            acc[doc.id] = null;
-            return acc;
-        }, {} as { [key: number]: File | null }),
+        files: [],
+        file_labels: [],
+        client_document_ids: pendingClientDocs.map(doc => doc.id),
     });
 
     const handleClientDocFileChange = (docId: number, file: File | null) => {
-        setData('client_document_files', {
-            ...data.client_document_files,
-            [docId]: file,
-        });
+        const docIndex = pendingClientDocs.findIndex(doc => doc.id === docId);
+        if (docIndex !== -1) {
+            const newFiles = [...data.files];
+            const newLabels = [...data.file_labels];
+            
+            if (file) {
+                newFiles[docIndex] = file;
+                newLabels[docIndex] = pendingClientDocs[docIndex].name;
+            } else {
+                newFiles.splice(docIndex, 1);
+                newLabels.splice(docIndex, 1);
+            }
+            
+            setData({
+                ...data,
+                files: newFiles,
+                file_labels: newLabels,
+            });
+        }
     };
 
     const handleSubmit: FormEventHandler = (e) => {
         e.preventDefault();
-        post(route('klien.client-documents.upload', task.id), {
+        
+        // Always use submit-reply route for client interactions
+        // The backend will handle whether to create new assignment or update existing
+        post(route('klien.tasks.submit-reply', task.id), {
             preserveScroll: true,
             forceFormData: true,
             onSuccess: () => {
@@ -107,9 +126,17 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
         });
     };
 
-    // Client can interact if permission is 'comment' or 'upload' and hasn't replied yet
-    const canInteract = task.client_interact !== 'read only' && !task.latest_assignment?.client_comment;
-    const canUploadFiles = task.client_interact === 'upload' && !task.latest_assignment?.client_comment;
+    // Client can interact based on client_interact permission and task status
+    // Can interact if:
+    // 1. Task allows interaction (comment or upload)
+    // 2. Latest assignment status is "Submitted to Client" (company is asking for client input)
+    // 3. Task is not completed yet
+    const latestAssignment = task.assignments?.[0]; // assignments are sorted by latest first
+    const canInteract = task.client_interact !== 'read only' && 
+                       latestAssignment?.status === 'Submitted to Client' && 
+                       task.completion_status !== 'completed';
+    
+    const canUploadFiles = task.client_interact === 'upload' && canInteract;
 
     const getStatusBadgeClass = (status: string) => {
         switch (status) {
@@ -481,12 +508,12 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                             required
                                                         />
 
-                                                        {data.client_document_files[doc.id] && (
+                                                        {data.files[index] && (
                                                             <p className="text-xs text-green-700 mt-2 flex items-center">
                                                                 <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                                                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                                                 </svg>
-                                                                {data.client_document_files[doc.id]?.name}
+                                                                {data.files[index]?.name}
                                                             </p>
                                                         )}
                                                     </div>
@@ -503,14 +530,15 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
 
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                Komentar (Optional)
+                                                {task.client_interact === 'comment' ? 'Komentar *' : 'Komentar (Optional)'}
                                             </label>
                                             <textarea
                                                 value={data.client_comment}
                                                 onChange={(e) => setData('client_comment', e.target.value)}
                                                 rows={4}
-                                                placeholder="Tambahkan catatan atau komentar..."
+                                                placeholder={task.client_interact === 'comment' ? 'Tuliskan komentar atau tanggapan Anda...' : 'Tambahkan catatan atau komentar...'}
                                                 className="w-full border-gray-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                                required={task.client_interact === 'comment' && pendingClientDocs.length === 0}
                                             />
                                         </div>
 
@@ -519,7 +547,14 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                             disabled={processing}
                                             className="w-full px-4 py-3 text-sm font-semibold text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                                         >
-                                            {processing ? 'Mengupload...' : 'Upload Dokumen'}
+                                            {processing 
+                                                ? 'Mengirim...' 
+                                                : task.client_interact === 'comment'
+                                                    ? 'Kirim Komentar'
+                                                    : task.client_interact === 'upload' && pendingClientDocs.length > 0
+                                                        ? 'Upload Dokumen'
+                                                        : 'Kirim Balasan'
+                                            }
                                         </button>
                                     </form>
                                 </div>
@@ -530,12 +565,24 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
                                         <p className="text-lg font-medium text-gray-900 mb-1">
-                                            {task.latest_assignment?.client_comment ? 'Balasan Terkirim' : 'View Only'}
+                                            {task.completion_status === 'completed' 
+                                                ? 'Task Selesai'
+                                                : latestAssignment?.status === 'Client Reply'
+                                                    ? 'Menunggu Review'
+                                                    : task.client_interact === 'read only'
+                                                        ? 'View Only'
+                                                        : 'Belum Ada Permintaan'
+                                            }
                                         </p>
                                         <p className="text-sm text-gray-600">
-                                            {task.latest_assignment?.client_comment 
-                                                ? 'Anda sudah mengirim balasan untuk task ini' 
-                                                : 'Task ini hanya untuk melihat informasi'}
+                                            {task.completion_status === 'completed'
+                                                ? 'Task ini sudah selesai dikerjakan'
+                                                : latestAssignment?.status === 'Client Reply'
+                                                    ? 'Tim sedang mereview balasan Anda'
+                                                    : task.client_interact === 'read only'
+                                                        ? 'Task ini hanya untuk melihat informasi'
+                                                        : 'Menunggu permintaan dari tim audit'
+                                            }
                                         </p>
                                     </div>
                                 </div>

@@ -663,9 +663,13 @@ class ClientController extends Controller
                 $clientDoc = \App\Models\ClientDocument::find($docId);
                 
                 if ($clientDoc && $clientDoc->task_assignment_id === $latestAssignment->id && !$clientDoc->file) {
-                    // Store the file
+                    // Get task model and proper storage path
+                    $taskModel = \App\Models\Task::find($task->id);
+                    $storageRelativePath = $taskModel->getStoragePath();
+                    
+                    // Store the file in the task's directory
                     $fileName = time() . '_' . $file->getClientOriginalName();
-                    $filePath = $file->storeAs('client_documents', $fileName, 'public');
+                    $filePath = $file->storeAs($storageRelativePath, $fileName, 'public');
                     
                     // Update client document
                     $clientDoc->update([
@@ -752,66 +756,104 @@ class ClientController extends Controller
             'files.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:10240', // 10MB max
             'file_labels' => 'nullable|array',
             'file_labels.*' => 'nullable|string|max:255',
+            'client_document_ids' => 'nullable|array',
+            'client_document_ids.*' => 'nullable|string|exists:client_documents,id',
         ]);
 
-        // Create new task assignment for client reply
-        $assignment = \App\Models\TaskAssignment::create([
-            'task_id' => $task->id,
-            'task_name' => $task->name,
-            'working_step_name' => $task->working_step_name,
-            'project_name' => $task->project_name,
-            'project_client_name' => $task->project_client_name,
-            'time' => now(),
-            'notes' => null, // Client doesn't use notes field
+        // Get the latest task assignment (should be "Submitted to Client" status from company)
+        $latestAssignment = $task->taskAssignments()->latest()->first();
+        
+        if (!$latestAssignment || $latestAssignment->status !== 'Submitted to Client') {
+            return back()->with('error', 'Tidak ada permintaan yang perlu dibalas untuk task ini.');
+        }
+        
+        $hasFiles = $request->hasFile('files');
+        $hasComment = !empty($request->client_comment);
+        
+        // Always update existing assignment, never create new one
+        // Client reply is filling the existing assignment created by company
+        $latestAssignment->update([
             'client_comment' => $request->client_comment,
-            'comment' => null,
+            'status' => 'Client Reply',
         ]);
+        
+        $assignment = $latestAssignment;
 
-        // Upload files
-        if ($request->hasFile('files')) {
+        // Upload files to existing client documents
+        if ($hasFiles) {
             $files = $request->file('files');
-            $labels = $request->file_labels ?? [];
-
+            $file_labels = $request->file_labels ?? [];
+            $client_document_ids = $request->client_document_ids ?? [];
+            
             foreach ($files as $index => $file) {
-                $label = $labels[$index] ?? $file->getClientOriginalName();
+                // Find corresponding client document by ID if provided, otherwise by index
+                $clientDocId = $client_document_ids[$index] ?? null;
                 
-                // Store the file
-                $fileName = time() . '_' . $index . '_' . $file->getClientOriginalName();
-                $filePath = $file->storeAs('documents', $fileName, 'public');
+                if ($clientDocId) {
+                    $clientDoc = \App\Models\ClientDocument::where('id', $clientDocId)
+                        ->where('task_assignment_id', $assignment->id)
+                        ->first();
+                } else {
+                    // Fallback: get pending client documents by index
+                    $pendingClientDocs = $assignment->clientDocuments()->whereNull('file')->get();
+                    $clientDoc = $pendingClientDocs->get($index);
+                }
                 
-                // Create document record
-                \App\Models\Document::create([
-                    'task_assignment_id' => $assignment->id,
-                    'name' => $label,
-                    'slug' => \Illuminate\Support\Str::slug($label . '-' . time() . '-' . $index),
-                    'file' => $filePath,
-                    'uploaded_at' => now(),
-                ]);
+                if ($clientDoc && !$clientDoc->file) {
+                    // Get task for proper file storage path
+                    $taskModel = \App\Models\Task::find($task->id);
+                    $storageRelativePath = $taskModel->getStoragePath();
+                    
+                    // Store the file in the task's directory
+                    $fileName = time() . '_' . $index . '_' . $file->getClientOriginalName();
+                    $filePath = $file->storeAs($storageRelativePath, $fileName, 'public');
+                    
+                    // Update existing client document with file
+                    $clientDoc->update([
+                        'file' => $filePath,
+                        'uploaded_at' => now(),
+                        'description' => $file_labels[$index] ?? $clientDoc->description ?? 'Uploaded by client',
+                    ]);
+                }
             }
         }
 
-        // Update task status
-        $task->update([
-            'status' => 'Client Reply',
-            'completion_status' => 'in_progress',
-        ]);
+        // Log activity with more specific description
+        $actionDescription = '';
+        if ($hasComment && $hasFiles) {
+            $actionDescription = "Client submitted comment and uploaded " . count($request->file('files')) . " file(s) for task: {$task->name}";
+        } elseif ($hasComment) {
+            $actionDescription = "Client submitted comment for task: {$task->name}";
+        } elseif ($hasFiles) {
+            $actionDescription = "Client uploaded " . count($request->file('files')) . " file(s) for task: {$task->name}";
+        }
 
-        // Log activity
         \App\Models\ActivityLog::create([
             'user_id' => Auth::id(),
             'user_name' => Auth::user()->name,
             'action_type' => 'task',
-            'action' => 'client_reply',
+            'action' => $hasFiles ? 'client_upload' : 'client_comment',
             'target_name' => $task->name,
-            'description' => "Client submitted reply for task: {$task->name}",
+            'description' => $actionDescription,
             'meta' => json_encode([
                 'task_id' => $task->id,
                 'project_id' => $task->project_id,
                 'assignment_id' => $assignment->id,
-                'files_count' => count($request->file('files') ?? []),
+                'files_count' => $hasFiles ? count($request->file('files')) : 0,
+                'has_comment' => $hasComment,
+                'interaction_type' => $task->client_interact,
             ]),
         ]);
 
-        return back()->with('success', 'Balasan berhasil dikirim!');
+        $successMessage = '';
+        if ($hasComment && $hasFiles) {
+            $successMessage = 'Komentar dan file berhasil dikirim!';
+        } elseif ($hasComment) {
+            $successMessage = 'Komentar berhasil dikirim!';
+        } elseif ($hasFiles) {
+            $successMessage = 'File berhasil diupload!';
+        }
+
+        return back()->with('success', $successMessage);
     }
 }
