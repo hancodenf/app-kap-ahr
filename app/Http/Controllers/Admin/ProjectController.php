@@ -720,7 +720,7 @@ class ProjectController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'client_interact' => 'required|in:read only,comment,upload',
+            'client_interact' => 'required|in:read only,comment,upload,approval',
             'multiple_files' => 'boolean',
             'worker_ids' => 'nullable|array',
             'worker_ids.*' => 'exists:project_teams,id',

@@ -541,7 +541,7 @@ class ClientController extends Controller
             'project',
             'taskAssignments' => function ($query) {
                 // Filter only assignments with status "Submitted to Client" or "Client Reply"
-                $query->whereIn('status', ['Submitted to Client', 'Client Reply', 'Completed'])
+                $query->whereIn('status', ['Submitted to Client', 'Client Reply', 'Under Review by Client', 'Approved by Client', 'Returned for Revision (by Client)', 'Completed'])
                       ->latest()
                       ->with([
                           'documents',
@@ -552,21 +552,29 @@ class ClientController extends Controller
         ]);
 
         // Get latest assignment from filtered results (should be "Submitted to Client" or "Client Reply")
-        $latestAssignment = $task->taskAssignments->first();
-        if ($latestAssignment->maker === 'company' && $latestAssignment->maker_can_edit === true && $latestAssignment->status === 'Submitted to Client') {
+        $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
+        $canEdit = false;
+        if ($latestAssignment->maker === 'company' && $latestAssignment->maker_can_edit === 1 && ($latestAssignment->status === 'Submitted to Client' || $latestAssignment->status === 'Under Review by Client')) {
             $latestAssignment->status = 'Under Review by Client';
             $latestAssignment->maker_can_edit = false;
             $latestAssignment->save();
+            $canEdit = true;
+        } elseif ($latestAssignment->maker === 'company' && $latestAssignment->maker_can_edit === 0 && ($latestAssignment->status === 'Submitted to Client' || $latestAssignment->status === 'Under Review by Client')) {
+            $latestAssignment->status = 'Under Review by Client';
+            $latestAssignment->save();
+            $canEdit = true;
+        } elseif ($latestAssignment->maker === 'client' && $latestAssignment->maker_can_edit === 1 && $latestAssignment->status === 'Client Reply') {
+            $canEdit = true;
         }
 
-        $canEdit = false;
-        $canEdit = $latestAssignment->maker === 'client' && $latestAssignment->status === 'Client Reply' && $latestAssignment->maker_can_edit === true;
+        // $canEdit = $latestAssignment->maker === 'client' && $latestAssignment->status === 'Client Reply' && $latestAssignment->maker_can_edit === 1;
 
         // Find pending client documents from LATEST filtered assignment ONLY
         $pendingClientDocs = [];
         if ($latestAssignment && $latestAssignment->clientDocuments) {
             $pending = $latestAssignment->clientDocuments->filter(function ($doc) {
-                return !$doc->file; // Only docs without uploaded files
+                // return !$doc->file; // Only docs without uploaded files
+                return $doc; 
             });
             $pendingClientDocs = $pending->toArray();
         }
@@ -787,6 +795,8 @@ class ClientController extends Controller
             return back()->with('error', 'Task ini tidak memerlukan input dari client.');
         }
 
+        // dd($request->all());
+
         $request->validate([
             'client_comment' => 'nullable|string|max:1000',
             'files' => 'nullable|array',
@@ -799,8 +809,8 @@ class ClientController extends Controller
 
         // Get the latest task assignment (should be "Submitted to Client" status from company)
         $latestAssignment = $task->taskAssignments()->latest()->first();
-        
-        if (!$latestAssignment || $latestAssignment->status !== 'Submitted to Client') {
+
+        if (!$latestAssignment || ($latestAssignment->status !== 'Submitted to Client' && $latestAssignment->status !== 'Under Review by Client' && $latestAssignment->status !== 'Client Reply')) {
             return back()->with('error', 'Tidak ada permintaan yang perlu dibalas untuk task ini.');
         }
         
@@ -830,15 +840,16 @@ class ClientController extends Controller
                 
                 if ($clientDocId) {
                     $clientDoc = \App\Models\ClientDocument::where('id', $clientDocId)
-                        ->where('task_assignment_id', $assignment->id)
-                        ->first();
+                    ->where('task_assignment_id', $assignment->id)
+                    ->first();
                 } else {
                     // Fallback: get pending client documents by index
                     $pendingClientDocs = $assignment->clientDocuments()->whereNull('file')->get();
                     $clientDoc = $pendingClientDocs->get($index);
                 }
                 
-                if ($clientDoc && !$clientDoc->file) {
+                // if ($clientDoc && !$clientDoc->file) {
+                if ($clientDoc) {
                     // Get task for proper file storage path
                     $taskModel = \App\Models\Task::find($task->id);
                     $storageRelativePath = $taskModel->getStoragePath();
@@ -891,6 +902,97 @@ class ClientController extends Controller
             $successMessage = 'Komentar berhasil dikirim!';
         } elseif ($hasFiles) {
             $successMessage = 'File berhasil diupload!';
+        }
+
+        return back()->with('success', $successMessage);
+    }
+
+    /**
+     * Approve or reject a task by client.
+     */
+    public function approveTask(Request $request, Task $task)
+    {
+        // Make sure client can only approve tasks from their projects
+        if ($task->project->client_id !== Auth::user()->client_id) {
+            abort(403, 'Unauthorized access to this task.');
+        }
+
+        // Validate that this task allows client approval
+        if ($task->client_interact !== 'approval') {
+            return back()->with('error', 'Task ini tidak memerlukan approval dari client.');
+        }
+
+        $request->validate([
+            'action' => 'required|in:approve,reject',
+            'client_comment' => 'nullable|string|max:1000',
+        ]);
+
+        // Get the latest task assignment (should be "Submitted to Client" status from company)
+        $latestAssignment = $task->taskAssignments()->latest()->first();
+        
+        if (!$latestAssignment || ($latestAssignment->status !== 'Submitted to Client' && $latestAssignment->status !== 'Under Review by Client' && $latestAssignment->status !== 'Client Reply')) {
+            return back()->with('error', 'Tidak ada permintaan approval untuk task ini.');
+        }
+
+        $action = $request->action;
+        $clientComment = $request->client_comment;
+
+        if ($action === 'approve') {
+            // Update assignment status to Client Approved
+            $latestAssignment->update([
+                'status' => 'Approved by Client',
+                'client_comment' => $clientComment,
+            ]);
+            
+            // Mark task as completed
+            $task->markAsCompleted();
+
+            // Log activity
+            \App\Models\ActivityLog::create([
+                'user_id' => Auth::id(),
+                'user_name' => Auth::user()->name,
+                'action_type' => 'task_approval',
+                'action' => 'approved',
+                'target_name' => $task->name,
+                'description' => "Client approved task: {$task->name}" . ($clientComment ? " with comment: {$clientComment}" : ''),
+                'meta' => json_encode([
+                    'task_id' => $task->id,
+                    'project_id' => $task->project_id,
+                    'assignment_id' => $latestAssignment->id,
+                    'action' => 'approve',
+                ]),
+            ]);
+
+            $successMessage = 'Task berhasil di-approve!';
+        } else {
+            // Update assignment status to Client Rejected
+            $latestAssignment->update([
+                'status' => 'Returned for Revision (by Client)',
+                'client_comment' => $clientComment,
+            ]);
+            
+            // Update task status back to in progress
+            $task->update([
+                'completion_status' => 'in_progress',
+            ]);
+
+            // Log activity
+            \App\Models\ActivityLog::create([
+                'user_id' => Auth::id(),
+                'user_name' => Auth::user()->name,
+                'action_type' => 'task_approval',
+                'action' => 'rejected',
+                'target_name' => $task->name,
+                'description' => "Client rejected task: {$task->name}" . ($clientComment ? " with comment: {$clientComment}" : ''),
+                'meta' => json_encode([
+                    'task_id' => $task->id,
+                    'project_id' => $task->project_id,
+                    'assignment_id' => $latestAssignment->id,
+                    'action' => 'reject',
+                ]),
+            ]);
+
+            $successMessage = 'Task berhasil di-reject. Tim akan melakukan revisi.';
         }
 
         return back()->with('success', $successMessage);

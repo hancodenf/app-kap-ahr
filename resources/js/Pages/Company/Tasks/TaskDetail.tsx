@@ -468,7 +468,7 @@ export default function TaskDetail({ auth, task, project }: Props) {
                     )}
                     
                     {/* Add New Submission Button (show if no submissions or rejected/returned) */}
-                    {(task.assignments.length === 0 || task.latest_assignment?.comment) && (
+                    {(task.assignments.length === 0 || task.latest_assignment?.comment || task.latest_assignment?.status === 'Returned for Revision (by Client)') && (
                         <div className="bg-white shadow-sm sm:rounded-lg p-4">
                             {isProjectActive ? (
                                 <button
@@ -878,7 +878,7 @@ export default function TaskDetail({ auth, task, project }: Props) {
                                     </div>
 
                                     {/* Client Document Requests */}
-                                    {task.client_interact !== 'read only' && (
+                                    {(task.client_interact !== 'read only' && task.client_interact === 'upload') && (
                                         <div>
                                             <div className="flex items-center justify-between mb-2">
                                                 <label className="block text-sm font-medium text-gray-700">

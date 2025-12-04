@@ -305,6 +305,7 @@ Route::middleware(['auth', 'verified', 'role:klien', 'no.cache'])->prefix('klien
     Route::get('/tasks/{task}', [ClientController::class, 'viewTask'])->name('tasks.show');
     Route::post('/tasks/{task}/submit-reply', [ClientController::class, 'submitTaskReply'])->name('tasks.submit-reply');
     Route::post('/tasks/{task}/upload-client-documents', [ClientController::class, 'uploadClientDocuments'])->name('client-documents.upload');
+    Route::post('/tasks/{task}/approval', [ClientController::class, 'approveTask'])->name('tasks.approval');
 });
 
 // Public News Route (accessible by all authenticated users)

@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { FormEventHandler, useState } from 'react';
 
@@ -88,11 +88,13 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
         files: File[];
         file_labels: string[];
         client_document_ids: number[];
+        action?: 'approve' | 'reject';
     }>({
         client_comment: '',
         files: [],
         file_labels: [],
         client_document_ids: pendingClientDocs.map(doc => doc.id),
+        action: undefined,
     });
 
     const handleClientDocFileChange = (docId: number, file: File | null) => {
@@ -131,6 +133,21 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
         });
     };
 
+    const handleApproval = (action: 'approve' | 'reject') => {
+        // Create form data with approval action
+        const formData = new FormData();
+        formData.append('action', action);
+        formData.append('client_comment', data.client_comment);
+
+        // Use router.post directly for approval actions
+        router.post(route('klien.tasks.approval', task.id), formData, {
+            preserveScroll: true,
+            onSuccess: () => {
+                reset();
+            },
+        });
+    };
+
     // Client can interact based on client_interact permission and task status
     // Can interact if:
     // 1. Task allows interaction (comment or upload)
@@ -139,11 +156,13 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
     // 4. Project is In Progress (read-only if not)
     const latestAssignment = task.assignments?.[0]; // assignments are sorted by latest first
     const canInteract = task.client_interact !== 'read only' &&
-        latestAssignment?.status === 'Submitted to Client' &&
+        (latestAssignment?.status === 'Submitted to Client' || latestAssignment?.status === 'Under Review by Client' || latestAssignment?.status === 'Approved by Client' || latestAssignment?.status === 'Client Reply') &&
         task.completion_status !== 'completed' &&
         isProjectActive;
 
+
     const canUploadFiles = task.client_interact === 'upload' && canInteract;
+    const canApprove = task.client_interact === 'approval' && canInteract;
 
     const getStatusBadgeClass = (status: string) => {
         switch (status) {
@@ -180,7 +199,7 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                         </svg>
-                        Kembali ke Project
+                        Back to Project
                     </Link>
                     <h2 className="text-2xl font-bold text-gray-900 mt-1">
                         {task.name}
@@ -199,16 +218,16 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex-1">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-3">Informasi Task</h3>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-3">Task Information</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <p className="text-xs text-gray-500 mb-1">Status Completion</p>
+                                        <p className="text-xs text-gray-500 mb-1">Completion Status</p>
                                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusBadgeClass(task.completion_status)}`}>
                                             {task.completion_status.replace('_', ' ').toUpperCase()}
                                         </span>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500 mb-1">Status Task</p>
+                                        <p className="text-xs text-gray-500 mb-1">Task Status</p>
                                         <span className={`inline-flex items-center px-3 py-1 rounded-lg text-sm font-medium ${getTaskStatusBadgeClass(task.status)}`}>
                                             {task.status}
                                         </span>
@@ -219,7 +238,7 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                 {task.workers && task.workers.length > 0 && (
                                     <div className="mt-4 pt-4 border-t border-gray-200">
                                         <p className="text-sm font-medium text-gray-700 mb-3">
-                                            Tim yang Mengerjakan ({task.workers.length} orang)
+                                            Team Workers ({task.workers.length} people)
                                         </p>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                             {task.workers.map((worker) => {
@@ -283,12 +302,12 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                                             target="_blank"
                                                                             rel="noopener noreferrer"
                                                                             className="inline-flex items-center gap-1 text-xs text-green-600 hover:text-green-700 hover:underline mt-1"
-                                                                            title="Hubungi via WhatsApp"
+                                                                            title="Contact via WhatsApp"
                                                                         >
                                                                             <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                                                                                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
                                                                             </svg>
-                                                                            <span className="font-medium">Hubungi saya</span>
+                                                                            <span className="font-medium">Contact me</span>
                                                                         </a>
                                                                         <br />
                                                                     </>
@@ -320,7 +339,7 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                         <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                         </svg>
-                                        Riwayat Interaksi ({task.assignments.length})
+                                        Interaction History ({task.assignments.length})
                                     </h3>
 
                                     <div className="space-y-4">
@@ -329,16 +348,16 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                 <div className="bg-gradient-to-r from-gray-50 to-white p-4 border-b border-gray-200">
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-3">
-                                                            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary-100 text-primary-700 font-bold text-sm">
-                                                                #{task.assignments.length - index}
-                                                            </span>
                                                             <div>
                                                                 <p className="font-semibold text-gray-900">
-                                                                    {assignment.status === 'Submitted to Client' ? 'Permintaan Dokumen' : 'Balasan Anda'}
-                                                                    {index === 0 && <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">Terbaru</span>}
+                                                                    Submission
+                                                                    <span className="ml-2 p-1 w-8 h-8 rounded-full bg-primary-100 text-primary-700 font-bold text-sm">
+                                                                        #{task.assignments.length - index}
+                                                                    </span>
+                                                                    {index === 0 && <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">Latest</span>}
                                                                 </p>
                                                                 <p className="text-xs text-gray-500">
-                                                                    {new Date(assignment.created_at).toLocaleDateString('id-ID', {
+                                                                    {new Date(assignment.created_at).toLocaleDateString('en-US', {
                                                                         year: 'numeric',
                                                                         month: 'long',
                                                                         day: 'numeric',
@@ -349,10 +368,10 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                             </div>
                                                         </div>
                                                         <span className={`px-3 py-1 text-xs rounded-full font-medium ${assignment.status === 'Client Reply'
-                                                                ? 'bg-green-100 text-green-800'
-                                                                : 'bg-purple-100 text-purple-800'
+                                                            ? 'bg-green-100 text-green-800'
+                                                            : 'bg-purple-100 text-purple-800'
                                                             }`}>
-                                                            {assignment.status === 'Client Reply' ? '✓ Sudah Dibalas' : '⏳ Menunggu'}
+                                                            {assignment.status === 'Client Reply' ? '✓ Replied' : '⏳ Need Action'}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -360,21 +379,21 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                 <div className="p-4 space-y-4">
                                                     {assignment.notes && (
                                                         <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
-                                                            <p className="text-xs font-medium text-blue-900 mb-1">📝 Notes dari Tim:</p>
+                                                            <p className="text-xs font-medium text-blue-900 mb-1">📝 Notes from Team:</p>
                                                             <p className="text-sm text-blue-800" style={{ whiteSpace: 'pre-line' }}>{assignment.notes}</p>
                                                         </div>
                                                     )}
 
                                                     {assignment.client_comment && (
                                                         <div className="bg-purple-50 border-l-4 border-purple-400 p-3 rounded">
-                                                            <p className="text-xs font-medium text-purple-900 mb-1">💬 Komentar Anda:</p>
+                                                            <p className="text-xs font-medium text-purple-900 mb-1">💬 Your Comment:</p>
                                                             <p className="text-sm text-purple-800">{assignment.client_comment}</p>
                                                         </div>
                                                     )}
 
                                                     {assignment.documents && assignment.documents.length > 0 && (
                                                         <div>
-                                                            <p className="text-xs font-medium text-gray-700 mb-2">📁 Dokumen dari Tim ({assignment.documents.length}):</p>
+                                                            <p className="text-xs font-medium text-gray-700 mb-2">📁 Documents from Team ({assignment.documents.length}):</p>
                                                             <div className="space-y-2">
                                                                 {assignment.documents.map((doc) => (
                                                                     <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
@@ -402,7 +421,7 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
 
                                                     {assignment.client_documents && assignment.client_documents.length > 0 && (
                                                         <div>
-                                                            <p className="text-xs font-medium text-gray-700 mb-2">📋 Dokumen yang Diminta ({assignment.client_documents.length}):</p>
+                                                            <p className="text-xs font-medium text-gray-700 mb-2">📋 Requested Documents ({assignment.client_documents.length}):</p>
                                                             <div className="space-y-2">
                                                                 {assignment.client_documents.map((clientDoc) => (
                                                                     <div key={clientDoc.id} className="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors">
@@ -433,7 +452,7 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                                                 <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                                                 </svg>
-                                                                                Menunggu
+                                                                                Not Yet Uploaded
                                                                             </span>
                                                                         )}
                                                                     </div>
@@ -461,14 +480,21 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                         <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                                         </svg>
-                                                        Edit Balasan
+                                                        Edit Your Submission
+                                                    </>
+                                                ) : task.client_interact === 'approval' ? (
+                                                    <>
+                                                        <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        Edit Approval
                                                     </>
                                                 ) : (
                                                     <>
                                                         <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                                                         </svg>
-                                                        Edit Komentar
+                                                        Edit Comment
                                                     </>
                                                 )}
                                             </>
@@ -479,14 +505,21 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                         <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                                         </svg>
-                                                        Kirim Balasan
+                                                        Send Reply
+                                                    </>
+                                                ) : task.client_interact === 'approval' ? (
+                                                    <>
+                                                        <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        Approval Task
                                                     </>
                                                 ) : (
                                                     <>
                                                         <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                                                         </svg>
-                                                        Kirim Komentar
+                                                        Send Comment
                                                     </>
                                                 )}
                                             </>
@@ -494,51 +527,101 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
 
                                     </h3>
 
-                                    <form onSubmit={handleSubmit} className="space-y-4">
-                                        {canUploadFiles && pendingClientDocs.length > 0 && (
-                                            <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                                                {task.can_edit ? (
-                                                    <>
-                                                        <p className="text-sm font-semibold text-purple-900 mb-1">
-                                                            📋 {pendingClientDocs.length} Edit Dokumen
-                                                        </p>
-                                                        <p className="text-xs text-purple-800">
-                                                            Edit atau ganti file dokumen yang diminta.
-                                                        </p>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <p className="text-sm font-semibold text-purple-900 mb-1">
-                                                            📋 {pendingClientDocs.length} Dokumen Diminta
-                                                        </p>
-                                                        <p className="text-xs text-purple-800">
-                                                            Upload semua dokumen yang diminta
-                                                        </p>
-                                                    </>
-                                                )}
+                                    {canApprove ? (
+                                        <div className="space-y-4">
+                                            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                                                <p className="text-sm font-semibold text-green-900 mb-1">
+                                                    ✅ Approval Required
+                                                </p>
+                                                <p className="text-xs text-green-800">
+                                                    Please review and provide approval or rejection for this task.
+                                                </p>
                                             </div>
-                                        )}
 
-                                        {canUploadFiles && pendingClientDocs.length > 0 ? (
-                                            <>
-                                                {pendingClientDocs.map((doc, index) => (
-                                                    <div key={doc.id} className="border-2 border-purple-200 rounded-lg p-4 bg-purple-50">
-                                                        <div className="flex items-start gap-2 mb-3">
-                                                            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold flex-shrink-0">
-                                                                {index + 1}
-                                                            </span>
-                                                            <div className="flex-1">
-                                                                <p className="text-sm font-semibold text-gray-900">{doc.name}</p>
-                                                                {doc.description && (
-                                                                    <p className="text-xs text-gray-600 mt-1">{doc.description}</p>
-                                                                )}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    Comment (Optional)
+                                                </label>
+                                                <textarea
+                                                    value={data.client_comment}
+                                                    onChange={(e) => setData('client_comment', e.target.value)}
+                                                    rows={4}
+                                                    placeholder="Add notes or reason for approval/rejection..."
+                                                    className="w-full border-gray-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                                />
+                                            </div>
+
+                                            <div className="flex gap-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleApproval('approve')}
+                                                    disabled={processing}
+                                                    className="flex-1 px-4 py-3 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center justify-center gap-2"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                    {processing ? 'Processing...' : 'Approve'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleApproval('reject')}
+                                                    disabled={processing}
+                                                    className="flex-1 px-4 py-3 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center justify-center gap-2"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                    {processing ? 'Processing...' : 'Reject'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <form onSubmit={handleSubmit} className="space-y-4">
+                                            {canUploadFiles && pendingClientDocs.length > 0 && (
+                                                <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                                                    {task.can_edit ? (
+                                                        <>
+                                                            <p className="text-sm font-semibold text-purple-900 mb-1">
+                                                                📋 {pendingClientDocs.length} Edit Documents
+                                                            </p>
+                                                            <p className="text-xs text-purple-800">
+                                                                Edit or replace the requested document files.
+                                                            </p>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <p className="text-sm font-semibold text-purple-900 mb-1">
+                                                                📋 {pendingClientDocs.length} Documents Requested
+                                                            </p>
+                                                            <p className="text-xs text-purple-800">
+                                                                Upload all requested documents
+                                                            </p>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {canUploadFiles && pendingClientDocs.length > 0 ? (
+                                                <>
+                                                    {pendingClientDocs.map((doc, index) => (
+                                                        <div key={doc.id} className="border-2 border-purple-200 rounded-lg p-4 bg-purple-50">
+                                                            <div className="flex items-start gap-2 mb-3">
+                                                                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold flex-shrink-0">
+                                                                    {index + 1}
+                                                                </span>
+                                                                <div className="flex-1">
+                                                                    <p className="text-sm font-semibold text-gray-900">{doc.name}</p>
+                                                                    {doc.description && (
+                                                                        <p className="text-xs text-gray-600 mt-1">{doc.description}</p>
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                        </div>
 
-                                                        <input
-                                                            type="file"
-                                                            onChange={(e) => handleClientDocFileChange(doc.id, e.target.files?.[0] || null)}
-                                                            className="block w-full text-sm text-gray-600 
+                                                            <input
+                                                                type="file"
+                                                                onChange={(e) => handleClientDocFileChange(doc.id, e.target.files?.[0] || null)}
+                                                                className="block w-full text-sm text-gray-600 
                                                                 file:mr-4 file:py-2 file:px-4 
                                                                 file:rounded-lg file:border-0 
                                                                 file:text-sm file:font-semibold 
@@ -546,66 +629,67 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                                 hover:file:bg-purple-700
                                                                 border-2 border-gray-300 rounded-lg
                                                                 focus:outline-none focus:border-purple-500"
-                                                            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                                                            required
-                                                        />
+                                                                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                                                                required
+                                                            />
 
-                                                        {data.files[index] && (
-                                                            <p className="text-xs text-green-700 mt-2 flex items-center">
-                                                                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                                </svg>
-                                                                {data.files[index]?.name}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </>
-                                        ) : (
-                                            <div className="text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                                                <svg className="mx-auto h-10 w-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                <p className="text-sm text-gray-600">Tidak ada dokumen yang diminta</p>
+                                                            {data.files[index] && (
+                                                                <p className="text-xs text-green-700 mt-2 flex items-center">
+                                                                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                                    </svg>
+                                                                    {data.files[index]?.name}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </>
+                                            ) : (
+                                                <div className="text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                                                    <svg className="mx-auto h-10 w-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    <p className="text-sm text-gray-600">No Documents Requested</p>
+                                                </div>
+                                            )}
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    {(task.client_interact === 'comment' && latestAssignment?.status !== 'Client Reply') ? 'Add Some Comment (Optional)' : 'Edit Your Comment (Optional)'}
+                                                </label>
+                                                <textarea
+                                                    value={data.client_comment}
+                                                    onChange={(e) => setData('client_comment', e.target.value)}
+                                                    rows={4}
+                                                    placeholder={task.client_interact === 'comment' ? 'Write your comments or responses...' : 'Write some notes or comments...'}
+                                                    className="w-full border-gray-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                                    required={task.client_interact === 'comment' && pendingClientDocs.length === 0}
+                                                />
                                             </div>
-                                        )}
 
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                {task.client_interact === 'comment' ? 'Komentar *' : 'Komentar (Optional)'}
-                                            </label>
-                                            <textarea
-                                                value={data.client_comment}
-                                                onChange={(e) => setData('client_comment', e.target.value)}
-                                                rows={4}
-                                                placeholder={task.client_interact === 'comment' ? 'Tuliskan komentar atau tanggapan Anda...' : 'Tambahkan catatan atau komentar...'}
-                                                className="w-full border-gray-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                                                required={task.client_interact === 'comment' && pendingClientDocs.length === 0}
-                                            />
-                                        </div>
-
-                                        <button
-                                            type="submit"
-                                            disabled={processing}
-                                            className="w-full px-4 py-3 text-sm font-semibold text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
-                                        >
-                                            {processing
-                                                ? 'Mengirim...'
-                                                : task.client_interact === 'comment'
-                                                    ? 'Kirim Komentar'
-                                                    : task.client_interact === 'upload' && pendingClientDocs.length > 0
-                                                        ? 'Upload Dokumen'
-                                                        : 'Kirim Balasan'
-                                            }
-                                        </button>
-                                    </form>
+                                            <button
+                                                type="submit"
+                                                disabled={processing}
+                                                className="w-full px-4 py-3 text-sm font-semibold text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                                            >
+                                                {processing
+                                                    ? 'Submitting...'
+                                                    : task.client_interact === 'comment'
+                                                        ? 'Send Comment'
+                                                        : task.client_interact === 'upload' && pendingClientDocs.length > 0
+                                                            ? 'Upload Document'
+                                                            : 'Send Response'
+                                                }
+                                            </button>
+                                        </form>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                                     {!isProjectActive && (
                                         <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                                             <p className="text-sm text-yellow-800">
-                                                <strong>Read Only:</strong> Project ini berstatus {project.status}. Interaksi hanya tersedia untuk project In Progress.
+                                                <strong>Read Only:</strong> This Project Status is {project.status}. Interaction is only available for In Progress projects.
                                             </p>
                                         </div>
                                     )}
@@ -617,24 +701,24 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                             {!isProjectActive
                                                 ? 'Project Read Only'
                                                 : task.completion_status === 'completed'
-                                                    ? 'Task Selesai'
+                                                    ? 'Task Completed'
                                                     : latestAssignment?.status === 'Client Reply'
-                                                        ? 'Menunggu Review'
+                                                        ? 'Waiting for Review'
                                                         : task.client_interact === 'read only'
                                                             ? 'View Only'
-                                                            : 'Belum Ada Permintaan'
+                                                            : 'No Request Yet'
                                             }
                                         </p>
                                         <p className="text-sm text-gray-600">
                                             {!isProjectActive
-                                                ? `Project dengan status ${project.status} tidak dapat diinteraksi`
+                                                ? `Project with status ${project.status} cannot be interacted with`
                                                 : task.completion_status === 'completed'
-                                                    ? 'Task ini sudah selesai dikerjakan'
+                                                    ? 'This task has been completed'
                                                     : latestAssignment?.status === 'Client Reply'
-                                                        ? 'Tim sedang mereview balasan Anda'
+                                                        ? 'The team is reviewing your response'
                                                         : task.client_interact === 'read only'
-                                                            ? 'Task ini hanya untuk melihat informasi'
-                                                            : 'Menunggu permintaan dari tim audit'
+                                                            ? 'This task is for viewing information only'
+                                                            : 'Waiting for request from the audit team'
                                             }
                                         </p>
                                     </div>
