@@ -47,12 +47,13 @@ interface Task {
     time?: string;
     comment?: string;
     client_comment?: string;
-    client_interact: 'read only' | 'comment' | 'upload';
+    client_interact: 'read only' | 'upload' | 'approval';
+    approval_type: 'Once' | 'All Attempts';
     multiple_files: boolean;
     is_required: boolean;
     completion_status?: 'pending' | 'in_progress' | 'completed';
     task_workers?: TaskWorker[];
-    task_approvals?: Array<{id: number; role: 'partner' | 'manager' | 'supervisor' | 'team leader'; order: number}>;
+    task_approvals?: Array<{ id: number; role: 'partner' | 'manager' | 'supervisor' | 'team leader'; order: number }>;
 }
 
 interface TaskWorker {
@@ -121,8 +122,8 @@ interface Props extends PageProps {
 }
 
 // Draggable Step Component
-function DraggableStep({ step, children, isCollapsed, onToggleCollapse }: { 
-    step: WorkingStep; 
+function DraggableStep({ step, children, isCollapsed, onToggleCollapse }: {
+    step: WorkingStep;
     children: React.ReactNode;
     isCollapsed: boolean;
     onToggleCollapse: () => void;
@@ -166,9 +167,9 @@ function DraggableStep({ step, children, isCollapsed, onToggleCollapse }: {
                                     className="ml-3 p-1 hover:bg-gray-200 rounded transition-colors"
                                     title={isCollapsed ? 'Expand substeps' : 'Collapse substeps'}
                                 >
-                                    <svg 
+                                    <svg
                                         className={`w-4 h-4 text-gray-500 transition-transform ${isCollapsed ? 'rotate-0' : 'rotate-90'}`}
-                                        fill="currentColor" 
+                                        fill="currentColor"
                                         viewBox="0 0 20 20"
                                     >
                                         <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
@@ -183,15 +184,15 @@ function DraggableStep({ step, children, isCollapsed, onToggleCollapse }: {
                     </div>
                 </div>
             </div>
-            
+
             {/* Content Section - TIDAK ada flex, full width */}
         </div>
     );
 }
 
 // Draggable Task Component
-function DraggableTask({ task, onEdit, onDelete }: { 
-    task: Task; 
+function DraggableTask({ task, onEdit, onDelete }: {
+    task: Task;
     onEdit: (task: Task) => void;
     onDelete: (id: number) => void;
 }) {
@@ -224,12 +225,12 @@ function DraggableTask({ task, onEdit, onDelete }: {
                         <path d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 16a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" />
                     </svg>
                 </div>
-                
+
                 <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-gray-900 text-base truncate">
                         {task.name}
                     </h4>
-                    
+
                     {(!!task.is_required || task.client_interact !== 'read only' || !!task.multiple_files || (task.task_workers && task.task_workers.length > 0)) && (
                         <div className="flex flex-wrap gap-2 mt-2">
                             {!!task.is_required && (
@@ -242,7 +243,7 @@ function DraggableTask({ task, onEdit, onDelete }: {
                             )}
                             {task.client_interact !== 'read only' && (
                                 <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                                    {task.client_interact === 'comment' ? '💬 Client Comment' : '📤 Client Upload'}
+                                    {task.client_interact === 'upload' ? '📤 Client Upload' : '✅ Client Approval'}
                                 </span>
                             )}
                             {!!task.multiple_files && (
@@ -253,7 +254,7 @@ function DraggableTask({ task, onEdit, onDelete }: {
                             {task.task_workers && task.task_workers.length > 0 && (
                                 <div className="flex flex-wrap gap-1">
                                     {task.task_workers.map((worker, index) => (
-                                        <span 
+                                        <span
                                             key={index}
                                             className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800"
                                             title={`${worker.worker_email} - ${worker.worker_role}`}
@@ -271,7 +272,7 @@ function DraggableTask({ task, onEdit, onDelete }: {
                 </div>
 
                 <div className="flex items-center space-x-2 ml-4 flex-shrink-0">
-                    <button 
+                    <button
                         onClick={(e) => {
                             e.stopPropagation();
                             onEdit(task);
@@ -283,7 +284,7 @@ function DraggableTask({ task, onEdit, onDelete }: {
                         </svg>
                         Edit
                     </button>
-                    <button 
+                    <button
                         onClick={(e) => {
                             e.stopPropagation();
                             onDelete(task.id);
@@ -319,7 +320,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     const [isDragging, setIsDragging] = useState(false);
     const [collapsedSteps, setCollapsedSteps] = useState<Set<number>>(new Set());
     const [dragHoverStepId, setDragHoverStepId] = useState<number | null>(null);
-    
+
     // Confirm dialog states
     const [showDeleteStepConfirm, setShowDeleteStepConfirm] = useState(false);
     const [showDeleteTaskConfirm, setShowDeleteTaskConfirm] = useState(false);
@@ -340,15 +341,15 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     // Auto-scroll functionality for touch devices
     useEffect(() => {
         let autoScrollInterval: NodeJS.Timeout;
-        
+
         const handleAutoScroll = (clientY: number) => {
             const scrollThreshold = 100; // Distance from edge to trigger scroll
             const scrollSpeed = 10; // Pixels to scroll per interval
-            
+
             const viewportHeight = window.innerHeight;
             const distanceFromTop = clientY;
             const distanceFromBottom = viewportHeight - clientY;
-            
+
             if (distanceFromTop < scrollThreshold) {
                 // Scroll up
                 window.scrollBy(0, -scrollSpeed);
@@ -360,17 +361,17 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
 
         const handleDragMove = (event: PointerEvent) => {
             if (!isDragging) return;
-            
+
             // Clear existing interval
             if (autoScrollInterval) {
                 clearInterval(autoScrollInterval);
             }
-            
+
             // Start auto-scroll if near edges
             const scrollThreshold = 100;
             const distanceFromTop = event.clientY;
             const distanceFromBottom = window.innerHeight - event.clientY;
-            
+
             if (distanceFromTop < scrollThreshold || distanceFromBottom < scrollThreshold) {
                 autoScrollInterval = setInterval(() => {
                     handleAutoScroll(event.clientY);
@@ -411,7 +412,8 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     const { data: taskData, setData: setTaskData, post: postTask, reset: resetTask } = useForm({
         name: '',
         working_step_id: 0,
-        client_interact: 'read only' as 'read only' | 'comment' | 'upload' | 'approval',
+        client_interact: 'read only' as 'read only' | 'upload' | 'approval',
+        approval_type: 'Once' as 'Once' | 'All Attempts',
         multiple_files: false,
         is_required: false,
     });
@@ -434,12 +436,12 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         const currentYear = new Date().getFullYear();
         const selectedClient = clients.find(c => c.id === editTemplateData.client_id);
         const usedYears = (selectedClient?.used_years || []).map(y => Number(y)); // Convert to numbers
-        
+
         // Generate years from 7 years ago to 1 year in the future
         const startYear = currentYear - 7; // 7 tahun ke belakang
         const endYear = currentYear + 1;   // 1 tahun ke depan
         const yearCount = endYear - startYear + 1;
-        
+
         return Array.from({ length: yearCount }, (_, i) => {
             const year = endYear - i; // Start from future year and go backwards for descending order
             return {
@@ -452,7 +454,8 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
 
     const { data: editTaskData, setData: setEditTaskData, put: putTask, reset: resetEditTask } = useForm({
         name: '',
-        client_interact: 'read only' as 'read only' | 'comment' | 'upload' | 'approval',
+        client_interact: 'read only' as 'read only' | 'upload' | 'approval',
+        approval_type: 'Once' as 'Once' | 'All Attempts',
         multiple_files: false,
         is_required: false,
         worker_ids: [] as number[],
@@ -562,20 +565,21 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
 
     const handleEditTask = (task: Task) => {
         setEditingTask(task);
-        
+
         // Filter worker_ids to only include team members that still exist
         const validWorkerIds = (task.task_workers?.map(w => w.project_team_id) || [])
             .filter(workerId => teamMembers.some(member => member.id === workerId));
-        
+
         const approvalRoles = (task.task_approvals || [])
             .sort((a, b) => a.order - b.order)
             .map(approval => approval.role);
-        
+
         setEditTaskData({
             name: task.name,
             client_interact: task.client_interact,
             multiple_files: task.multiple_files,
             is_required: task.is_required || false,
+            approval_type: task.approval_type || 'All Attempts',
             worker_ids: validWorkerIds,
             approval_roles: approvalRoles,
         });
@@ -593,7 +597,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     const handleUpdateStep = (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingStep) return;
-        
+
         putStep(route('admin.projects.working-steps.update', editingStep.id), {
             onSuccess: () => {
                 setShowEditStepModal(false);
@@ -618,7 +622,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
 
     const handleUpdateTemplate = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         putTemplate(route('admin.projects.bundles.update', bundle.id), {
             onSuccess: () => {
                 setShowEditTemplateModal(false);
@@ -632,7 +636,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     const handleUpdateTask = (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingTask) return;
-        
+
         putTask(route('admin.projects.tasks.update', editingTask.id), {
             onSuccess: () => {
                 setShowEditTaskModal(false);
@@ -672,7 +676,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     const handleUpdateTeamMember = (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingTeamMember) return;
-        
+
         putTeamMember(route('admin.projects.team-members.update', editingTeamMember.id), {
             onSuccess: () => {
                 setShowEditTeamMemberModal(false);
@@ -725,7 +729,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     const handleDragStart = (event: DragStartEvent) => {
         const { active } = event;
         setIsDragging(true);
-        
+
         // Check if dragging a task first (prefix with 'substep-')
         if (String(active.id).startsWith('substep-')) {
             const taskId = Number(String(active.id).replace('substep-', ''));
@@ -751,7 +755,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
-        
+
         setActiveStep(null);
         setActiveTask(null);
         setIsDragging(false);
@@ -763,7 +767,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         if (String(active.id).startsWith('step-')) {
             const activeStepId = Number(String(active.id).replace('step-', ''));
             const overStepId = Number(String(over.id).replace('step-', ''));
-            
+
             const oldIndex = steps.findIndex(s => s.id === activeStepId);
             const newIndex = steps.findIndex(s => s.id === overStepId);
 
@@ -774,7 +778,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                     ...step,
                     order: index + 1
                 }));
-                
+
                 setSteps(stepsWithOrder);
 
                 // Send to backend
@@ -800,7 +804,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         // Handle task reordering/moving
         if (String(active.id).startsWith('substep-')) {
             const activeTaskId = Number(String(active.id).replace('substep-', ''));
-            
+
             // Find the active substep and its current step
             let sourceStepId = 0;
             let activeTaskObj = null;
@@ -841,15 +845,15 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                 if (sourceStep?.tasks) {
                     const oldIndex = sourceStep.tasks.findIndex(ss => ss.id === activeTaskId);
                     const newIndex = sourceStep.tasks.findIndex(ss => ss.id === targetTaskId);
-                    
+
                     if (oldIndex !== newIndex && oldIndex > -1 && newIndex > -1) {
                         // Use arrayMove for proper reordering
                         sourceStep.tasks = arrayMove(
-                            sourceStep.tasks, 
-                            oldIndex, 
+                            sourceStep.tasks,
+                            oldIndex,
                             newIndex
                         );
-                        
+
                         // Update order numbers
                         sourceStep.tasks = sourceStep.tasks.map((ss, index) => ({
                             ...ss,
@@ -865,17 +869,17 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                     const taskIndex = sourceStep.tasks.findIndex(ss => ss.id === activeTaskId);
                     if (taskIndex > -1) {
                         const [movedTask] = sourceStep.tasks.splice(taskIndex, 1);
-                        
+
                         // Add to target step
                         const targetStepObj = newSteps.find(s => s.id === targetStepId);
                         if (targetStepObj) {
                             if (!targetStepObj.tasks) {
                                 targetStepObj.tasks = [];
                             }
-                            
+
                             // Update substep's step reference
                             movedTask.working_step_id = targetStepId;
-                            
+
                             // Insert at correct position if dropped on another substep
                             if (targetTaskId) {
                                 const targetIndex = targetStepObj.tasks.findIndex(ss => ss.id === targetTaskId);
@@ -935,7 +939,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
 
     const handleDragOver = (event: DragOverEvent) => {
         const { active, over } = event;
-        
+
         // Only handle substep dragging over steps
         if (String(active.id).startsWith('substep-') && over && String(over.id).startsWith('step-')) {
             const stepId = Number(String(over.id).replace('step-', ''));
@@ -970,7 +974,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    
+
                     {/* Project Name Header */}
                     <div className="mb-6">
                         <div className="bg-white shadow-sm sm:rounded-lg p-6">
@@ -1014,7 +1018,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         </div>
                                         <p className="text-xl font-semibold text-gray-800">{bundle.name}</p>
                                     </div>
-                                    
+
                                     <div className="border-t pt-4">
                                         <h3 className="text-lg font-medium text-gray-900 mb-3">Client Information</h3>
                                         {bundle.client_name ? (
@@ -1071,7 +1075,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     <h3 className="text-lg font-medium text-gray-900">Team Members</h3>
                                     <p className="text-sm text-gray-600">Manage team members and their roles in this project</p>
                                 </div>
-                                <button 
+                                <button
                                     onClick={() => setShowAddTeamMemberModal(true)}
                                     className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-xs font-medium transition-all duration-200 inline-flex items-center hover:shadow-sm"
                                 >
@@ -1101,13 +1105,12 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{member.user_email}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{member.user_position || '-'}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                            member.role === 'partner' ? 'bg-purple-100 text-purple-800' :
-                                                            member.role === 'manager' ? 'bg-blue-100 text-blue-800' :
-                                                            member.role === 'supervisor' ? 'bg-indigo-100 text-indigo-800' :
-                                                            member.role === 'team leader' ? 'bg-green-100 text-green-800' :
-                                                            'bg-gray-100 text-gray-800'
-                                                        }`}>
+                                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${member.role === 'partner' ? 'bg-purple-100 text-purple-800' :
+                                                                member.role === 'manager' ? 'bg-blue-100 text-blue-800' :
+                                                                    member.role === 'supervisor' ? 'bg-indigo-100 text-indigo-800' :
+                                                                        member.role === 'team leader' ? 'bg-green-100 text-green-800' :
+                                                                            'bg-gray-100 text-gray-800'
+                                                            }`}>
                                                             {member.role}
                                                         </span>
                                                     </td>
@@ -1156,7 +1159,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     <h3 className="text-lg font-medium text-gray-900">Working Steps Management</h3>
                                     <p className="text-sm text-gray-600">Manage working steps and tasks for this project template</p>
                                 </div>
-                                <button 
+                                <button
                                     onClick={() => setShowAddStepModal(true)}
                                     className="bg-primary-600 hover:bg-primary-700 text-white px-3 py-1.5 rounded text-xs font-medium transition-all duration-200 hover:shadow-sm"
                                 >
@@ -1173,18 +1176,18 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                         onDragOver={handleDragOver}
                         onDragEnd={handleDragEnd}
                     >
-                                <div className="space-y-6">
+                        <div className="space-y-6">
                             <SortableContext items={(steps || []).map(s => `step-${s.id}`)} strategy={verticalListSortingStrategy}>
                                 {(steps || []).map((step) => (
                                     <div key={step.id} className="bg-white shadow-sm sm:rounded-lg">
                                         {/* Header Step dengan Tombol - Menggunakan DraggableStep */}
-                                        <DraggableStep 
+                                        <DraggableStep
                                             step={step}
                                             isCollapsed={collapsedSteps.has(step.id)}
                                             onToggleCollapse={() => toggleStepCollapse(step.id)}
                                         >
                                             <div className="flex flex-wrap gap-2">
-                                                <button 
+                                                <button
                                                     onClick={() => {
                                                         setSelectedStepId(step.id);
                                                         setTaskData('working_step_id', step.id);
@@ -1197,7 +1200,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                     </svg>
                                                     Add Task
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => handleEditStep(step)}
                                                     className="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs font-medium transition-all duration-200 hover:shadow-sm"
                                                 >
@@ -1206,7 +1209,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                     </svg>
                                                     Edit Step
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => handleDeleteStep(step)}
                                                     className="inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-xs font-medium transition-all duration-200 hover:shadow-sm"
                                                 >
@@ -1225,8 +1228,8 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                     <h5 className="text-sm font-medium text-gray-600 mb-3">Tasks:</h5>
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <SortableContext 
-                                                        items={(step.tasks || []).map(ss => `substep-${ss.id}`)} 
+                                                    <SortableContext
+                                                        items={(step.tasks || []).map(ss => `substep-${ss.id}`)}
                                                         strategy={verticalListSortingStrategy}
                                                     >
                                                         {(step.tasks || []).map((task) => (
@@ -1311,7 +1314,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                         <div className="relative bg-white rounded-lg max-w-md w-full">
                             <form onSubmit={handleAddStep} className="p-6">
                                 <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Working Step</h3>
-                                
+
                                 <div className="mb-6">
                                     <label htmlFor="step_name" className="block text-sm font-medium text-gray-700 mb-2">
                                         Working Step Name
@@ -1363,7 +1366,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                         <div className="relative bg-white rounded-lg max-w-md w-full">
                             <form onSubmit={handleAddTask} className="p-6">
                                 <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Task</h3>
-                                
+
                                 <div className="space-y-4">
                                     <div>
                                         <label htmlFor="task_name" className="block text-sm font-medium text-gray-700 mb-2">
@@ -1387,7 +1390,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         <select
                                             id="add_task_client_interact"
                                             value={taskData.client_interact}
-                                            onChange={(e) => setTaskData('client_interact', e.target.value as 'read only' | 'comment' | 'upload')}
+                                            onChange={(e) => setTaskData('client_interact', e.target.value as 'read only' | 'upload' | 'approval')}
                                             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                         >
                                             <option value="read only">👁️ Read Only - Client can only view</option>
@@ -1470,7 +1473,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     <p className="mt-1 text-sm text-red-600">{editTemplateErrors.name}</p>
                                 )}
                             </div>
-                            
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">
                                     Client
@@ -1545,8 +1548,8 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     </span>
                                 </label>
                                 <p className="mt-1 text-xs text-gray-500">
-                                    {editTemplateData.is_archived 
-                                        ? 'This project will be archived and hidden from regular views' 
+                                    {editTemplateData.is_archived
+                                        ? 'This project will be archived and hidden from regular views'
                                         : 'Check this to archive the project for storage purposes'
                                     }
                                 </p>
@@ -1630,7 +1633,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                         <div className="relative bg-white rounded-lg max-w-md w-full">
                             <form onSubmit={handleUpdateTask} className="p-6">
                                 <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Task</h3>
-                                
+
                                 <div className="space-y-4">
                                     <div>
                                         <label htmlFor="edit_task_name" className="block text-sm font-medium text-gray-700 mb-2">
@@ -1654,7 +1657,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                             <select
                                                 id="client_interact"
                                                 value={editTaskData.client_interact}
-                                                onChange={(e) => setEditTaskData('client_interact', e.target.value as 'read only' | 'comment' | 'upload')}
+                                                onChange={(e) => setEditTaskData('client_interact', e.target.value as 'read only' | 'upload' | 'approval')}
                                                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                             >
                                                 <option value="read only">👁️ Read Only - Client can only view</option>
@@ -1728,14 +1731,14 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                     'manager': 3,
                                                     'partner': 4,
                                                 };
-                                                
+
                                                 // Sort approval roles by priority
-                                                const sortedRoles = [...editTaskData.approval_roles].sort((a, b) => 
+                                                const sortedRoles = [...editTaskData.approval_roles].sort((a, b) =>
                                                     rolePriority[a] - rolePriority[b]
                                                 );
-                                                
+
                                                 const orderNumber = sortedRoles.indexOf(role) + 1;
-                                                
+
                                                 return (
                                                     <label key={role} className="flex items-center space-x-3 p-2 border rounded hover:bg-gray-50 cursor-pointer">
                                                         <input
@@ -1791,6 +1794,26 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                             </div>
                                         )}
                                     </div>
+                                    <div>
+                                        <label htmlFor="approval_type" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Approval Workflow Type
+                                        </label>
+                                        <select
+                                            id="approval_type"
+                                            value={editTaskData.approval_type}
+                                            onChange={(e) => setEditTaskData('approval_type', e.target.value as 'Once' | 'All Attempts')}
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                        >
+                                            <option value="All Attempts">All Attempts</option>
+                                            <option value="Once">Once</option>
+                                        </select>
+                                        <p className="mt-3 text-xs text-gray-500">
+                                            Once - Once submission approval status is approved by highest role on this task, no need to start approval workflow from beginning when it rejected by client or need to ask client for re-upload files
+                                        </p>
+                                        <p className="mt-3 text-xs text-gray-500">
+                                            All Attempts - All rejections by client or request for re-upload files will require a new approval workflow
+                                        </p>
+                                    </div>
                                 </div>
 
                                 <div className="flex justify-end space-x-3 mt-6">
@@ -1830,10 +1853,10 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
-                            
+
                             <form onSubmit={handleAddTeamMember} className="p-6">
                                 <h3 className="text-lg font-medium text-gray-900 mb-4">Add Team Member</h3>
-                                
+
                                 <div className="space-y-4">
                                     <div>
                                         <label htmlFor="user_id" className="block text-sm font-medium text-gray-700 mb-2">
@@ -1861,10 +1884,10 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                 { value: 'team leader', label: 'Team Leader' },
                                                 { value: 'supervisor', label: 'Supervisor' },
                                                 { value: 'manager', label: 'Manager' },
-                                                { 
-                                                    value: 'partner', 
-                                                    label: teamMemberData.user_id > 0 && isPartnerOptionDisabled(teamMemberData.user_id) 
-                                                        ? 'Partner (Registered AP Only)' 
+                                                {
+                                                    value: 'partner',
+                                                    label: teamMemberData.user_id > 0 && isPartnerOptionDisabled(teamMemberData.user_id)
+                                                        ? 'Partner (Registered AP Only)'
                                                         : 'Partner',
                                                     isDisabled: isPartnerOptionDisabled(teamMemberData.user_id)
                                                 },
@@ -1918,14 +1941,14 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
-                            
+
                             <form onSubmit={handleUpdateTeamMember} className="p-6">
-                                <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Team Member Role</h3> 
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Team Member Role</h3>
                                 <div className="mb-4">
                                     <p className="text-sm text-gray-600 mb-4">
                                         <strong>Member:</strong> {editingTeamMember.user_name}
                                     </p>
-                                    
+
                                     <label htmlFor="edit_role" className="block text-sm font-medium text-gray-700 mb-2">
                                         Role in Project
                                     </label>
@@ -1935,10 +1958,10 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                             { value: 'team leader', label: 'Team Leader' },
                                             { value: 'supervisor', label: 'Supervisor' },
                                             { value: 'manager', label: 'Manager' },
-                                            { 
-                                                value: 'partner', 
-                                                label: isPartnerOptionDisabled(editingTeamMember.user_id) 
-                                                    ? 'Partner (Registered AP Only)' 
+                                            {
+                                                value: 'partner',
+                                                label: isPartnerOptionDisabled(editingTeamMember.user_id)
+                                                    ? 'Partner (Registered AP Only)'
                                                     : 'Partner',
                                                 isDisabled: isPartnerOptionDisabled(editingTeamMember.user_id)
                                             },

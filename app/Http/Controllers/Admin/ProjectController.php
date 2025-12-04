@@ -366,6 +366,7 @@ class ProjectController extends Controller
                             'status' => $latestAssignment->status ?? 'Draft',
                             'client_interact' => $task->client_interact,
                             'multiple_files' => $task->multiple_files,
+                            'approval_type' => $task->approval_type,
                             'is_assigned_to_me' => true, // Admin can edit all tasks
                             'my_assignment_id' => null,
                             // Task approvals configuration (for dynamic dropdown)
@@ -721,21 +722,24 @@ class ProjectController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'client_interact' => 'required|in:read only,comment,upload,approval',
+            'approval_type' => 'required|in:Once,All Attempts',
             'multiple_files' => 'boolean',
             'worker_ids' => 'nullable|array',
             'worker_ids.*' => 'exists:project_teams,id',
             'approval_roles' => 'nullable|array',
             'approval_roles.*' => 'in:partner,manager,supervisor,team leader',
         ]);
-
+        
         // Generate new slug if name changed
         $updateData = [
             'name' => $request->name,
             'client_interact' => $request->client_interact ? $request->client_interact : 'read only',
+            'approval_type' => $request->approval_type,
             'multiple_files' => $request->boolean('multiple_files'),
             'is_required' => $request->boolean('is_required'),
         ];
-
+        // dd($updateData);
+        
         if ($task->name !== $request->name) {
             $baseSlug = Str::slug($request->name);
             $slug = $baseSlug;
