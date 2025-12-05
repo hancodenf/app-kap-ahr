@@ -30,9 +30,9 @@ return new class extends Migration
             // Denormalized working step data
             $table->string('working_step_name');
 
-            $table->enum('client_interact', ['read only', 'comment', 'upload', 'approval'])->default('read only'); // default read only
+            $table->enum('client_interact', ['read only', 'restricted', 'upload', 'approval'])->default('read only'); // default read only
             $table->boolean('multiple_files')->default(false); // default single file
-            
+
             // Task requirement & progress tracking
             $table->boolean('is_required')->default(false); // Required to unlock next step
             $table->enum('completion_status', ['pending', 'in_progress', 'completed'])->default('pending');
