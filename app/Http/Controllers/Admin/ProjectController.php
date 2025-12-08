@@ -308,13 +308,14 @@ class ProjectController extends Controller
                     $count++;
                 }
                 
-                Task::create([
+                $task = Task::create([
                     'project_id' => $projectId,
                     'working_step_id' => $newStep->id,
                     'name' => $templateTask->name,
                     'slug' => $slug,
                     'order' => $templateTask->order,
                     'client_interact' => $templateTask->client_interact,
+                    'can_upload_files' => $templateTask->can_upload_files ?? false,
                     'multiple_files' => $templateTask->multiple_files,
                     'is_required' => $templateTask->is_required ?? false,
                     'completion_status' => 'pending',
@@ -322,6 +323,20 @@ class ProjectController extends Controller
                     'project_client_name' => $project->client_name,
                     'working_step_name' => $newStep->name,
                 ]);
+
+                // Create approval records if template has approval roles defined
+                if ($templateTask->approval_roles && count($templateTask->approval_roles) > 0) {
+                    $approvalType = $templateTask->approval_type ?? 'All Attempts';
+                    
+                    foreach ($templateTask->approval_roles as $index => $role) {
+                        TaskApproval::create([
+                            'task_id' => $task->id,
+                            'role' => $role,
+                            'order' => $index + 1,
+                            'type' => $approvalType,
+                        ]);
+                    }
+                }
             }
         }
     }
@@ -673,7 +688,8 @@ class ProjectController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'working_step_id' => 'required|exists:working_steps,id',
-            'client_interact' => 'nullable|string|in:read only,comment,upload,approval',
+            'client_interact' => 'nullable|string|in:read only,restricted,upload,approval',
+            'can_upload_files' => 'boolean',
             'multiple_files' => 'boolean',
             'is_required' => 'boolean',
         ]);
@@ -705,6 +721,7 @@ class ProjectController extends Controller
             'project_id' => $workingStep->project_id,
             'order' => $nextOrder,
             'client_interact' => $request->client_interact ? $request->client_interact : 'read only',
+            'can_upload_files' => $request->boolean('can_upload_files'),
             'multiple_files' => $request->boolean('multiple_files'),
             'is_required' => $request->boolean('is_required'),
             'completion_status' => 'pending',
@@ -721,8 +738,9 @@ class ProjectController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'client_interact' => 'required|in:read only,comment,upload,approval',
+            'client_interact' => 'required|in:read only,restricted,upload,approval',
             'approval_type' => 'required|in:Once,All Attempts',
+            'can_upload_files' => 'boolean',
             'multiple_files' => 'boolean',
             'worker_ids' => 'nullable|array',
             'worker_ids.*' => 'exists:project_teams,id',
@@ -735,6 +753,7 @@ class ProjectController extends Controller
             'name' => $request->name,
             'client_interact' => $request->client_interact ? $request->client_interact : 'read only',
             'approval_type' => $request->approval_type,
+            'can_upload_files' => $request->boolean('can_upload_files'),
             'multiple_files' => $request->boolean('multiple_files'),
             'is_required' => $request->boolean('is_required'),
         ];

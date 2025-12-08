@@ -34,7 +34,7 @@ if ($perikatanStep->is_locked) {
     
     echo "Now client Muhammad Rizki can access tasks:\n";
     $tasks = App\Models\Task::where('working_step_id', $perikatanStep->id)
-        ->where('client_interact', true)
+        ->where('client_interact', '!=', 'read only')
         ->get();
     
     foreach ($tasks as $task) {

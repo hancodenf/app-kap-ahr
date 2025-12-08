@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { FormEventHandler, useState } from 'react';
+import { toast } from 'react-hot-toast';
 
 interface Document {
     id: number;
@@ -43,9 +44,10 @@ interface Task {
     slug: string;
     status: string;
     completion_status: string;
-    client_interact: 'read only' | 'comment' | 'upload' | 'approval';
+    client_interact: 'read only' | 'restricted' | 'upload' | 'approval';
     multiple_files: boolean;
     can_edit: boolean;
+    can_upload_files: boolean;
     working_step: {
         id: number;
         name: string;
@@ -127,9 +129,14 @@ export default function TaskDetail({ auth, task, project }: Props) {
         setShowModal(true);
         
         // Reset form
-        setFileInputs([{ id: 0, label: '', file: null }]);
+        if (task.can_upload_files) {
+            setFileInputs([{ id: 0, label: '', file: null }]);
+            setNextFileId(1);
+        } else {
+            setFileInputs([]);
+            setNextFileId(0);
+        }
         setClientDocInputs([{ id: 0, name: '', description: '' }]);
-        setNextFileId(1);
         setNextClientDocId(1);
         setData({
             notes: '',
@@ -148,20 +155,25 @@ export default function TaskDetail({ auth, task, project }: Props) {
         
         // Initialize with latest assignment data
         if (task.latest_assignment) {
-            // Initialize file inputs
-            if (task.latest_assignment.documents.length > 0) {
-                const existingDocs = task.latest_assignment.documents.map((doc, index) => ({
-                    id: index,
-                    label: doc.name,
-                    file: null,
-                    existingDocId: doc.id,
-                    existingFilePath: doc.file,
-                }));
-                setFileInputs(existingDocs);
-                setNextFileId(existingDocs.length);
+            // Initialize file inputs only if file uploads are allowed
+            if (task.can_upload_files) {
+                if (task.latest_assignment.documents.length > 0) {
+                    const existingDocs = task.latest_assignment.documents.map((doc, index) => ({
+                        id: index,
+                        label: doc.name,
+                        file: null,
+                        existingDocId: doc.id,
+                        existingFilePath: doc.file,
+                    }));
+                    setFileInputs(existingDocs);
+                    setNextFileId(existingDocs.length);
+                } else {
+                    setFileInputs([{ id: 0, label: '', file: null }]);
+                    setNextFileId(1);
+                }
             } else {
-                setFileInputs([{ id: 0, label: '', file: null }]);
-                setNextFileId(1);
+                setFileInputs([]);
+                setNextFileId(0);
             }
             
             // Initialize client doc inputs
@@ -233,6 +245,9 @@ export default function TaskDetail({ auth, task, project }: Props) {
     };
 
     const addFileInput = () => {
+        if (!task.can_upload_files) {
+            return;
+        }
         if (!task.multiple_files && fileInputs.length >= 1) {
             return;
         }
@@ -319,10 +334,14 @@ export default function TaskDetail({ auth, task, project }: Props) {
         const hasClientDocs = data.client_documents && data.client_documents.length > 0;
         const hasExistingFiles = fileInputs.some(input => input.existingFilePath);
         
-        if (!hasNewFiles && !hasClientDocs && !hasExistingFiles) {
-            alert('Please upload at least one file or request at least one document from client.');
+        // If file uploads are enabled, require at least one file or client document
+        if (task.can_upload_files && !hasNewFiles && !hasClientDocs && !hasExistingFiles) {
+            toast.error('Please upload at least one file or request at least one document from client.');
             return;
         }
+        
+        // If file uploads are disabled, allow submission with just notes (no strict requirements)
+        // This allows flexibility for tasks that might only need notes/comments
 
         // Collect existing document labels
         const existingDocLabels = fileInputs
@@ -361,7 +380,7 @@ export default function TaskDetail({ auth, task, project }: Props) {
 
     const handleRequestReupload = () => {
         if (!reuploadComment.trim()) {
-            alert('Please provide a reason for requesting re-upload');
+            toast.error('Please provide a reason for requesting re-upload');
             return;
         }
 
@@ -757,57 +776,91 @@ export default function TaskDetail({ auth, task, project }: Props) {
                                     </div>
 
                                     {/* File Uploads */}
-                                    <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <label className="block text-sm font-medium text-gray-700">
-                                                Upload Documents
-                                            </label>
-                                            {task.multiple_files && (
-                                                <button
-                                                    type="button"
-                                                    onClick={addFileInput}
-                                                    className="text-sm text-blue-600 hover:text-blue-800"
-                                                >
-                                                    + Add Another File
-                                                </button>
-                                            )}
-                                        </div>
-                                        
-                                        <div className="space-y-3">
-                                            {fileInputs.map((input) => (
-                                                <div key={input.id} className="border border-gray-300 rounded-lg p-4">
-                                                    <div className="flex items-start gap-3">
-                                                        <div className="flex-1 space-y-3">
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Document label/name"
-                                                                value={input.label}
-                                                                onChange={(e) => handleLabelChange(input.id, e.target.value)}
-                                                                className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                                            />
-                                                            
-                                                            {input.existingFilePath && !input.file ? (
-                                                                <div className="space-y-2">
-                                                                    <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded">
-                                                                        <div className="flex items-center space-x-2">
-                                                                            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                                            </svg>
-                                                                            <span className="text-sm text-gray-900">Current file</span>
+                                    {task.can_upload_files && (
+                                        <div>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label className="block text-sm font-medium text-gray-700">
+                                                    Upload Documents
+                                                </label>
+                                                {task.multiple_files && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={addFileInput}
+                                                        className="text-sm text-blue-600 hover:text-blue-800"
+                                                    >
+                                                        + Add Another File
+                                                    </button>
+                                                )}
+                                            </div>
+                                            
+                                            <div className="space-y-3">
+                                                {fileInputs.map((input) => (
+                                                    <div key={input.id} className="border border-gray-300 rounded-lg p-4">
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="flex-1 space-y-3">
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Document label/name"
+                                                                    value={input.label}
+                                                                    onChange={(e) => handleLabelChange(input.id, e.target.value)}
+                                                                    className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                                />
+                                                                
+                                                                {input.existingFilePath && !input.file ? (
+                                                                    <div className="space-y-2">
+                                                                        <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded">
+                                                                            <div className="flex items-center space-x-2">
+                                                                                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                                </svg>
+                                                                                <span className="text-sm text-gray-900">Current file</span>
+                                                                            </div>
+                                                                            <a
+                                                                                href={`/storage/${input.existingFilePath}`}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                className="text-xs text-blue-600 hover:text-blue-800"
+                                                                            >
+                                                                                View
+                                                                            </a>
                                                                         </div>
-                                                                        <a
-                                                                            href={`/storage/${input.existingFilePath}`}
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                            className="text-xs text-blue-600 hover:text-blue-800"
+                                                                        <div
+                                                                            onDrop={(e) => handleFileDrop(input.id, e)}
+                                                                            onDragOver={(e) => e.preventDefault()}
+                                                                            className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-500 transition-colors cursor-pointer"
                                                                         >
-                                                                            View
-                                                                        </a>
+                                                                            <input
+                                                                                type="file"
+                                                                                id={`file-${input.id}`}
+                                                                                onChange={(e) => handleFileSelect(input.id, e)}
+                                                                                className="hidden"
+                                                                            />
+                                                                            <label htmlFor={`file-${input.id}`} className="cursor-pointer">
+                                                                                <svg className="mx-auto h-8 w-8 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                                                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                                                                                </svg>
+                                                                                <p className="mt-1 text-xs text-gray-600">
+                                                                                    Click to replace file
+                                                                                </p>
+                                                                            </label>
+                                                                        </div>
                                                                     </div>
+                                                                ) : input.file ? (
+                                                                    <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded">
+                                                                        <span className="text-sm text-gray-900">{input.file.name}</span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleFileChange(input.id, null)}
+                                                                            className="text-xs text-red-600 hover:text-red-800"
+                                                                        >
+                                                                            Remove
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
                                                                     <div
                                                                         onDrop={(e) => handleFileDrop(input.id, e)}
                                                                         onDragOver={(e) => e.preventDefault()}
-                                                                        className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-500 transition-colors cursor-pointer"
+                                                                        className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors cursor-pointer"
                                                                     >
                                                                         <input
                                                                             type="file"
@@ -816,66 +869,34 @@ export default function TaskDetail({ auth, task, project }: Props) {
                                                                             className="hidden"
                                                                         />
                                                                         <label htmlFor={`file-${input.id}`} className="cursor-pointer">
-                                                                            <svg className="mx-auto h-8 w-8 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                                                            <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                                                                                 <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                                                                             </svg>
-                                                                            <p className="mt-1 text-xs text-gray-600">
-                                                                                Click to replace file
+                                                                            <p className="mt-2 text-sm text-gray-600">
+                                                                                Click to upload or drag and drop
                                                                             </p>
                                                                         </label>
                                                                     </div>
-                                                                </div>
-                                                            ) : input.file ? (
-                                                                <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded">
-                                                                    <span className="text-sm text-gray-900">{input.file.name}</span>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleFileChange(input.id, null)}
-                                                                        className="text-xs text-red-600 hover:text-red-800"
-                                                                    >
-                                                                        Remove
-                                                                    </button>
-                                                                </div>
-                                                            ) : (
-                                                                <div
-                                                                    onDrop={(e) => handleFileDrop(input.id, e)}
-                                                                    onDragOver={(e) => e.preventDefault()}
-                                                                    className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors cursor-pointer"
+                                                                )}
+                                                            </div>
+                                                            
+                                                            {fileInputs.length > 1 && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removeFileInput(input.id)}
+                                                                    className="text-red-600 hover:text-red-800 mt-2"
                                                                 >
-                                                                    <input
-                                                                        type="file"
-                                                                        id={`file-${input.id}`}
-                                                                        onChange={(e) => handleFileSelect(input.id, e)}
-                                                                        className="hidden"
-                                                                    />
-                                                                    <label htmlFor={`file-${input.id}`} className="cursor-pointer">
-                                                                        <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                                                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                                                                        </svg>
-                                                                        <p className="mt-2 text-sm text-gray-600">
-                                                                            Click to upload or drag and drop
-                                                                        </p>
-                                                                    </label>
-                                                                </div>
+                                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                                    </svg>
+                                                                </button>
                                                             )}
                                                         </div>
-                                                        
-                                                        {fileInputs.length > 1 && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => removeFileInput(input.id)}
-                                                                className="text-red-600 hover:text-red-800 mt-2"
-                                                            >
-                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                                </svg>
-                                                            </button>
-                                                        )}
                                                     </div>
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
 
                                     {/* Client Document Requests */}
                                     {(task.client_interact !== 'read only' && task.client_interact === 'upload') && (

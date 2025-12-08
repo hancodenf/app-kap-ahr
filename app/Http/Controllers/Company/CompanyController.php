@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\ProjectTeam;
 use App\Models\WorkingStep;
 use App\Models\Task;
+use App\Models\TaskWorker;
 use App\Models\News;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -673,12 +674,13 @@ class CompanyController extends Controller
         }
 
         // Custom validation: at least one of files or client_documents must be provided
-        // UNLESS editing existing assignment (which already has files)
+        // UNLESS editing existing assignment (which already has files) OR task doesn't allow file uploads
         $hasFiles = $request->hasFile('files');
         $hasClientDocs = $request->has('client_documents') && is_array($request->client_documents) && count($request->client_documents) > 0;
         $hasExistingData = $taskAssignment && ($taskAssignment->documents()->count() > 0 || $taskAssignment->clientDocuments()->count() > 0);
 
-        if (!$hasFiles && !$hasClientDocs && !$hasExistingData) {
+        // Only enforce file/client document requirement if task allows file uploads
+        if ($task->can_upload_files && !$hasFiles && !$hasClientDocs && !$hasExistingData) {
             return back()->withErrors(['error' => 'Please upload at least one file or request at least one document from client.']);
         }
 
@@ -1135,6 +1137,7 @@ class CompanyController extends Controller
             'completion_status' => $task->completion_status,
             'client_interact' => $task->client_interact,
             'multiple_files' => $task->multiple_files,
+            'can_upload_files' => $task->can_upload_files,
             'can_edit' => $canEdit,
             'working_step' => [
                 'id' => $task->workingStep->id,
@@ -1527,5 +1530,137 @@ class CompanyController extends Controller
         ]);
 
         return back()->with('success', 'Re-upload request sent to client. Previous submission kept in history.');
+    }
+
+    // ==================== TASK ASSIGNMENT MANAGEMENT ====================
+    
+    /**
+     * Get assignment data for a specific task
+     */
+    private function getTaskAssignmentData(Task $task)
+    {
+        // Get assigned workers
+        $assignedWorkers = TaskWorker::where('task_id', $task->id)
+            ->with('projectTeam.user')
+            ->get()
+            ->map(function ($taskWorker) {
+                return [
+                    'id' => $taskWorker->id,
+                    'worker_name' => $taskWorker->worker_name,
+                    'worker_email' => $taskWorker->worker_email,
+                    'worker_role' => $taskWorker->worker_role,
+                ];
+            });
+
+        // Get available team members (not assigned to this task)
+        $assignedTeamIds = TaskWorker::where('task_id', $task->id)
+            ->pluck('project_team_id')
+            ->toArray();
+
+        $availableMembers = ProjectTeam::where('project_id', $task->project_id)
+            ->whereNotIn('id', $assignedTeamIds)
+            ->with('user')
+            ->get()
+            ->map(function ($member) {
+                return [
+                    'id' => $member->id,
+                    'user_name' => $member->user_name,
+                    'user_email' => $member->user_email,
+                    'user_position' => $member->user_position,
+                    'role' => $member->role,
+                ];
+            });
+
+        return [
+            'assigned_workers' => $assignedWorkers,
+            'available_members' => $availableMembers,
+        ];
+    }
+
+    /**
+     * Assign a team member to a specific task
+     * Only team leaders and above can perform this action
+     */
+    public function assignMemberToTask(Request $request, Task $task)
+    {
+        $request->validate([
+            'project_team_id' => 'required|exists:project_teams,id',
+        ]);
+
+        $user = $request->user();
+        
+        // Get the team member to be assigned
+        $teamMember = ProjectTeam::findOrFail($request->project_team_id);
+        
+        // Validate that the team member belongs to the same project
+        if ($teamMember->project_id !== $task->project_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Team member does not belong to this project'
+            ], 422);
+        }
+
+        // Check if team member is already assigned to this task
+        $existingAssignment = TaskWorker::where('task_id', $task->id)
+            ->where('project_team_id', $teamMember->id)
+            ->first();
+
+        if ($existingAssignment) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Team member is already assigned to this task'
+            ], 422);
+        }
+
+        // Create the task assignment
+        TaskWorker::create([
+            'task_id' => $task->id,
+            'project_team_id' => $teamMember->id,
+            'task_name' => $task->name,
+            'working_step_name' => $task->workingStep->name,
+            'project_name' => $task->project->name,
+            'project_client_name' => $task->project->client_name,
+            'worker_name' => $teamMember->user_name,
+            'worker_email' => $teamMember->user_email,
+            'worker_role' => $teamMember->role,
+        ]);
+
+        // Get updated assignment data
+        $assignmentData = $this->getTaskAssignmentData($task);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully assigned {$teamMember->user_name} to task: {$task->name}",
+            'assigned_workers' => $assignmentData['assigned_workers'],
+            'available_members' => $assignmentData['available_members'],
+        ]);
+    }
+
+    /**
+     * Unassign a team member from a specific task
+     * Only team leaders and above can perform this action
+     */
+    public function unassignMemberFromTask(Request $request, Task $task, TaskWorker $taskWorker)
+    {
+        // Validate that the task worker belongs to this task
+        if ($taskWorker->task_id !== $task->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Task assignment does not belong to this task'
+            ], 422);
+        }
+
+        $workerName = $taskWorker->worker_name;
+        $taskWorker->delete();
+
+        // Get updated assignment data
+        $assignmentData = $this->getTaskAssignmentData($task);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully unassigned {$workerName} from task: {$task->name}",
+            'assigned_workers' => $assignmentData['assigned_workers'],
+            'available_members' => $assignmentData['available_members'],
+        ]);
     }
 }

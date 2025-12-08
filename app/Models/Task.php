@@ -30,6 +30,7 @@ class Task extends Model
         'project_client_name',
         'working_step_name',
         'client_interact',
+        'can_upload_files',
         'multiple_files',
         'approval_type',
         'is_required',
@@ -43,6 +44,7 @@ class Task extends Model
     protected function casts(): array
     {
         return [
+            'can_upload_files' => 'boolean',
             'multiple_files' => 'boolean',
             'is_required' => 'boolean',
             'completed_at' => 'datetime',

@@ -46,9 +46,12 @@ interface TemplateTask {
     time?: string;
     comment?: string;
     client_comment?: string;
-    client_interact: 'read only' | 'comment' | 'upload';
+    client_interact: 'read only' | 'restricted' | 'upload' | 'approval';
+    can_upload_files: boolean;
     multiple_files: boolean;
     is_required: boolean;
+    approval_roles: ('team leader' | 'supervisor' | 'manager' | 'partner')[];
+    approval_type: 'Once' | 'All Attempts';
 }
 
 interface TemplateBundle {
@@ -186,7 +189,7 @@ function DraggableTask({ task, onEdit, onDelete }: {
                             )}
                             {task.client_interact !== 'read only' && (
                                 <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                                    {task.client_interact === 'comment' ? '💬 Client Comment' : '📤 Client Upload'}
+                                    {task.client_interact === 'restricted' ? '� Client Restricted Access' : '📤 Client Upload'}
                                 </span>
                             )}
                             {task.multiple_files && (
@@ -335,7 +338,7 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
     const { data: taskData, setData: setTaskData, post: postTask, reset: resetTask } = useForm({
         name: '',
         template_working_step_id: 0,
-        client_interact: 'read only' as 'read only' | 'comment' | 'upload',
+        client_interact: 'read only' as 'read only' | 'restricted' | 'upload',
         multiple_files: false,
         is_required: false,
     });
@@ -351,9 +354,12 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
 
     const { data: editTaskData, setData: setEditTaskData, put: putTask, reset: resetEditTask } = useForm({
         name: '',
-        client_interact: 'read only' as 'read only' | 'comment' | 'upload',
+        client_interact: 'read only' as 'read only' | 'restricted' | 'upload' | 'approval',
+        can_upload_files: false,
         multiple_files: false,
         is_required: false,
+        approval_roles: [] as ('team leader' | 'supervisor' | 'manager' | 'partner')[],
+        approval_type: 'All Attempts' as 'Once' | 'All Attempts',
     });
 
     const handleAddStep = (e: React.FormEvent) => {
@@ -415,8 +421,11 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
         setEditTaskData({
             name: task.name,
             client_interact: task.client_interact,
+            can_upload_files: task.can_upload_files || false,
             multiple_files: task.multiple_files,
             is_required: task.is_required || false,
+            approval_roles: task.approval_roles || [],
+            approval_type: task.approval_type || 'All Attempts',
         });
         setShowEditTaskModal(true);
     };
@@ -1015,11 +1024,11 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                         <select
                                             id="add_task_client_interact"
                                             value={taskData.client_interact}
-                                            onChange={(e) => setTaskData('client_interact', e.target.value as 'read only' | 'comment' | 'upload')}
+                                            onChange={(e) => setTaskData('client_interact', e.target.value as 'read only' | 'restricted' | 'upload')}
                                             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                         >
                                             <option value="read only">👁️ Read Only - Client can only view</option>
-                                            {/* <option value="comment">💬 Comment - Client can view and comment</option> */}
+                                            <option value="restricted">� Restricted - Client has limited access</option>
                                             <option value="upload">📤 Upload - Client can upload files</option>
                                             <option value="approval">✅ Approval - Client can approve or reject</option>
                                         </select>
@@ -1200,11 +1209,11 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                             <select
                                                 id="client_interact"
                                                 value={editTaskData.client_interact}
-                                                onChange={(e) => setEditTaskData('client_interact', e.target.value as 'read only' | 'comment' | 'upload')}
+                                                onChange={(e) => setEditTaskData('client_interact', e.target.value as 'read only' | 'restricted' | 'upload' | 'approval')}
                                                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                             >
                                                 <option value="read only">👁️ Read Only - Client can only view</option>
-                                                {/* <option value="comment">💬 Comment - Client can view and comment</option> */}
+                                                <option value="restricted">� Restricted - Client has limited access</option>
                                                 <option value="upload">📤 Upload - Client can upload files</option>
                                                 <option value="approval">✅ Approval - Client can approve or reject</option>
                                             </select>
@@ -1216,12 +1225,30 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                         <label className="flex items-center">
                                             <input
                                                 type="checkbox"
-                                                checked={editTaskData.multiple_files}
-                                                onChange={(e) => setEditTaskData('multiple_files', e.target.checked)}
+                                                checked={editTaskData.can_upload_files}
+                                                onChange={(e) => {
+                                                    setEditTaskData('can_upload_files', e.target.checked);
+                                                    // Reset multiple_files when can_upload_files is disabled
+                                                    if (!e.target.checked) {
+                                                        setEditTaskData('multiple_files', false);
+                                                    }
+                                                }}
                                                 className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                                             />
-                                            <span className="ml-2 text-sm text-gray-700">Multiple Files</span>
+                                            <span className="ml-2 text-sm text-gray-700">Can Upload Files</span>
                                         </label>
+
+                                        {editTaskData.can_upload_files && (
+                                            <label className="flex items-center ml-6">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={editTaskData.multiple_files}
+                                                    onChange={(e) => setEditTaskData('multiple_files', e.target.checked)}
+                                                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                                />
+                                                <span className="ml-2 text-sm text-gray-700">Multiple Files</span>
+                                            </label>
+                                        )}
 
                                         <label className="flex items-start space-x-2">
                                             <input
@@ -1239,6 +1266,106 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                                 </p>
                                             </div>
                                         </label>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                ✅ Approval Required From
+                                            </label>
+                                            <p className="text-xs text-gray-500 mb-3">
+                                                Select roles that need to approve this task. Will be automatically ordered by priority.
+                                            </p>
+                                            <div className="space-y-2">
+                                                {(['team leader', 'supervisor', 'manager', 'partner'] as const).map((role) => {
+                                                    // Define role priority for sorting
+                                                    const rolePriority: { [key: string]: number } = {
+                                                        'team leader': 1,
+                                                        'supervisor': 2,
+                                                        'manager': 3,
+                                                        'partner': 4,
+                                                    };
+
+                                                    // Sort approval roles by priority
+                                                    const sortedRoles = [...editTaskData.approval_roles].sort((a, b) =>
+                                                        rolePriority[a] - rolePriority[b]
+                                                    );
+
+                                                    const orderNumber = sortedRoles.indexOf(role) + 1;
+
+                                                    return (
+                                                        <label key={role} className="flex items-center space-x-3 p-2 border rounded hover:bg-gray-50 cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={editTaskData.approval_roles.includes(role)}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        setEditTaskData('approval_roles', [...editTaskData.approval_roles, role]);
+                                                                    } else {
+                                                                        setEditTaskData('approval_roles', editTaskData.approval_roles.filter(r => r !== role));
+                                                                    }
+                                                                }}
+                                                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                            />
+                                                            <div className="flex-1 flex items-center justify-between">
+                                                                <span className="text-sm font-medium text-gray-700 capitalize">
+                                                                    {role}
+                                                                </span>
+                                                                <span className="text-xs text-gray-400">
+                                                                    Priority: {rolePriority[role]}
+                                                                </span>
+                                                            </div>
+                                                            {editTaskData.approval_roles.includes(role) && (
+                                                                <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                                                                    Order: {orderNumber}
+                                                                </span>
+                                                            )}
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
+                                            {editTaskData.approval_roles.length > 0 && (
+                                                <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                                    <p className="text-xs font-medium text-blue-800 mb-1">✓ Approval Flow (Auto-sorted by priority):</p>
+                                                    <p className="text-sm text-blue-700 font-medium">
+                                                        {(() => {
+                                                            const rolePriority: { [key: string]: number } = {
+                                                                'team leader': 1,
+                                                                'supervisor': 2,
+                                                                'manager': 3,
+                                                                'partner': 4,
+                                                            };
+                                                            return [...editTaskData.approval_roles]
+                                                                .sort((a, b) => rolePriority[a] - rolePriority[b])
+                                                                .map((role, idx) => (
+                                                                    <span key={role}>
+                                                                        {idx > 0 && ' → '}
+                                                                        <span className="capitalize">{idx + 1}. {role}</span>
+                                                                    </span>
+                                                                ));
+                                                        })()}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label htmlFor="approval_type" className="block text-sm font-medium text-gray-700 mb-2">
+                                                Approval Workflow Type
+                                            </label>
+                                            <select
+                                                id="approval_type"
+                                                value={editTaskData.approval_type}
+                                                onChange={(e) => setEditTaskData('approval_type', e.target.value as 'Once' | 'All Attempts')}
+                                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                            >
+                                                <option value="All Attempts">All Attempts</option>
+                                                <option value="Once">Once</option>
+                                            </select>
+                                            <p className="mt-3 text-xs text-gray-500">
+                                                Once - Once submission approval status is approved by highest role on this task, no need to start approval workflow from beginning when it rejected by client or need to ask client for re-upload files
+                                            </p>
+                                            <p className="mt-3 text-xs text-gray-500">
+                                                All Attempts - All rejections by client or request for re-upload files will require a new approval workflow
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
 

@@ -41,7 +41,7 @@ foreach ($steps as $step) {
             foreach ($requiredTasks as $task) {
                 echo "    - Task #{$task->id}: {$task->name}\n";
                 echo "      Status: {$task->completion_status}\n";
-                echo "      Client Interact: " . ($task->client_interact ? 'YES' : 'NO') . "\n";
+                echo "      Client Interact: " . $task->client_interact . "\n";
             }
         }
     }

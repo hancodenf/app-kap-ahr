@@ -188,9 +188,13 @@ class ProjectTemplateController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'template_working_step_id' => 'required|exists:template_working_steps,id',
-            'client_interact' => 'required|string|in:read only,comment,upload',
+            'client_interact' => 'required|string|in:read only,restricted,upload,approval',
+            'can_upload_files' => 'boolean',
             'multiple_files' => 'boolean',
             'is_required' => 'boolean',
+            'approval_roles' => 'nullable|array',
+            'approval_roles.*' => 'string|in:team leader,supervisor,manager,partner',
+            'approval_type' => 'nullable|string|in:Once,All Attempts',
         ]);
 
         // Get the working step to get project_template_id
@@ -217,8 +221,11 @@ class ProjectTemplateController extends Controller
             'project_template_id' => $workingStep->project_template_id,
             'order' => $nextOrder,
             'client_interact' => $request->client_interact,
+            'can_upload_files' => $request->boolean('can_upload_files'),
             'multiple_files' => $request->boolean('multiple_files'),
             'is_required' => $request->boolean('is_required'),
+            'approval_roles' => $request->approval_roles ?? [],
+            'approval_type' => $request->approval_type ?? 'All Attempts',
         ]);
 
         return redirect()->back()->with('success', 'Template task created successfully!');
@@ -228,17 +235,24 @@ class ProjectTemplateController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'client_interact' => 'required|string|in:read only,comment,upload',
+            'client_interact' => 'required|string|in:read only,restricted,upload,approval',
+            'can_upload_files' => 'boolean',
             'multiple_files' => 'boolean',
             'is_required' => 'boolean',
+            'approval_roles' => 'nullable|array',
+            'approval_roles.*' => 'string|in:team leader,supervisor,manager,partner',
+            'approval_type' => 'nullable|string|in:Once,All Attempts',
         ]);
 
         // Generate new slug if name changed
         $updateData = [
             'name' => $request->name,
             'client_interact' => $request->client_interact,
+            'can_upload_files' => $request->boolean('can_upload_files'),
             'multiple_files' => $request->boolean('multiple_files'),
             'is_required' => $request->boolean('is_required'),
+            'approval_roles' => $request->approval_roles ?? [],
+            'approval_type' => $request->approval_type ?? 'All Attempts',
         ];
 
         if ($templateTask->name !== $request->name) {

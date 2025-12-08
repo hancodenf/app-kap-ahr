@@ -34,8 +34,11 @@ class TemplateTask extends Model
         'comment',
         'client_comment',
         'client_interact',
+        'can_upload_files',
         'multiple_files',
         'is_required',
+        'approval_roles',
+        'approval_type',
     ];
 
     /**
@@ -47,8 +50,10 @@ class TemplateTask extends Model
     {
         return [
             'time' => 'datetime',
+            'can_upload_files' => 'boolean',
             'multiple_files' => 'boolean',
             'is_required' => 'boolean',
+            'approval_roles' => 'array',
         ];
     }
 

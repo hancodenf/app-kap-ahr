@@ -47,8 +47,9 @@ interface Task {
     time?: string;
     comment?: string;
     client_comment?: string;
-    client_interact: 'read only' | 'upload' | 'approval';
+    client_interact: 'read only' | 'restricted' | 'upload' | 'approval';
     approval_type: 'Once' | 'All Attempts';
+    can_upload_files: boolean;
     multiple_files: boolean;
     is_required: boolean;
     completion_status?: 'pending' | 'in_progress' | 'completed';
@@ -412,8 +413,9 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     const { data: taskData, setData: setTaskData, post: postTask, reset: resetTask } = useForm({
         name: '',
         working_step_id: 0,
-        client_interact: 'read only' as 'read only' | 'upload' | 'approval',
+        client_interact: 'read only' as 'read only' | 'restricted' | 'upload' | 'approval',
         approval_type: 'Once' as 'Once' | 'All Attempts',
+        can_upload_files: false,
         multiple_files: false,
         is_required: false,
     });
@@ -454,8 +456,9 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
 
     const { data: editTaskData, setData: setEditTaskData, put: putTask, reset: resetEditTask } = useForm({
         name: '',
-        client_interact: 'read only' as 'read only' | 'upload' | 'approval',
+        client_interact: 'read only' as 'read only' | 'restricted' | 'upload' | 'approval',
         approval_type: 'Once' as 'Once' | 'All Attempts',
+        can_upload_files: false,
         multiple_files: false,
         is_required: false,
         worker_ids: [] as number[],
@@ -577,6 +580,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         setEditTaskData({
             name: task.name,
             client_interact: task.client_interact,
+            can_upload_files: task.can_upload_files || false,
             multiple_files: task.multiple_files,
             is_required: task.is_required || false,
             approval_type: task.approval_type || 'All Attempts',
@@ -1390,11 +1394,11 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         <select
                                             id="add_task_client_interact"
                                             value={taskData.client_interact}
-                                            onChange={(e) => setTaskData('client_interact', e.target.value as 'read only' | 'upload' | 'approval')}
+                                            onChange={(e) => setTaskData('client_interact', e.target.value as 'read only' | 'restricted' | 'upload' | 'approval')}
                                             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                         >
                                             <option value="read only">👁️ Read Only - Client can only view</option>
-                                            {/* <option value="comment">💬 Comment - Client can view and comment</option> */}
+                                            <option value="restricted">� Restricted - Client has limited access</option>
                                             <option value="upload">📤 Upload - Client can upload files</option>
                                             <option value="approval">✅ Approval - Client can approve or reject</option>
                                         </select>
@@ -1406,12 +1410,30 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     <label className="flex items-center">
                                         <input
                                             type="checkbox"
-                                            checked={taskData.multiple_files}
-                                            onChange={(e) => setTaskData('multiple_files', e.target.checked)}
+                                            checked={taskData.can_upload_files}
+                                            onChange={(e) => {
+                                                setTaskData('can_upload_files', e.target.checked);
+                                                // Reset multiple_files when can_upload_files is disabled
+                                                if (!e.target.checked) {
+                                                    setTaskData('multiple_files', false);
+                                                }
+                                            }}
                                             className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                                         />
-                                        <span className="ml-2 text-sm text-gray-700">Multiple Files</span>
+                                        <span className="ml-2 text-sm text-gray-700">Can Upload Files</span>
                                     </label>
+
+                                    {taskData.can_upload_files && (
+                                        <label className="flex items-center ml-6">
+                                            <input
+                                                type="checkbox"
+                                                checked={taskData.multiple_files}
+                                                onChange={(e) => setTaskData('multiple_files', e.target.checked)}
+                                                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                            />
+                                            <span className="ml-2 text-sm text-gray-700">Multiple Files</span>
+                                        </label>
+                                    )}
 
                                     <label className="flex items-start space-x-2">
                                         <input
@@ -1657,11 +1679,11 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                             <select
                                                 id="client_interact"
                                                 value={editTaskData.client_interact}
-                                                onChange={(e) => setEditTaskData('client_interact', e.target.value as 'read only' | 'upload' | 'approval')}
+                                                onChange={(e) => setEditTaskData('client_interact', e.target.value as 'read only' | 'restricted' | 'upload' | 'approval')}
                                                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                             >
                                                 <option value="read only">👁️ Read Only - Client can only view</option>
-                                                {/* <option value="comment">💬 Comment - Client can view and comment</option> */}
+                                                <option value="restricted">� Restricted - Client has limited access</option>
                                                 <option value="upload">📤 Upload - Client can upload files</option>
                                                 <option value="approval">✅ Approval - Client can approve or reject</option>
                                             </select>
@@ -1673,12 +1695,30 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         <label className="flex items-center">
                                             <input
                                                 type="checkbox"
-                                                checked={editTaskData.multiple_files}
-                                                onChange={(e) => setEditTaskData('multiple_files', e.target.checked)}
+                                                checked={editTaskData.can_upload_files}
+                                                onChange={(e) => {
+                                                    setEditTaskData('can_upload_files', e.target.checked);
+                                                    // Reset multiple_files when can_upload_files is disabled
+                                                    if (!e.target.checked) {
+                                                        setEditTaskData('multiple_files', false);
+                                                    }
+                                                }}
                                                 className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                                             />
-                                            <span className="ml-2 text-sm text-gray-700">Multiple Files</span>
+                                            <span className="ml-2 text-sm text-gray-700">Can Upload Files</span>
                                         </label>
+
+                                        {editTaskData.can_upload_files && (
+                                            <label className="flex items-center ml-6">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={editTaskData.multiple_files}
+                                                    onChange={(e) => setEditTaskData('multiple_files', e.target.checked)}
+                                                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                                />
+                                                <span className="ml-2 text-sm text-gray-700">Multiple Files</span>
+                                            </label>
+                                        )}
 
                                         <label className="flex items-start space-x-2">
                                             <input

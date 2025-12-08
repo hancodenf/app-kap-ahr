@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'security.unlock' => \App\Http\Middleware\SecurityUnlockMiddleware::class,
             'no.cache' => \App\Http\Middleware\NoCacheMiddleware::class,
+            'can.manage.task.assignments' => \App\Http\Middleware\CanManageTaskAssignments::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

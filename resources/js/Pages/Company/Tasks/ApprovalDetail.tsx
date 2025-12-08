@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { useState, FormEventHandler, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 
 interface Document {
     id: number;
@@ -62,12 +63,12 @@ export default function ApprovalDetail({ auth, task, project }: Props) {
     // Handle flash messages
     useEffect(() => {
         if (flash?.success) {
-            alert(flash.success);
+            toast.success(flash.success);
             // Redirect back to project page after showing success
             router.visit(route('company.projects.show', project.id));
         }
         if (flash?.error) {
-            alert(flash.error);
+            toast.error(flash.error);
         }
     }, [flash]);
 
@@ -83,7 +84,7 @@ export default function ApprovalDetail({ auth, task, project }: Props) {
             preserveScroll: true,
             onError: (errors) => {
                 console.error('Error approving task:', errors);
-                alert('Failed to approve task. Check console for details.');
+                toast.error('Failed to approve task. Check console for details.');
                 setProcessing(false);
             },
             onFinish: () => {
@@ -96,7 +97,7 @@ export default function ApprovalDetail({ auth, task, project }: Props) {
         e.preventDefault();
 
         if (!rejectComment.trim()) {
-            alert('Please provide a reason for rejection');
+            toast.error('Please provide a reason for rejection');
             return;
         }
 
@@ -112,7 +113,7 @@ export default function ApprovalDetail({ auth, task, project }: Props) {
             },
             onError: (errors) => {
                 console.error('Error rejecting task:', errors);
-                alert('Failed to reject task. Check console for details.');
+                toast.error('Failed to reject task. Check console for details.');
                 setProcessing(false);
             },
             onFinish: () => {

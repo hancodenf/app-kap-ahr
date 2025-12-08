@@ -39,7 +39,7 @@ interface Task {
     slug: string;
     status: string;
     completion_status: string;
-    client_interact: 'read only' | 'comment' | 'upload';
+    client_interact: 'read only' | 'restricted' | 'upload';
     multiple_files: boolean;
     can_edit: boolean;
     working_step: {

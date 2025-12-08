@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { FormEventHandler, useState } from 'react';
+import { toast } from 'react-hot-toast';
 
 interface Document {
     id: number;
@@ -36,7 +37,7 @@ interface Task {
     slug: string;
     status: string;
     completion_status: string;
-    client_interact: 'read only' | 'comment' | 'upload';
+    client_interact: 'read only' | 'restricted' | 'upload';
     multiple_files: boolean;
     can_edit: boolean;
     working_step: {
@@ -307,7 +308,7 @@ export default function TaskDetail({ auth, task, project }: Props) {
         const hasExistingFiles = fileInputs.some(input => input.existingFilePath);
         
         if (!hasNewFiles && !hasClientDocs && !hasExistingFiles) {
-            alert('Please upload at least one file or request at least one document from client.');
+            toast.error('Please upload at least one file or request at least one document from client.');
             return;
         }
 
@@ -326,7 +327,7 @@ export default function TaskDetail({ auth, task, project }: Props) {
             preserveScroll: true,
             forceFormData: true,
             onSuccess: () => {
-                alert('Task updated successfully!');
+                toast.success('Task updated successfully!');
                 setShowModal(false);
                 router.reload({ only: ['task'] });
             },
@@ -341,7 +342,7 @@ export default function TaskDetail({ auth, task, project }: Props) {
         router.post(route('company.tasks.accept-client-documents', task.id), {}, {
             preserveScroll: true,
             onSuccess: () => {
-                alert('Client documents accepted! Task marked as completed.');
+                toast.success('Client documents accepted! Task marked as completed.');
                 router.reload({ only: ['task'] });
             },
         });
@@ -349,7 +350,7 @@ export default function TaskDetail({ auth, task, project }: Props) {
 
     const handleRequestReupload = () => {
         if (!reuploadComment.trim()) {
-            alert('Please provide a reason for requesting re-upload');
+            toast.error('Please provide a reason for requesting re-upload');
             return;
         }
 
@@ -358,7 +359,7 @@ export default function TaskDetail({ auth, task, project }: Props) {
         }, {
             preserveScroll: true,
             onSuccess: () => {
-                alert('Re-upload request sent to client!');
+                toast.success('Re-upload request sent to client!');
                 setShowReuploadModal(false);
                 setReuploadComment('');
                 router.reload({ only: ['task'] });

@@ -7,16 +7,16 @@ $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 
 echo "=== CHECKING CLIENT INTERACT TASKS ===\n\n";
 
-// Get tasks with client_interact enabled
-$tasks = App\Models\Task::where('client_interact', true)->get();
+// Get tasks with client_interact enabled (not 'read only')
+$tasks = App\Models\Task::where('client_interact', '!=', 'read only')->get();
 
-echo "Total tasks with client_interact=true: " . $tasks->count() . "\n\n";
+echo "Total tasks with client_interact enabled: " . $tasks->count() . "\n\n";
 
 if ($tasks->count() > 0) {
     foreach ($tasks as $task) {
         echo "Task ID: " . $task->id . "\n";
         echo "Task Name: " . $task->name . "\n";
-        echo "Client Interact: " . ($task->client_interact ? 'TRUE' : 'FALSE') . "\n";
+        echo "Client Interact: " . $task->client_interact . "\n";
         echo "Multiple Files: " . ($task->multiple_files ? 'TRUE' : 'FALSE') . "\n";
         echo "Status: " . $task->status . "\n";
         echo "Working Step: " . $task->working_step_name . "\n";
@@ -24,9 +24,9 @@ if ($tasks->count() > 0) {
         echo "---\n";
     }
 } else {
-    echo "NO TASKS FOUND with client_interact=true!\n";
+    echo "NO TASKS FOUND with client_interact enabled!\n";
     echo "\nThis is why the upload button doesn't appear!\n";
-    echo "You need to enable 'Client Interact' checkbox in Admin Panel for tasks.\n";
+    echo "You need to set 'Client Interact' to 'upload' or 'approval' for tasks in Admin Panel.\n";
 }
 
 echo "\n=== CHECKING USER LOGIN ===\n\n";
@@ -59,12 +59,12 @@ foreach ($projects as $project) {
     $clientInteractTasks = 0;
     foreach ($project->workingSteps as $step) {
         foreach ($step->tasks as $task) {
-            if ($task->client_interact) {
+            if ($task->client_interact !== 'read only') {
                 $clientInteractTasks++;
             }
         }
     }
     
-    echo "Tasks with client_interact: " . $clientInteractTasks . "\n";
+    echo "Tasks with client_interact enabled: " . $clientInteractTasks . "\n";
     echo "---\n";
 }

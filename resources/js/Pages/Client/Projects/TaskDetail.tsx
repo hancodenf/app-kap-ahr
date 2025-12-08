@@ -56,7 +56,7 @@ interface Task {
     is_required: boolean;
     completion_status: 'pending' | 'in_progress' | 'completed';
     status: string;
-    client_interact: 'read only' | 'comment' | 'upload' | 'approval';
+    client_interact: 'read only' | 'restricted' | 'upload' | 'approval';
     multiple_files: boolean;
     can_edit: boolean;
     project_name: string;
@@ -150,19 +150,19 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
 
     // Client can interact based on client_interact permission and task status
     // Can interact if:
-    // 1. Task allows interaction (comment or upload)
+    // 1. Task allows interaction (upload or approval - restricted is view only)
     // 2. Latest assignment status is "Submitted to Client" (company is asking for client input)
     // 3. Task is not completed yet
     // 4. Project is In Progress (read-only if not)
     const latestAssignment = task.assignments?.[0]; // assignments are sorted by latest first
-    const canInteract = task.client_interact !== 'read only' &&
+    const canInteract = task.client_interact === 'upload' || task.client_interact === 'approval' &&
         (latestAssignment?.status === 'Submitted to Client' || latestAssignment?.status === 'Under Review by Client' || latestAssignment?.status === 'Approved by Client' || latestAssignment?.status === 'Client Reply') &&
         task.completion_status !== 'completed' &&
         isProjectActive;
 
-
     const canUploadFiles = task.client_interact === 'upload' && canInteract;
     const canApprove = task.client_interact === 'approval' && canInteract;
+    const isRestrictedAccess = task.client_interact === 'restricted';
 
     const getStatusBadgeClass = (status: string) => {
         switch (status) {
@@ -384,14 +384,14 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                         </div>
                                                     )}
 
-                                                    {assignment.client_comment && (
+                                                    {assignment.client_comment && !isRestrictedAccess && (
                                                         <div className="bg-purple-50 border-l-4 border-purple-400 p-3 rounded">
                                                             <p className="text-xs font-medium text-purple-900 mb-1">💬 Your Comment:</p>
                                                             <p className="text-sm text-purple-800">{assignment.client_comment}</p>
                                                         </div>
                                                     )}
 
-                                                    {assignment.documents && assignment.documents.length > 0 && (
+                                                    {assignment.documents && assignment.documents.length > 0 && !isRestrictedAccess && (
                                                         <div>
                                                             <p className="text-xs font-medium text-gray-700 mb-2">📁 Documents from Team ({assignment.documents.length}):</p>
                                                             <div className="space-y-2">
@@ -415,6 +415,20 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                                         </a>
                                                                     </div>
                                                                 ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Show restricted message if documents exist but access is restricted */}
+                                                    {assignment.documents && assignment.documents.length > 0 && isRestrictedAccess && (
+                                                        <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                                                            <div className="flex items-center gap-2">
+                                                                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                                </svg>
+                                                                <span className="text-sm text-gray-600 font-medium">
+                                                                    📁 Team has submitted {assignment.documents.length} document{assignment.documents.length > 1 ? 's' : ''} (Restricted Access)
+                                                                </span>
                                                             </div>
                                                         </div>
                                                     )}
@@ -655,15 +669,15 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
 
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                    {(task.client_interact === 'comment' && latestAssignment?.status !== 'Client Reply') ? 'Add Some Comment (Optional)' : 'Edit Your Comment (Optional)'}
+                                                    {(task.client_interact === 'restricted' && latestAssignment?.status !== 'Client Reply') ? 'Add Some Comment (Optional)' : 'Edit Your Comment (Optional)'}
                                                 </label>
                                                 <textarea
                                                     value={data.client_comment}
                                                     onChange={(e) => setData('client_comment', e.target.value)}
                                                     rows={4}
-                                                    placeholder={task.client_interact === 'comment' ? 'Write your comments or responses...' : 'Write some notes or comments...'}
+                                                    placeholder={task.client_interact === 'restricted' ? 'Write your comments or responses...' : 'Write some notes or comments...'}
                                                     className="w-full border-gray-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                                                    required={task.client_interact === 'comment' && pendingClientDocs.length === 0}
+                                                    required={task.client_interact === 'restricted' && pendingClientDocs.length === 0}
                                                 />
                                             </div>
 
@@ -674,7 +688,7 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                             >
                                                 {processing
                                                     ? 'Submitting...'
-                                                    : task.client_interact === 'comment'
+                                                    : task.client_interact === 'restricted'
                                                         ? 'Send Comment'
                                                         : task.client_interact === 'upload' && pendingClientDocs.length > 0
                                                             ? 'Upload Document'
@@ -693,6 +707,13 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                             </p>
                                         </div>
                                     )}
+                                    {isRestrictedAccess && (
+                                        <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                                            <p className="text-sm text-orange-800">
+                                                <strong>🔒 Restricted Access:</strong> You can view task status but cannot access documents or add comments.
+                                            </p>
+                                        </div>
+                                    )}
                                     <div className="text-center py-6">
                                         <svg className="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -706,7 +727,9 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                         ? 'Waiting for Review'
                                                         : task.client_interact === 'read only'
                                                             ? 'View Only'
-                                                            : 'No Request Yet'
+                                                            : task.client_interact === 'restricted'
+                                                                ? 'Restricted Access'
+                                                                : 'No Request Yet'
                                             }
                                         </p>
                                         <p className="text-sm text-gray-600">
@@ -718,7 +741,9 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                         ? 'The team is reviewing your response'
                                                         : task.client_interact === 'read only'
                                                             ? 'This task is for viewing information only'
-                                                            : 'Waiting for request from the audit team'
+                                                            : task.client_interact === 'restricted'
+                                                                ? 'You can view progress but cannot access files or submit comments'
+                                                                : 'Waiting for request from the audit team'
                                             }
                                         </p>
                                     </div>

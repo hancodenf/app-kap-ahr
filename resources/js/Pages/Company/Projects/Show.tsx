@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { FormEventHandler, useState, useEffect, useMemo } from 'react';
+import toast from 'react-hot-toast';
 
 interface Document {
     id: number;
@@ -46,7 +47,7 @@ interface Task {
     is_required: boolean;
     completion_status: 'pending' | 'in_progress' | 'completed';
     status: string;
-    client_interact: 'read only' | 'comment' | 'upload';
+    client_interact: 'read only' | 'restricted' | 'upload';
     multiple_files: boolean;
     is_assigned_to_me: boolean;
     my_assignment_id: number | null;
@@ -54,6 +55,8 @@ interface Task {
     latest_assignment: TaskAssignment | null;
     assignments: TaskAssignment[];
     task_workers?: TaskWorker[];
+    assigned_workers?: TaskWorker[];
+    available_members?: TeamMember[];
 }
 
 interface RequiredProgress {
@@ -157,10 +160,18 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
     const [nextFileId, setNextFileId] = useState(1);
     const [nextClientDocId, setNextClientDocId] = useState(1);
     
+    // Task assignment states
+    const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+    const [selectedTaskForAssignment, setSelectedTaskForAssignment] = useState<Task | null>(null);
+    const [assignmentLoading, setAssignmentLoading] = useState(false);
+    
     // Check if user role needs approval tab (not Member)
     // Use lowercase comparison to handle case-insensitive role names
     const roleLower = myRole.toLowerCase();
     const needsApprovalTab = ['team leader', 'manager', 'supervisor', 'partner'].includes(roleLower);
+    
+    // Check if user can manage task assignments (team leader and above)
+    const canManageAssignments = ['team leader', 'manager', 'supervisor', 'partner'].includes(roleLower);
 
     // Calculate project statistics
     const projectStats = useMemo(() => {
@@ -269,7 +280,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
         if (!selectedApprovalTask) return;
 
         if (approvalAction === 'reject' && !rejectComment.trim()) {
-            alert('Please provide a reason for rejection.');
+            toast.error('Please provide a reason for rejection.');
             return;
         }
 
@@ -299,13 +310,13 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
                 // Refresh approval requests
                 fetchApprovalRequests();
                 // Show success message
-                alert(data.message);
+                toast.success(data.message);
             } else {
-                alert(data.error || 'An error occurred');
+                toast.error(data.error || 'An error occurred');
             }
         } catch (error) {
             console.error('Error processing approval:', error);
-            alert('An error occurred');
+            toast.error('An error occurred');
         } finally {
             setProcessingApproval(false);
         }
@@ -511,7 +522,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
         const hasExistingClientDocs = clientDocInputs.some(input => input.name.trim() !== '');
         
         if (!hasNewFiles && !hasClientDocs && !hasExistingFiles && !hasExistingClientDocs) {
-            alert('Please upload at least one file or request at least one document from client.');
+            toast.error('Please upload at least one file or request at least one document from client.');
             return;
         }
 
@@ -556,7 +567,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
         router.post(route('company.tasks.accept-client-documents', selectedTask.id), {}, {
             preserveScroll: true,
             onSuccess: () => {
-                alert('Client documents accepted! Task marked as completed.');
+                toast.success('Client documents accepted! Task marked as completed.');
                 setShowTaskModal(false);
                 setSelectedTask(null);
                 setShowForm(false);
@@ -564,14 +575,14 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
             onError: (errors) => {
                 console.error('Server errors:', errors);
                 const errorMessage = errors.error || Object.values(errors).join(', ') || 'Failed to accept client documents';
-                alert(`Error: ${errorMessage}`);
+                toast.error(`Error: ${errorMessage}`);
             }
         });
     };
 
     const handleRequestReupload = async () => {
         if (!selectedTask || !reuploadComment.trim()) {
-            alert('Please provide a reason for requesting re-upload');
+            toast.error('Please provide a reason for requesting re-upload');
             return;
         }
 
@@ -580,7 +591,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
         }, {
             preserveScroll: true,
             onSuccess: () => {
-                alert('Re-upload request sent to client!');
+                toast.success('Re-upload request sent to client!');
                 setShowReuploadModal(false);
                 setReuploadComment('');
                 setShowTaskModal(false);
@@ -590,9 +601,99 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
             onError: (errors) => {
                 console.error('Server errors:', errors);
                 const errorMessage = errors.error || Object.values(errors).join(', ') || 'Failed to request re-upload';
-                alert(`Error: ${errorMessage}`);
+                toast.error(`Error: ${errorMessage}`);
             }
         });
+    };
+
+    // Task assignment management functions
+    const handleManageAssignments = (task: Task) => {
+        setSelectedTaskForAssignment(task);
+        setShowAssignmentModal(true);
+    };
+
+    const handleAssignMember = async (projectTeamId: number) => {
+        if (!selectedTaskForAssignment) return;
+
+        setAssignmentLoading(true);
+        
+        try {
+            const response = await fetch(route('company.tasks.assign-member', selectedTaskForAssignment.id), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+                body: JSON.stringify({
+                    project_team_id: projectTeamId,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                toast.success(data.message);
+                
+                // Update assignment data in the modal if response includes updated data
+                if (data.assigned_workers && data.available_members) {
+                    setSelectedTaskForAssignment(prev => prev ? {
+                        ...prev,
+                        assigned_workers: data.assigned_workers,
+                        available_members: data.available_members
+                    } : null);
+                }
+                
+                // Also refresh the page to update main task list
+                router.reload({ only: ['workingSteps'] });
+            } else {
+                toast.error(data.message || 'Failed to assign team member');
+            }
+        } catch (error) {
+            console.error('Error assigning member:', error);
+            toast.error('Failed to assign team member');
+        } finally {
+            setAssignmentLoading(false);
+        }
+    };
+
+    const handleUnassignMember = async (taskWorkerId: number) => {
+        if (!selectedTaskForAssignment) return;
+
+        setAssignmentLoading(true);
+        
+        try {
+            const response = await fetch(route('company.tasks.unassign-member', [selectedTaskForAssignment.id, taskWorkerId]), {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                toast.success(data.message);
+                
+                // Update assignment data in the modal if response includes updated data
+                if (data.assigned_workers && data.available_members) {
+                    setSelectedTaskForAssignment(prev => prev ? {
+                        ...prev,
+                        assigned_workers: data.assigned_workers,
+                        available_members: data.available_members
+                    } : null);
+                }
+                
+                // Also refresh the page to update main task list
+                router.reload({ only: ['workingSteps'] });
+            } else {
+                toast.error(data.message || 'Failed to unassign team member');
+            }
+        } catch (error) {
+            console.error('Error unassigning member:', error);
+            toast.error('Failed to unassign team member');
+        } finally {
+            setAssignmentLoading(false);
+        }
     };
 
     const getStatusBadgeClass = (status: string) => {
@@ -1274,6 +1375,30 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
                                                                                 )}
                                                                             </div>
                                                                         </div>
+                                                                        
+                                                                        {/* Task Management Actions */}
+                                                                        {canManageAssignments && (
+                                                                            <div className="flex-shrink-0 flex flex-col items-end gap-2">
+                                                                                <button
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        handleManageAssignments(task);
+                                                                                    }}
+                                                                                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-all"
+                                                                                    title="Manage Task Assignments"
+                                                                                >
+                                                                                    <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                                                                                    </svg>
+                                                                                    Manage Team
+                                                                                </button>
+                                                                                {task.task_workers && task.task_workers.length > 0 && (
+                                                                                    <span className="text-xs text-gray-500">
+                                                                                        {task.task_workers.length} assigned
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                                 ))}
@@ -2231,6 +2356,127 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
                                     Cancel
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Task Assignment Modal */}
+            {showAssignmentModal && selectedTaskForAssignment && (
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+                    <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-medium text-gray-900">
+                                Manage Task Assignment
+                            </h3>
+                            <button
+                                onClick={() => {
+                                    setShowAssignmentModal(false);
+                                    setSelectedTaskForAssignment(null);
+                                }}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <div className="mb-6">
+                            <h4 className="text-sm font-medium text-gray-900 mb-2">Task:</h4>
+                            <p className="text-sm text-gray-600 bg-gray-50 rounded p-2">
+                                {selectedTaskForAssignment.name}
+                            </p>
+                        </div>
+
+                        {/* Currently Assigned Members */}
+                        <div className="mb-6">
+                            <h4 className="text-sm font-medium text-gray-900 mb-3">Currently Assigned ({(selectedTaskForAssignment.assigned_workers || selectedTaskForAssignment.task_workers)?.length || 0})</h4>
+                            {(selectedTaskForAssignment.assigned_workers || selectedTaskForAssignment.task_workers) && (selectedTaskForAssignment.assigned_workers || selectedTaskForAssignment.task_workers)!.length > 0 ? (
+                                <div className="space-y-2 max-h-32 overflow-y-auto">
+                                    {(selectedTaskForAssignment.assigned_workers || selectedTaskForAssignment.task_workers)!.map((worker) => (
+                                        <div key={worker.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                                    <span className="text-purple-600 text-xs font-medium">
+                                                        {worker.worker_name.charAt(0).toUpperCase()}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-900">{worker.worker_name}</p>
+                                                    <p className="text-xs text-gray-500">{worker.worker_email} • {worker.worker_role}</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => handleUnassignMember(worker.id)}
+                                                disabled={assignmentLoading}
+                                                className="text-red-600 hover:text-red-800 text-xs font-medium px-2 py-1 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-500 italic bg-gray-50 rounded p-3">
+                                    No team members assigned to this task
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Available Team Members */}
+                        <div className="mb-6">
+                            <h4 className="text-sm font-medium text-gray-900 mb-3">Available Team Members</h4>
+                            <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
+                                {(selectedTaskForAssignment.available_members || teamMembers
+                                    .filter(member => !(selectedTaskForAssignment.assigned_workers || selectedTaskForAssignment.task_workers)?.some(worker => worker.project_team_id === member.id)))
+                                    .map((member) => (
+                                        <div key={member.id} className="flex items-center justify-between p-3 hover:bg-gray-50">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                                                    member.role === 'partner' ? 'bg-purple-100 text-purple-600' :
+                                                    member.role === 'manager' ? 'bg-blue-100 text-blue-600' :
+                                                    member.role === 'supervisor' ? 'bg-green-100 text-green-600' :
+                                                    member.role === 'team leader' ? 'bg-yellow-100 text-yellow-600' :
+                                                    'bg-gray-100 text-gray-600'
+                                                }`}>
+                                                    {member.user_name.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-900">{member.user_name}</p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {member.user_email} • {member.role}
+                                                        {member.user_position && ` • ${member.user_position}`}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => handleAssignMember(member.id)}
+                                                disabled={assignmentLoading}
+                                                className="text-blue-600 hover:text-blue-800 text-xs font-medium px-3 py-1 hover:bg-blue-50 rounded transition-colors disabled:opacity-50"
+                                            >
+                                                {assignmentLoading ? 'Assigning...' : 'Assign'}
+                                            </button>
+                                        </div>
+                                ))}
+                                {(selectedTaskForAssignment.available_members || teamMembers.filter(member => !(selectedTaskForAssignment.assigned_workers || selectedTaskForAssignment.task_workers)?.some(worker => worker.project_team_id === member.id))).length === 0 && (
+                                    <p className="text-sm text-gray-500 italic p-3">
+                                        All team members are already assigned to this task
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowAssignmentModal(false);
+                                    setSelectedTaskForAssignment(null);
+                                }}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                            >
+                                Close
+                            </button>
                         </div>
                     </div>
                 </div>

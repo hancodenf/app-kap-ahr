@@ -30,10 +30,10 @@ foreach ($users as $user) {
             
             // Get tasks with client_interact for this project
             $tasks = App\Models\Task::where('project_id', $project->id)
-                ->where('client_interact', true)
+                ->where('client_interact', '!=', 'read only')
                 ->get();
             
-            echo "  Tasks with client_interact: {$tasks->count()}\n";
+            echo "  Tasks with client_interact enabled: {$tasks->count()}\n";
             
             if ($tasks->count() > 0) {
                 foreach ($tasks as $task) {

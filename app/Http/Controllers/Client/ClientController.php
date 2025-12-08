@@ -457,7 +457,7 @@ class ClientController extends Controller
                             'status' => $latestAssignment->status ?? 'Draft',
                             'client_interact' => $task->client_interact,
                             'multiple_files' => $task->multiple_files,
-                            'is_assigned_to_me' => $task->client_interact !== 'read only', // Client can interact with 'comment' or 'upload' tasks
+                            'is_assigned_to_me' => $task->client_interact !== 'read only', // Client can interact with 'restricted' or 'upload' tasks
                             'my_assignment_id' => null,
                             'workers' => $taskWorkers, // Add workers data
                             // Latest assignment info for display
@@ -669,7 +669,7 @@ class ClientController extends Controller
             abort(404, 'Task not found.');
         }
 
-        // Validate that this task allows client upload (not 'read only' or 'comment')
+        // Validate that this task allows client upload (not 'read only' or 'restricted')
         if ($task->client_interact !== 'upload') {
             return back()->with('error', 'Task ini tidak memerlukan upload file dari client.');
         }

@@ -31,6 +31,7 @@ return new class extends Migration
             $table->string('working_step_name');
 
             $table->enum('client_interact', ['read only', 'restricted', 'upload', 'approval'])->default('read only'); // default read only
+            $table->boolean('can_upload_files')->default(false); // default single file
             $table->boolean('multiple_files')->default(false); // default single file
 
             // Task requirement & progress tracking

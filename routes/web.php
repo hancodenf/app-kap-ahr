@@ -278,6 +278,12 @@ Route::middleware(['auth', 'verified', 'role:company', 'no.cache'])->prefix('com
     Route::post('/tasks/{task}/accept-client-documents', [CompanyController::class, 'acceptClientDocuments'])->name('tasks.accept-client-documents');
     Route::post('/tasks/{task}/request-reupload', [CompanyController::class, 'requestReupload'])->name('tasks.request-reupload');
     
+    // Task assignment management routes (for team leaders and above)
+    Route::middleware(['can.manage.task.assignments'])->group(function () {
+        Route::post('/tasks/{task}/assign-member', [CompanyController::class, 'assignMemberToTask'])->name('tasks.assign-member');
+        Route::delete('/tasks/{task}/unassign-member/{taskWorker}', [CompanyController::class, 'unassignMemberFromTask'])->name('tasks.unassign-member');
+    });
+    
     // Client Routes for Company
     Route::get('/clients', [CompanyClientController::class, 'index'])->name('clients.index');
     Route::get('/clients/{client}', [CompanyClientController::class, 'show'])->name('clients.show');
