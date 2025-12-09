@@ -10,10 +10,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Facades\DB;
+use App\Traits\OptimisticLockingTrait;
 
 class Task extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, OptimisticLockingTrait;
 
     /**
      * The attributes that are mass assignable.
@@ -36,6 +37,10 @@ class Task extends Model
         'is_required',
         'completion_status',
         'completed_at',
+        'due_date',
+        'version',
+        'last_modified_at',
+        'last_modified_by',
     ];
 
     /**
@@ -48,6 +53,9 @@ class Task extends Model
             'multiple_files' => 'boolean',
             'is_required' => 'boolean',
             'completed_at' => 'datetime',
+            'due_date' => 'date',
+            'last_modified_at' => 'datetime',
+            'version' => 'integer',
         ];
     }
 

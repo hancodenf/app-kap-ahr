@@ -3,6 +3,7 @@ import { Head, Link, useForm, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { FormEventHandler, useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
+import SearchableSelect from '@/Components/SearchableSelect';
 
 interface Document {
     id: number;
@@ -47,8 +48,12 @@ interface Task {
     is_required: boolean;
     completion_status: 'pending' | 'in_progress' | 'completed';
     status: string;
-    client_interact: 'read only' | 'restricted' | 'upload';
+    client_interact: 'read only' | 'restricted' | 'upload' | 'approval';
     multiple_files: boolean;
+    can_upload_files: boolean;
+    approval_type: 'Once' | 'All Attempts';
+    approval_roles: ('team leader' | 'supervisor' | 'manager' | 'partner')[];
+    due_date?: string | null;
     is_assigned_to_me: boolean;
     my_assignment_id: number | null;
     can_edit: boolean;
@@ -163,7 +168,27 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
     // Task assignment states
     const [showAssignmentModal, setShowAssignmentModal] = useState(false);
     const [selectedTaskForAssignment, setSelectedTaskForAssignment] = useState<Task | null>(null);
-    const [assignmentLoading, setAssignmentLoading] = useState(false);
+    
+    // Task edit states
+    const { data: editTaskData, setData: setEditTaskData, post: postEditTask, processing: editTaskProcessing } = useForm<{
+        client_interact: 'read only' | 'restricted' | 'upload' | 'approval';
+        can_upload_files: boolean;
+        multiple_files: boolean;
+        is_required: boolean;
+        due_date: string;
+        worker_ids: number[];
+        approval_roles: ('team leader' | 'supervisor' | 'manager' | 'partner')[];
+        approval_type: 'Once' | 'All Attempts';
+    }>({
+        client_interact: 'read only',
+        can_upload_files: true,
+        multiple_files: false,
+        is_required: false,
+        due_date: '',
+        worker_ids: [],
+        approval_roles: [],
+        approval_type: 'All Attempts',
+    });
     
     // Check if user role needs approval tab (not Member)
     // Use lowercase comparison to handle case-insensitive role names
@@ -610,90 +635,41 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
     const handleManageAssignments = (task: Task) => {
         setSelectedTaskForAssignment(task);
         setShowAssignmentModal(true);
+        
+        // Initialize edit task form data
+        setEditTaskData({
+            client_interact: task.client_interact,
+            can_upload_files: task.can_upload_files,
+            multiple_files: task.multiple_files,
+            is_required: task.is_required,
+            due_date: task.due_date || '',
+            worker_ids: task.task_workers?.map(worker => worker.project_team_id) || [],
+            approval_roles: task.approval_roles || [],
+            approval_type: task.approval_type || 'All Attempts',
+        });
     };
 
-    const handleAssignMember = async (projectTeamId: number) => {
+    const handleUpdateTask = (e: React.FormEvent) => {
+        e.preventDefault();
+        
         if (!selectedTaskForAssignment) return;
 
-        setAssignmentLoading(true);
-        
-        try {
-            const response = await fetch(route('company.tasks.assign-member', selectedTaskForAssignment.id), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-                body: JSON.stringify({
-                    project_team_id: projectTeamId,
-                }),
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                toast.success(data.message);
-                
-                // Update assignment data in the modal if response includes updated data
-                if (data.assigned_workers && data.available_members) {
-                    setSelectedTaskForAssignment(prev => prev ? {
-                        ...prev,
-                        assigned_workers: data.assigned_workers,
-                        available_members: data.available_members
-                    } : null);
-                }
-                
-                // Also refresh the page to update main task list
+        postEditTask(route('company.projects.update-task', { 
+            project: project.id, 
+            task: selectedTaskForAssignment.id 
+        }), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowAssignmentModal(false);
+                setSelectedTaskForAssignment(null);
                 router.reload({ only: ['workingSteps'] });
-            } else {
-                toast.error(data.message || 'Failed to assign team member');
+            },
+            onError: (errors: any) => {
+                console.error('Update task errors:', errors);
+                const errorMessage = Object.values(errors).join(', ') || 'Failed to update task';
+                toast.error(`Error: ${errorMessage}`);
             }
-        } catch (error) {
-            console.error('Error assigning member:', error);
-            toast.error('Failed to assign team member');
-        } finally {
-            setAssignmentLoading(false);
-        }
-    };
-
-    const handleUnassignMember = async (taskWorkerId: number) => {
-        if (!selectedTaskForAssignment) return;
-
-        setAssignmentLoading(true);
-        
-        try {
-            const response = await fetch(route('company.tasks.unassign-member', [selectedTaskForAssignment.id, taskWorkerId]), {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                toast.success(data.message);
-                
-                // Update assignment data in the modal if response includes updated data
-                if (data.assigned_workers && data.available_members) {
-                    setSelectedTaskForAssignment(prev => prev ? {
-                        ...prev,
-                        assigned_workers: data.assigned_workers,
-                        available_members: data.available_members
-                    } : null);
-                }
-                
-                // Also refresh the page to update main task list
-                router.reload({ only: ['workingSteps'] });
-            } else {
-                toast.error(data.message || 'Failed to unassign team member');
-            }
-        } catch (error) {
-            console.error('Error unassigning member:', error);
-            toast.error('Failed to unassign team member');
-        } finally {
-            setAssignmentLoading(false);
-        }
+        });
     };
 
     const getStatusBadgeClass = (status: string) => {
@@ -2361,123 +2337,256 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
                 </div>
             )}
 
-            {/* Task Assignment Modal */}
+            {/* Enhanced Task Management Modal */}
             {showAssignmentModal && selectedTaskForAssignment && (
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-                    <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-medium text-gray-900">
-                                Manage Task Assignment
-                            </h3>
-                            <button
-                                onClick={() => {
-                                    setShowAssignmentModal(false);
-                                    setSelectedTaskForAssignment(null);
-                                }}
-                                className="text-gray-400 hover:text-gray-600 transition-colors"
-                            >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                        
-                        <div className="mb-6">
-                            <h4 className="text-sm font-medium text-gray-900 mb-2">Task:</h4>
-                            <p className="text-sm text-gray-600 bg-gray-50 rounded p-2">
-                                {selectedTaskForAssignment.name}
-                            </p>
-                        </div>
-
-                        {/* Currently Assigned Members */}
-                        <div className="mb-6">
-                            <h4 className="text-sm font-medium text-gray-900 mb-3">Currently Assigned ({(selectedTaskForAssignment.assigned_workers || selectedTaskForAssignment.task_workers)?.length || 0})</h4>
-                            {(selectedTaskForAssignment.assigned_workers || selectedTaskForAssignment.task_workers) && (selectedTaskForAssignment.assigned_workers || selectedTaskForAssignment.task_workers)!.length > 0 ? (
-                                <div className="space-y-2 max-h-32 overflow-y-auto">
-                                    {(selectedTaskForAssignment.assigned_workers || selectedTaskForAssignment.task_workers)!.map((worker) => (
-                                        <div key={worker.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                                                    <span className="text-purple-600 text-xs font-medium">
-                                                        {worker.worker_name.charAt(0).toUpperCase()}
-                                                    </span>
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium text-gray-900">{worker.worker_name}</p>
-                                                    <p className="text-xs text-gray-500">{worker.worker_email} • {worker.worker_role}</p>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => handleUnassignMember(worker.id)}
-                                                disabled={assignmentLoading}
-                                                className="text-red-600 hover:text-red-800 text-xs font-medium px-2 py-1 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
-                                            >
-                                                Remove
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-gray-500 italic bg-gray-50 rounded p-3">
-                                    No team members assigned to this task
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Available Team Members */}
-                        <div className="mb-6">
-                            <h4 className="text-sm font-medium text-gray-900 mb-3">Available Team Members</h4>
-                            <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
-                                {(selectedTaskForAssignment.available_members || teamMembers
-                                    .filter(member => !(selectedTaskForAssignment.assigned_workers || selectedTaskForAssignment.task_workers)?.some(worker => worker.project_team_id === member.id)))
-                                    .map((member) => (
-                                        <div key={member.id} className="flex items-center justify-between p-3 hover:bg-gray-50">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
-                                                    member.role === 'partner' ? 'bg-purple-100 text-purple-600' :
-                                                    member.role === 'manager' ? 'bg-blue-100 text-blue-600' :
-                                                    member.role === 'supervisor' ? 'bg-green-100 text-green-600' :
-                                                    member.role === 'team leader' ? 'bg-yellow-100 text-yellow-600' :
-                                                    'bg-gray-100 text-gray-600'
-                                                }`}>
-                                                    {member.user_name.charAt(0).toUpperCase()}
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium text-gray-900">{member.user_name}</p>
-                                                    <p className="text-xs text-gray-500">
-                                                        {member.user_email} • {member.role}
-                                                        {member.user_position && ` • ${member.user_position}`}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => handleAssignMember(member.id)}
-                                                disabled={assignmentLoading}
-                                                className="text-blue-600 hover:text-blue-800 text-xs font-medium px-3 py-1 hover:bg-blue-50 rounded transition-colors disabled:opacity-50"
-                                            >
-                                                {assignmentLoading ? 'Assigning...' : 'Assign'}
-                                            </button>
-                                        </div>
-                                ))}
-                                {(selectedTaskForAssignment.available_members || teamMembers.filter(member => !(selectedTaskForAssignment.assigned_workers || selectedTaskForAssignment.task_workers)?.some(worker => worker.project_team_id === member.id))).length === 0 && (
-                                    <p className="text-sm text-gray-500 italic p-3">
-                                        All team members are already assigned to this task
-                                    </p>
-                                )}
+                    <div className="relative top-10 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-2/3 xl:w-1/2 shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
+                        <form onSubmit={handleUpdateTask}>
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-medium text-gray-900">
+                                    Manage Task Settings
+                                </h3>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowAssignmentModal(false);
+                                        setSelectedTaskForAssignment(null);
+                                    }}
+                                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
                             </div>
-                        </div>
+                            
+                            <div className="mb-6">
+                                <h4 className="text-sm font-medium text-gray-900 mb-2">Task:</h4>
+                                <p className="text-sm text-gray-600 bg-gray-50 rounded p-2">
+                                    {selectedTaskForAssignment.name}
+                                </p>
+                            </div>
 
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => {
-                                    setShowAssignmentModal(false);
-                                    setSelectedTaskForAssignment(null);
-                                }}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-                            >
-                                Close
-                            </button>
-                        </div>
+                            {/* Task Settings Form */}
+                            <div className="space-y-6 mb-6">
+                                <div>
+                                    <label htmlFor="client_interact" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Client Interaction Level
+                                    </label>
+                                    <select
+                                        id="client_interact"
+                                        value={editTaskData.client_interact}
+                                        onChange={(e) => setEditTaskData('client_interact', e.target.value as 'read only' | 'restricted' | 'upload' | 'approval')}
+                                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                    >
+                                        <option value="read only">👁️ Read Only - Client can only view</option>
+                                        <option value="restricted">🔒 Restricted - Client has limited access</option>
+                                        <option value="upload">📤 Upload - Client can upload files</option>
+                                        <option value="approval">✅ Approval - Client can approve or reject</option>
+                                    </select>
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        Set how clients can interact with this task
+                                    </p>
+                                </div>
+
+                                <label className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={editTaskData.can_upload_files}
+                                        onChange={(e) => {
+                                            setEditTaskData('can_upload_files', e.target.checked);
+                                            if (!e.target.checked) {
+                                                setEditTaskData('multiple_files', false);
+                                            }
+                                        }}
+                                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                    />
+                                    <span className="ml-2 text-sm text-gray-700">Can Upload Files</span>
+                                </label>
+
+                                {editTaskData.can_upload_files && (
+                                    <label className="flex items-center ml-6">
+                                        <input
+                                            type="checkbox"
+                                            checked={editTaskData.multiple_files}
+                                            onChange={(e) => setEditTaskData('multiple_files', e.target.checked)}
+                                            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                        />
+                                        <span className="ml-2 text-sm text-gray-700">Multiple Files</span>
+                                    </label>
+                                )}
+
+                                <label className="flex items-start space-x-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={editTaskData.is_required}
+                                        onChange={(e) => setEditTaskData('is_required', e.target.checked)}
+                                        className="mt-1 w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                                    />
+                                    <div>
+                                        <span className="text-sm font-medium text-gray-700">
+                                            Required to unlock next step
+                                        </span>
+                                        <p className="text-xs text-gray-500">
+                                            Must be completed before next step can be accessed
+                                        </p>
+                                    </div>
+                                </label>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        ✅ Approval Required From
+                                    </label>
+                                    <p className="text-xs text-gray-500 mb-3">
+                                        Select roles that need to approve this task. Will be automatically ordered by priority.
+                                    </p>
+                                    <div className="space-y-2">
+                                        {(['team leader', 'supervisor', 'manager', 'partner'] as const).map((role) => {
+                                            const rolePriority: { [key: string]: number } = {
+                                                'team leader': 1,
+                                                'supervisor': 2,
+                                                'manager': 3,
+                                                'partner': 4,
+                                            };
+
+                                            const sortedRoles = [...editTaskData.approval_roles].sort((a, b) =>
+                                                rolePriority[a] - rolePriority[b]
+                                            );
+
+                                            const orderNumber = sortedRoles.indexOf(role) + 1;
+
+                                            return (
+                                                <label key={role} className="flex items-center space-x-3 p-2 border rounded hover:bg-gray-50 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={editTaskData.approval_roles.includes(role)}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setEditTaskData('approval_roles', [...editTaskData.approval_roles, role]);
+                                                            } else {
+                                                                setEditTaskData('approval_roles', editTaskData.approval_roles.filter((r: any) => r !== role));
+                                                            }
+                                                        }}
+                                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                    />
+                                                    <div className="flex-1 flex items-center justify-between">
+                                                        <span className="text-sm font-medium text-gray-700 capitalize">
+                                                            {role}
+                                                        </span>
+                                                        <span className="text-xs text-gray-400">
+                                                            Priority: {rolePriority[role]}
+                                                        </span>
+                                                    </div>
+                                                    {editTaskData.approval_roles.includes(role) && (
+                                                        <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                                                            Order: {orderNumber}
+                                                        </span>
+                                                    )}
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                    {editTaskData.approval_roles.length > 0 && (
+                                        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                            <p className="text-xs font-medium text-blue-800 mb-1">✓ Approval Flow (Auto-sorted by priority):</p>
+                                            <p className="text-sm text-blue-700 font-medium">
+                                                {(() => {
+                                                    const rolePriority: { [key: string]: number } = {
+                                                        'team leader': 1,
+                                                        'supervisor': 2,
+                                                        'manager': 3,
+                                                        'partner': 4,
+                                                    };
+                                                    return [...editTaskData.approval_roles]
+                                                        .sort((a, b) => rolePriority[a] - rolePriority[b])
+                                                        .map((role, idx) => (
+                                                            <span key={role}>
+                                                                {idx > 0 && ' → '}
+                                                                <span className="capitalize">{idx + 1}. {role}</span>
+                                                            </span>
+                                                        ));
+                                                })()}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label htmlFor="approval_type" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Approval Workflow Type
+                                    </label>
+                                    <select
+                                        id="approval_type"
+                                        value={editTaskData.approval_type}
+                                        onChange={(e) => setEditTaskData('approval_type', e.target.value as 'Once' | 'All Attempts')}
+                                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                    >
+                                        <option value="All Attempts">All Attempts</option>
+                                        <option value="Once">Once</option>
+                                    </select>
+                                    <p className="mt-3 text-xs text-gray-500">
+                                        Once - Once submission approval status is approved by highest role on this task, no need to start approval workflow from beginning when it rejected by client or need to ask client for re-upload files
+                                    </p>
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        All Attempts - All rejections by client or request for re-upload files will require a new approval workflow
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label htmlFor="due_date" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Due Date
+                                    </label>
+                                    <input
+                                        type="date"
+                                        id="due_date"
+                                        value={editTaskData.due_date}
+                                        onChange={(e) => setEditTaskData('due_date', e.target.value)}
+                                        min={new Date().toISOString().split('T')[0]}
+                                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        Set a deadline for this task completion
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Assign Team Members
+                                    </label>
+                                    <SearchableSelect
+                                        multiple={true}
+                                        options={teamMembers.map(member => ({
+                                            value: member.id,
+                                            label: member.user_name,
+                                            subtitle: `${member.user_email} - ${member.role}`,
+                                        }))}
+                                        value={editTaskData.worker_ids}
+                                        onChange={(value) => setEditTaskData('worker_ids', value as number[])}
+                                        placeholder="Select team members..."
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowAssignmentModal(false);
+                                        setSelectedTaskForAssignment(null);
+                                    }}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={editTaskProcessing}
+                                    className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md transition-colors disabled:opacity-50"
+                                >
+                                    {editTaskProcessing ? 'Updating...' : 'Update Task'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

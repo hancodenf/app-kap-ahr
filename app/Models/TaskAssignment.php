@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\OptimisticLockingTrait;
 
 class TaskAssignment extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, OptimisticLockingTrait;
 
     /**
      * The attributes that are mass assignable.
@@ -30,6 +31,9 @@ class TaskAssignment extends Model
         'maker',
         'maker_can_edit',
         'status',
+        'version',
+        'last_modified_at',
+        'last_modified_by',
     ];
 
     /**
@@ -41,6 +45,8 @@ class TaskAssignment extends Model
     {
         return [
             'time' => 'datetime',
+            'last_modified_at' => 'datetime',
+            'version' => 'integer',
         ];
     }
 

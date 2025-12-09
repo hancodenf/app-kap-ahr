@@ -7,9 +7,11 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\News;
+use App\Services\SafeTransactionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class ClientController extends Controller
@@ -548,7 +550,10 @@ class ClientController extends Controller
                           'clientDocuments'
                       ]);
             },
-            'taskWorkers.projectTeam.user' // Load task workers
+            'taskWorkers.projectTeam.user', // Load task workers
+            'taskApprovals' => function ($query) {
+                $query->orderBy('order', 'asc');
+            }
         ]);
 
         // Get latest assignment from filtered results (should be "Submitted to Client" or "Client Reply")
@@ -614,6 +619,96 @@ class ClientController extends Controller
             'working_step_name' => $task->workingStep->name,
             'workers' => $workers,
             'can_edit' => $canEdit,
+            'task_approvals' => $task->taskApprovals->map(function($approval) use ($task, $latestAssignment) {
+                // Get approval/rejection logs for this approval role from current assignment
+                $approvalLog = null;
+                if ($latestAssignment) {
+                    $approvalLog = \App\Models\ActivityLog::where('target_type', 'App\Models\Task')
+                        ->where('target_id', $task->id)
+                        ->where(function($query) {
+                            $query->where('action_type', 'Task Approved')
+                                  ->orWhere('action_type', 'Task Rejected')
+                                  ->orWhere('action_type', 'task_approval');
+                        })
+                        ->whereRaw('JSON_EXTRACT(meta, "$.task_assignment_id") = ?', [$latestAssignment->id])
+                        ->where(function($query) use ($approval) {
+                            $query->whereRaw('JSON_EXTRACT(meta, "$.approval_role") = ?', [strtolower($approval->role)])
+                                  ->orWhere('user_role', strtolower($approval->role));
+                        })
+                        ->with('user')
+                        ->first();
+                }
+
+                $status = 'pending';
+                $approvedBy = null;
+                $approvedAt = null;
+                $comment = null;
+
+                if ($approvalLog) {
+                    if ($approvalLog->action === 'approved') {
+                        $status = 'approved';
+                        $approvedBy = $approvalLog->user_name;
+                        $approvedAt = $approvalLog->created_at;
+                    } elseif ($approvalLog->action === 'rejected') {
+                        $status = 'rejected';
+                        $approvedBy = $approvalLog->user_name;
+                        $approvedAt = $approvalLog->created_at;
+                        $comment = $approvalLog->meta['rejection_comment'] ?? $approvalLog->description ?? null;
+                    }
+                } else if ($latestAssignment) {
+                    // Fallback: determine status based on assignment status
+                    $currentStatus = $latestAssignment->status;
+                    
+                    if ($currentStatus === $approval->status_name_complete) {
+                        $status = 'approved';
+                    } elseif ($currentStatus === $approval->status_name_reject) {
+                        $status = 'rejected';
+                    } elseif ($currentStatus === $approval->status_name_progress) {
+                        $status = 'in-progress';
+                    } else {
+                        // If assignment reached "Submitted to Client", "Under Review by Client", or "Approved by Client"
+                        // then ALL previous approval levels must have been completed
+                        if (in_array($currentStatus, ['Submitted to Client', 'Under Review by Client', 'Approved by Client', 'Client Reply'])) {
+                            $status = 'approved';
+                        } else {
+                            // Check if this approval level has been passed
+                            $approvals = $task->taskApprovals->sortBy('order');
+                            $currentApprovalIndex = $approvals->search(function($item) use ($approval) {
+                                return $item->id === $approval->id;
+                            });
+                            
+                            // If current status indicates we're past this approval level
+                            foreach ($approvals as $index => $app) {
+                                if ($index < $currentApprovalIndex) {
+                                    if ($currentStatus === $app->status_name_complete || 
+                                        in_array($currentStatus, ['Submitted to Client', 'Under Review by Client', 'Approved by Client'])) {
+                                        $status = 'approved';
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                return [
+                    'id' => $approval->id,
+                    'order' => $approval->order,
+                    'role' => $approval->role,
+                    'task_name' => $approval->task_name,
+                    'working_step_name' => $approval->working_step_name,
+                    'project_name' => $approval->project_name,
+                    'project_client_name' => $approval->project_client_name,
+                    'status_name_pending' => $approval->status_name_pending,
+                    'status_name_progress' => $approval->status_name_progress,
+                    'status_name_reject' => $approval->status_name_reject,
+                    'status_name_complete' => $approval->status_name_complete,
+                    'status' => $status,
+                    'approved_by' => $approvedBy,
+                    'approved_at' => $approvedAt,
+                    'comment' => $comment,
+                ];
+            })->sortBy('order')->values(),
             'latest_assignment' => $latestAssignment ? [
                 'id' => $latestAssignment->id,
                 'time' => $latestAssignment->time,
@@ -625,8 +720,88 @@ class ClientController extends Controller
                 'client_documents' => $latestAssignment->clientDocuments,
                 // No user relation in TaskAssignment model
             ] : null,
-            // Include filtered assignments (only "Submitted to Client" and "Client Reply")
-            'assignments' => $task->taskAssignments->map(function ($assignment) {
+            // Include filtered assignments (only "Submitted to Client" and "Client Reply") with approval workflow
+            'assignments' => $task->taskAssignments->map(function ($assignment) use ($task) {
+                // Get approval workflow for this specific assignment
+                $approvalWorkflow = $task->taskApprovals->map(function ($approval) use ($assignment, $task) {
+                    // Get approval/rejection logs for this specific assignment and role
+                    $approvalLog = \App\Models\ActivityLog::where('target_type', 'App\Models\Task')
+                        ->where('target_id', $task->id)
+                        ->where(function($query) {
+                            $query->where('action_type', 'Task Approved')
+                                  ->orWhere('action_type', 'Task Rejected')
+                                  ->orWhere('action_type', 'task_approval');
+                        })
+                        ->whereRaw('JSON_EXTRACT(meta, "$.task_assignment_id") = ?', [$assignment->id])
+                        ->where(function($query) use ($approval) {
+                            $query->whereRaw('JSON_EXTRACT(meta, "$.approval_role") = ?', [strtolower($approval->role)])
+                                  ->orWhere('user_role', strtolower($approval->role));
+                        })
+                        ->with('user')
+                        ->first();
+
+                    $status = 'pending';
+                    $approvedBy = null;
+                    $approvedAt = null;
+                    $comment = null;
+
+                    if ($approvalLog) {
+                        if ($approvalLog->action === 'approved') {
+                            $status = 'approved';
+                            $approvedBy = $approvalLog->user_name;
+                            $approvedAt = $approvalLog->created_at;
+                        } elseif ($approvalLog->action === 'rejected') {
+                            $status = 'rejected';
+                            $approvedBy = $approvalLog->user_name;
+                            $approvedAt = $approvalLog->created_at;
+                            $comment = $approvalLog->meta['rejection_comment'] ?? $approvalLog->description ?? null;
+                        }
+                    } else {
+                        // Fallback: determine status based on assignment status
+                        $currentStatus = $assignment->status;
+                        
+                        if ($currentStatus === $approval->status_name_complete) {
+                            $status = 'approved';
+                        } elseif ($currentStatus === $approval->status_name_reject) {
+                            $status = 'rejected';
+                        } elseif ($currentStatus === $approval->status_name_progress) {
+                            $status = 'in-progress';
+                        } else {
+                            // If assignment reached "Submitted to Client", "Under Review by Client", or "Approved by Client"
+                            // then ALL previous approval levels must have been completed
+                            if (in_array($currentStatus, ['Submitted to Client', 'Under Review by Client', 'Approved by Client', 'Client Reply'])) {
+                                $status = 'approved';
+                            } else {
+                                // Check if this approval level has been passed
+                                $approvals = $task->taskApprovals->sortBy('order');
+                                $currentApprovalIndex = $approvals->search(function($item) use ($approval) {
+                                    return $item->id === $approval->id;
+                                });
+                                
+                                // If current status indicates we're past this approval level
+                                foreach ($approvals as $index => $app) {
+                                    if ($index < $currentApprovalIndex) {
+                                        if ($currentStatus === $app->status_name_complete || 
+                                            in_array($currentStatus, ['Submitted to Client', 'Under Review by Client', 'Approved by Client'])) {
+                                            $status = 'approved';
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    return [
+                        'role' => $approval->role,
+                        'order' => $approval->order,
+                        'status' => $status,
+                        'approved_by' => $approvedBy,
+                        'approved_at' => $approvedAt,
+                        'comment' => $comment,
+                    ];
+                })->sortBy('order')->values();
+
                 return [
                     'id' => $assignment->id,
                     'time' => $assignment->time,
@@ -637,6 +812,7 @@ class ClientController extends Controller
                     'status' => $assignment->status,
                     'documents' => $assignment->documents,
                     'client_documents' => $assignment->clientDocuments,
+                    'approval_workflow' => $approvalWorkflow,
                     // No user relation in TaskAssignment model
                 ];
             }),
@@ -659,120 +835,153 @@ class ClientController extends Controller
      */
     public function uploadClientDocuments(Request $request, Task $task)
     {
-        // Make sure client can only upload to their own projects
-        if ($task->project->client_id !== Auth::user()->client_id) {
-            abort(403, 'Unauthorized access to this task.');
-        }
-        
-        // Don't allow access to tasks from Draft or archived projects
-        if ($task->project->status === 'Draft' || $task->project->is_archived) {
-            abort(404, 'Task not found.');
-        }
-
-        // Validate that this task allows client upload (not 'read only' or 'restricted')
-        if ($task->client_interact !== 'upload') {
-            return back()->with('error', 'Task ini tidak memerlukan upload file dari client.');
-        }
-
-        $request->validate([
-            'client_comment' => 'nullable|string|max:1000',
-            'client_document_files' => 'nullable|array',
-            'client_document_files.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:10240', // 10MB max
-        ]);
-
-        // Get latest assignment
-        $latestAssignment = $task->taskAssignments()->latest()->first();
-
-        if (!$latestAssignment) {
-            return back()->with('error', 'Tidak ada assignment untuk task ini.');
-        }
-
-        // Update client comment if provided
-        if ($request->client_comment) {
-            $latestAssignment->update([
-                'client_comment' => $request->client_comment,
-            ]);
-        }
-
-        // Upload files for client documents
-        if ($request->hasFile('client_document_files')) {
-            foreach ($request->file('client_document_files') as $docId => $file) {
-                // Find the client document
-                $clientDoc = \App\Models\ClientDocument::find($docId);
+        try {
+            return SafeTransactionService::executeWithRetry(function () use ($request, $task) {
+                // Make sure client can only upload to their own projects
+                if ($task->project->client_id !== Auth::user()->client_id) {
+                    abort(403, 'Unauthorized access to this task.');
+                }
                 
-                if ($clientDoc && $clientDoc->task_assignment_id === $latestAssignment->id && !$clientDoc->file) {
-                    // Get task model and proper storage path
-                    $taskModel = \App\Models\Task::find($task->id);
-                    $storageRelativePath = $taskModel->getStoragePath();
+                // Don't allow access to tasks from Draft or archived projects
+                if ($task->project->status === 'Draft' || $task->project->is_archived) {
+                    abort(404, 'Task not found.');
+                }
+
+                // Validate that this task allows client upload
+                if ($task->client_interact !== 'upload') {
+                    return back()->with('error', 'Task ini tidak memerlukan upload file dari client.');
+                }
+
+                $request->validate([
+                    'client_comment' => 'nullable|string|max:1000',
+                    'client_document_files' => 'nullable|array',
+                    'client_document_files.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:10240', // 10MB max
+                ]);
+
+                // Get latest assignment with row-level locking
+                $latestAssignment = $task->taskAssignments()
+                    ->latest()
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$latestAssignment) {
+                    return back()->with('error', 'Tidak ada assignment untuk task ini.');
+                }
+
+                // Update client comment if provided using optimistic locking
+                if ($request->client_comment) {
+                    $latestAssignment->updateSafely([
+                        'client_comment' => $request->client_comment,
+                    ], $latestAssignment->version);
+                }
+
+                // Upload files for client documents
+                if ($request->hasFile('client_document_files')) {
+                    foreach ($request->file('client_document_files') as $docId => $file) {
+                        // Find the client document with locking
+                        $clientDoc = \App\Models\ClientDocument::where('id', $docId)
+                            ->lockForUpdate()
+                            ->first();
+                        
+                        if ($clientDoc && $clientDoc->task_assignment_id === $latestAssignment->id && !$clientDoc->file) {
+                            // Get task model and proper storage path
+                            $taskModel = \App\Models\Task::find($task->id);
+                            $storageRelativePath = $taskModel->getStoragePath();
+                            
+                            // Store the file in the task's directory
+                            $fileName = time() . '_' . $file->getClientOriginalName();
+                            $filePath = $file->storeAs($storageRelativePath, $fileName, 'public');
+                            
+                            // Update client document safely
+                            $clientDoc->updateSafely([
+                                'file' => $filePath,
+                                'uploaded_at' => now(),
+                            ], $clientDoc->version);
+
+                            // Log activity
+                            \App\Models\ActivityLog::create([
+                                'user_id' => Auth::id(),
+                                'user_name' => Auth::user()->name,
+                                'action_type' => 'client_document',
+                                'action' => 'uploaded',
+                                'target_type' => 'App\Models\ClientDocument',
+                                'target_id' => $clientDoc->id,
+                                'target_name' => $clientDoc->name,
+                                'description' => "Client uploaded document: {$clientDoc->name} for task: {$task->name}",
+                                'meta' => [
+                                    'task_id' => $task->id,
+                                    'task_name' => $task->name,
+                                    'assignment_id' => $latestAssignment->id,
+                                    'document_id' => $clientDoc->id,
+                                ],
+                                'ip_address' => $request->ip(),
+                                'user_agent' => $request->header('User-Agent')
+                            ]);
+                        }
+                    }
+                }
+
+                // Check if all client documents have been uploaded
+                $allClientDocs = \App\Models\ClientDocument::where('task_assignment_id', $latestAssignment->id)
+                    ->lockForUpdate()
+                    ->get();
+                
+                $allUploaded = $allClientDocs->every(function($doc) {
+                    return $doc->file !== null;
+                });
+
+                // Update assignment status to Client Reply if all documents uploaded
+                $currentStatus = $latestAssignment->status ?? 'Draft';
+                if ($allUploaded && ($currentStatus === 'Submitted to Client' || $currentStatus === 'Submitted')) {
+                    // Check if already updated by another concurrent request
+                    if ($latestAssignment->status === 'Client Reply') {
+                        return back()->with('info', 'All documents already uploaded and processed.');
+                    }
+
+                    // Update assignment status safely
+                    $latestAssignment->updateSafely([
+                        'status' => 'Client Reply',
+                        'maker' => 'client',
+                        'maker_can_edit' => true,
+                    ], $latestAssignment->version);
                     
-                    // Store the file in the task's directory
-                    $fileName = time() . '_' . $file->getClientOriginalName();
-                    $filePath = $file->storeAs($storageRelativePath, $fileName, 'public');
-                    
-                    // Update client document
-                    $clientDoc->update([
-                        'file' => $filePath,
-                        'uploaded_at' => now(),
-                    ]);
+                    // Update task completion status safely
+                    $task->updateSafely([
+                        'completion_status' => 'in_progress',
+                    ], $task->version);
 
                     // Log activity
                     \App\Models\ActivityLog::create([
                         'user_id' => Auth::id(),
                         'user_name' => Auth::user()->name,
-                        'action_type' => 'client_document',
-                        'action' => 'uploaded',
-                        'target_name' => $clientDoc->name,
-                        'description' => "Client uploaded document: {$clientDoc->name} for task: {$task->name}",
-                        'meta' => json_encode([
+                        'action_type' => 'task',
+                        'action' => 'client_reply',
+                        'target_type' => 'App\Models\Task',
+                        'target_id' => $task->id,
+                        'target_name' => $task->name,
+                        'description' => "Client completed all document uploads for task: {$task->name}",
+                        'meta' => [
                             'task_id' => $task->id,
-                            'task_name' => $task->name,
+                            'project_id' => $task->project_id,
                             'assignment_id' => $latestAssignment->id,
-                            'document_id' => $clientDoc->id,
-                        ]),
+                        ],
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->header('User-Agent')
                     ]);
                 }
-            }
+
+                return back()->with('success', 'Dokumen berhasil diupload!');
+            });
+
+        } catch (\Exception $e) {
+            Log::error('Client document upload failed', [
+                'task_id' => $task->id,
+                'client_id' => Auth::user()->client_id,
+                'error' => $e->getMessage()
+            ]);
+
+            return back()->with('error', 'Gagal mengupload dokumen: ' . $e->getMessage());
         }
-
-        // Check if all client documents have been uploaded
-        $allClientDocs = \App\Models\ClientDocument::where('task_assignment_id', $latestAssignment->id)->get();
-        $allUploaded = $allClientDocs->every(function($doc) {
-            return $doc->file !== null;
-        });
-
-        // Update assignment status to Client Reply if all documents uploaded
-        // Allow status update from both "Submitted to Client" and "Submitted"
-        $currentStatus = $latestAssignment->status ?? 'Draft';
-        if ($allUploaded && ($currentStatus === 'Submitted to Client' || $currentStatus === 'Submitted')) {
-            // Update assignment status to Client Reply
-            $latestAssignment->update([
-                'status' => 'Client Reply',
-                'maker' => 'client',
-                'maker_can_edit' => true,
-            ]);
-            
-            // Update task completion status
-            $task->update([
-                'completion_status' => 'in_progress',
-            ]);
-
-            // Log activity
-            \App\Models\ActivityLog::create([
-                'user_id' => Auth::id(),
-                'user_name' => Auth::user()->name,
-                'action_type' => 'task',
-                'action' => 'client_reply',
-                'target_name' => $task->name,
-                'description' => "Client completed all document uploads for task: {$task->name}",
-                'meta' => json_encode([
-                    'task_id' => $task->id,
-                    'project_id' => $task->project_id,
-                    'assignment_id' => $latestAssignment->id,
-                ]),
-            ]);
-        }
-
-        return back()->with('success', 'Dokumen berhasil diupload!');
     }
 
     /**

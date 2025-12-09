@@ -52,6 +52,7 @@ interface Task {
     can_upload_files: boolean;
     multiple_files: boolean;
     is_required: boolean;
+    due_date?: string | null;
     completion_status?: 'pending' | 'in_progress' | 'completed';
     task_workers?: TaskWorker[];
     task_approvals?: Array<{ id: number; role: 'partner' | 'manager' | 'supervisor' | 'team leader'; order: number }>;
@@ -461,6 +462,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         can_upload_files: false,
         multiple_files: false,
         is_required: false,
+        due_date: '',
         worker_ids: [] as number[],
         approval_roles: [] as Array<'partner' | 'manager' | 'supervisor' | 'team leader'>,
     });
@@ -577,6 +579,13 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
             .sort((a, b) => a.order - b.order)
             .map(approval => approval.role);
 
+        // Convert due_date from ISO format to YYYY-MM-DD for HTML5 date input
+        let formattedDueDate = '';
+        if (task.due_date) {
+            const date = new Date(task.due_date);
+            formattedDueDate = date.toISOString().split('T')[0]; // Extract YYYY-MM-DD part
+        }
+
         setEditTaskData({
             name: task.name,
             client_interact: task.client_interact,
@@ -584,6 +593,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
             multiple_files: task.multiple_files,
             is_required: task.is_required || false,
             approval_type: task.approval_type || 'All Attempts',
+            due_date: formattedDueDate,
             worker_ids: validWorkerIds,
             approval_roles: approvalRoles,
         });
@@ -1736,6 +1746,23 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                 </p>
                                             </div>
                                         </label>
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="due_date" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Due Date
+                                        </label>
+                                        <input
+                                            type="date"
+                                            id="due_date"
+                                            value={editTaskData.due_date}
+                                            onChange={(e) => setEditTaskData('due_date', e.target.value)}
+                                            min={new Date().toISOString().split('T')[0]}
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                        />
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            Set a deadline for this task completion
+                                        </p>
                                     </div>
 
                                     <div>

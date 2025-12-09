@@ -12,11 +12,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Traits\OptimisticLockingTrait;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, HasUuids, Notifiable;
+    use HasFactory, HasUuids, Notifiable, OptimisticLockingTrait;
 
     /**
      * The attributes that are mass assignable.
@@ -38,6 +39,9 @@ class User extends Authenticatable
         'suspended_until',
         'failed_login_count',
         'last_failed_login',
+        'version',
+        'last_modified_at',
+        'last_modified_by',
     ];
 
     protected $hidden = [
@@ -59,6 +63,8 @@ class User extends Authenticatable
             'is_suspended' => 'boolean',
             'suspended_until' => 'datetime',
             'last_failed_login' => 'datetime',
+            'last_modified_at' => 'datetime',
+            'version' => 'integer',
         ];
     }
 

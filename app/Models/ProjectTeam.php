@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\OptimisticLockingTrait;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProjectTeam extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, OptimisticLockingTrait;
 
     /**
      * The attributes that are mass assignable.
@@ -26,6 +27,19 @@ class ProjectTeam extends Model
         'user_email',
         'user_position',
         'role',
+        'version',
+        'last_modified_by',
+        'last_modified_at',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'version' => 'integer',
+        'last_modified_at' => 'datetime',
     ];
 
     /**

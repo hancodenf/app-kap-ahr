@@ -30,6 +30,7 @@ interface TaskAssignment {
     created_at: string;
     documents: Document[];
     client_documents: ClientDocument[];
+    approval_workflow: ApprovalWorkflowItem[];
     // No user relation in TaskAssignment model
 }
 
@@ -48,6 +49,33 @@ interface TaskWorker {
     };
 }
 
+interface TaskApproval {
+    id: number;
+    order: number;
+    role: string;
+    task_name: string;
+    working_step_name: string;
+    project_name: string;
+    project_client_name: string;
+    status_name_pending: string;
+    status_name_progress: string;
+    status_name_reject: string;
+    status_name_complete: string;
+    status: 'pending' | 'in-progress' | 'approved' | 'rejected';
+    approved_by: string | null;
+    approved_at: string | null;
+    comment: string | null;
+}
+
+interface ApprovalWorkflowItem {
+    role: string;
+    order: number;
+    status: 'pending' | 'in-progress' | 'approved' | 'rejected';
+    approved_by: string | null;
+    approved_at: string | null;
+    comment: string | null;
+}
+
 interface Task {
     id: number;
     name: string;
@@ -62,6 +90,7 @@ interface Task {
     project_name: string;
     working_step_name: string;
     workers: TaskWorker[];
+    task_approvals: TaskApproval[];
     latest_assignment: TaskAssignment | null;
     assignments: TaskAssignment[]; // All assignments with status "Submitted to Client" or "Client Reply"
 }
@@ -325,6 +354,8 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Approval Status Section - Show if task has approvals */}
                             </div>
                         </div>
                     </div>
@@ -469,6 +500,58 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                                                 Not Yet Uploaded
                                                                             </span>
                                                                         )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Approval Workflow for this submission */}
+                                                    {assignment.approval_workflow && assignment.approval_workflow.length > 0 && (
+                                                        <div>
+                                                            <p className="text-xs font-medium text-gray-700 mb-2">✅ Approval Workflow:</p>
+                                                            <div className="space-y-2">
+                                                                {assignment.approval_workflow.map((approval, idx) => (
+                                                                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium text-white bg-gray-400">
+                                                                                {approval.order}
+                                                                            </div>
+                                                                            <div>
+                                                                                <p className="text-sm font-medium text-gray-900">{approval.role}</p>
+                                                                                {approval.approved_by && (
+                                                                                    <p className="text-xs text-gray-600">by {approval.approved_by}</p>
+                                                                                )}
+                                                                                {approval.approved_at && (
+                                                                                    <p className="text-xs text-gray-500">
+                                                                                        {new Date(approval.approved_at).toLocaleDateString('en-US', {
+                                                                                            year: 'numeric',
+                                                                                            month: 'short',
+                                                                                            day: 'numeric',
+                                                                                            hour: '2-digit',
+                                                                                            minute: '2-digit'
+                                                                                        })}
+                                                                                    </p>
+                                                                                )}
+                                                                                {approval.comment && (
+                                                                                    <p className="text-xs text-red-600 mt-1">"{approval.comment}"</p>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                                                            approval.status === 'approved'
+                                                                                ? 'bg-green-100 text-green-800'
+                                                                                : approval.status === 'rejected'
+                                                                                ? 'bg-red-100 text-red-800'
+                                                                                : approval.status === 'in-progress'
+                                                                                ? 'bg-yellow-100 text-yellow-800'
+                                                                                : 'bg-gray-100 text-gray-600'
+                                                                        }`}>
+                                                                            {approval.status === 'approved' && '✓ Approved'}
+                                                                            {approval.status === 'rejected' && '✗ Rejected'}
+                                                                            {approval.status === 'in-progress' && '⏳ In Progress'}
+                                                                            {approval.status === 'pending' && '⏳ Pending'}
+                                                                        </span>
                                                                     </div>
                                                                 ))}
                                                             </div>

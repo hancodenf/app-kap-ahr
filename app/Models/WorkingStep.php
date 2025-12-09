@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\OptimisticLockingTrait;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 
 class WorkingStep extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, OptimisticLockingTrait;
 
     /**
      * The attributes that are mass assignable.
@@ -26,6 +27,9 @@ class WorkingStep extends Model
         'project_client_name',
         'name',
         'slug',
+        'version',
+        'last_modified_by',
+        'last_modified_at',
     ];
 
     /**
@@ -35,6 +39,8 @@ class WorkingStep extends Model
     {
         return [
             'is_locked' => 'boolean',
+            'version' => 'integer',
+            'last_modified_at' => 'datetime',
         ];
     }
 

@@ -742,6 +742,7 @@ class ProjectController extends Controller
             'approval_type' => 'required|in:Once,All Attempts',
             'can_upload_files' => 'boolean',
             'multiple_files' => 'boolean',
+            'due_date' => 'nullable|date|after_or_equal:today',
             'worker_ids' => 'nullable|array',
             'worker_ids.*' => 'exists:project_teams,id',
             'approval_roles' => 'nullable|array',
@@ -756,6 +757,7 @@ class ProjectController extends Controller
             'can_upload_files' => $request->boolean('can_upload_files'),
             'multiple_files' => $request->boolean('multiple_files'),
             'is_required' => $request->boolean('is_required'),
+            'due_date' => $request->due_date,
         ];
         // dd($updateData);
         
