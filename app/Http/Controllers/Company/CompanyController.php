@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Company;
 
+use App\Events\NewApprovalNotification;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use App\Models\ProjectTeam;
@@ -790,12 +791,32 @@ class CompanyController extends Controller
 
         // AUTO-SUBMIT to approval workflow - ALWAYS go through approval first
         if ($currentStatus === 'Draft') {
+            \Log::info('Task is in Draft status, checking for approval workflow', ['task_id' => $task->id]);
+            
             // Get first approval in workflow (lowest order)
             $firstApproval = $task->taskApprovals()->orderBy('order', 'asc')->first();
+            \Log::info('First approval found', ['first_approval' => $firstApproval]);
 
             if ($firstApproval) {
                 // ALWAYS submit to first approval level first, regardless of client interaction
                 $latestAssignment->status = $firstApproval->status_name_pending;
+                
+                // Get users who have the approval role for this task
+                $approverUserIds = $this->getApproverUserIds($task, $firstApproval->role);
+                \Log::info('Approver user IDs found', ['approver_ids' => $approverUserIds, 'role' => $firstApproval->role]);
+                
+                // Dispatch event to notify approvers
+                if (!empty($approverUserIds)) {
+                    \Log::info('Dispatching NewApprovalNotification event');
+                    event(new NewApprovalNotification(
+                        $task, 
+                        $approverUserIds, 
+                        "Task '{$task->name}' in project '{$task->project->name}' requires {$firstApproval->role} approval"
+                    ));
+                    \Log::info('NewApprovalNotification event dispatched successfully');
+                } else {
+                    \Log::warning('No approver user IDs found for role', ['role' => $firstApproval->role]);
+                }
             } else {
                 // No approval workflow - check if needs client interaction
                 if ($hasClientDocs) {
@@ -846,6 +867,18 @@ class CompanyController extends Controller
         }
 
         return back()->with('success', 'Task submitted successfully!');
+    }
+
+    /**
+     * Get user IDs of team members who have the specified role for approval
+     */
+    private function getApproverUserIds($task, $role)
+    {
+        // Get project teams with the specified role
+        return \App\Models\ProjectTeam::where('project_id', $task->project_id)
+            ->where('role', $role)
+            ->pluck('user_id')
+            ->toArray();
     }
 
     /**
@@ -1303,7 +1336,7 @@ class CompanyController extends Controller
                     $message = "Task approved and forwarded to next reviewer!";
                 } else {
                     // Final approval - check if task needs client interaction
-                    $hasClientInteraction = ($task->client_interact != 'read only' || $task->client_interact != 'restricted');
+                    $hasClientInteraction = ($task->client_interact !== 'read only' && $task->client_interact !== 'restricted');
 
                     if ($hasClientInteraction) {
                         // Has client documents to upload - send to client
@@ -1323,6 +1356,8 @@ class CompanyController extends Controller
                         $task->markAsCompleted(); // Use method to trigger unlock logic
                     }
                 }
+
+                // dd($message, $hasClientInteraction, $task->client_interact);
 
                 // Update assignment safely
                 $latestAssignment->updateSafely($updateData, $latestAssignment->version);

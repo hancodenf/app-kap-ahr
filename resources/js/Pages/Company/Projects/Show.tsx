@@ -4,6 +4,7 @@ import { PageProps } from '@/types';
 import { FormEventHandler, useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import SearchableSelect from '@/Components/SearchableSelect';
+import Echo from 'laravel-echo';
 
 interface Document {
     id: number;
@@ -347,6 +348,37 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
         }
     };
 
+
+    // WebSocket integration for real-time approval notifications
+    useEffect(() => {
+        if (needsApprovalTab && window.Echo) {
+            const echo = window.Echo as Echo;
+            
+            // Listen to private channel for approval notifications
+            const channel = echo.private(`App.Models.User.${auth.user.id}`);
+            
+            channel.listen('NewApprovalNotification', (event: any) => {
+                console.log('Received approval notification:', event);
+                
+                // Check if this notification is for the current project
+                if (event.task && event.task.project && event.task.project.id === project.id) {
+                    // Refresh approval requests to show new notification
+                    fetchApprovalRequests();
+                    
+                    // Show toast notification
+                    toast.success(`New task requires approval: ${event.task.name}`, {
+                        duration: 5000,
+                        position: 'top-right',
+                    });
+                }
+            });
+            
+            // Cleanup on unmount
+            return () => {
+                channel.stopListening('NewApprovalNotification');
+            };
+        }
+    }, [needsApprovalTab, project.id, auth.user.id]);
 
     // Disable body scroll when modal is open
     useEffect(() => {

@@ -1,5 +1,6 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import Toast from '@/Components/Toast';
+import WebSocketNotifications from '@/Components/WebSocketNotifications';
 import { Link, usePage, router } from '@inertiajs/react';
 import { PropsWithChildren, ReactNode, useState, useEffect } from 'react';
 import axios from 'axios';
@@ -321,6 +322,9 @@ export default function Authenticated({
 
                 {/* Spacer */}
                 <div className="flex-1"></div>
+
+                {/* WebSocket Notifications */}
+                <WebSocketNotifications className="mr-4" />
 
                 {/* User info on desktop */}
                 <div className="hidden lg:flex items-center space-x-3 relative">

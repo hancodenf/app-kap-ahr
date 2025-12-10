@@ -323,6 +323,22 @@ Route::middleware(['auth', 'no.cache'])->group(function () {
     Route::get('/news/{news:slug}', [\App\Http\Controllers\Admin\NewsController::class, 'showPublic'])->name('news.show');
 });
 
+// Real-time Updates API Routes
+Route::middleware(['auth', 'no.cache'])->prefix('api')->group(function () {
+    Route::get('/realtime/updates', [\App\Http\Controllers\Api\RealTimeUpdatesController::class, 'getUpdates'])->name('api.realtime.updates');
+    Route::post('/realtime/mark-seen', [\App\Http\Controllers\Api\RealTimeUpdatesController::class, 'markAsSeen'])->name('api.realtime.mark-seen');
+    Route::get('/realtime/dashboard-summary', [\App\Http\Controllers\Api\RealTimeUpdatesController::class, 'getDashboardSummary'])->name('api.realtime.dashboard-summary');
+    
+    // Test route
+    Route::get('/test', function () {
+        return response()->json([
+            'message' => 'API test works!',
+            'user' => Auth::user()->name ?? 'Guest',
+            'timestamp' => now()
+        ]);
+    });
+});
+
 // Blackbox Testing Routes (publicly accessible)
 Route::get('/blackbox-test', [BlackboxTestController::class, 'index'])->name('blackbox.test');
 Route::post('/blackbox-test/save-result', [BlackboxTestController::class, 'saveResult'])->name('blackbox.save-result');
