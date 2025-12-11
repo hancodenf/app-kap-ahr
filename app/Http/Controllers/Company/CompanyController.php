@@ -322,6 +322,71 @@ class CompanyController extends Controller
     }
 
     /**
+     * API endpoint to get tasks pending approval for real-time dashboard updates
+     */
+    public function getPendingApprovals()
+    {
+        $user = Auth::user();
+
+        // Get user's roles in projects
+        $myRoles = ProjectTeam::where('user_id', $user->id)
+            ->pluck('role', 'project_id')
+            ->toArray();
+
+        $hasProjects = !empty($myRoles);
+
+        $tasksPendingApproval = $hasProjects
+            ? \App\Models\TaskApproval::whereIn('role', array_values($myRoles))
+            ->with(['task' => function ($query) {
+                $query->with(['workingStep', 'taskAssignments' => function ($q) {
+                    $q->latest();
+                }]);
+            }])
+            ->get()
+            ->filter(function ($approval) use ($myRoles) {
+                if (!$approval->task) return false;
+
+                // Check if user has the required role in this project
+                $projectId = $approval->task->project_id;
+                $userRoleInProject = $myRoles[$projectId] ?? null;
+
+                if ($userRoleInProject !== $approval->role) return false;
+
+                // Check if task needs approval from this role
+                $latestAssignment = $approval->task->taskAssignments->first();
+                $currentStatus = $latestAssignment->status ?? 'Draft';
+
+                // Task is pending approval if status matches either "pending" or "progress" status for this role
+                return $currentStatus === $approval->status_name_pending
+                    || $currentStatus === $approval->status_name_progress;
+            })
+            ->map(function ($approval) {
+                $latestAssignment = $approval->task->taskAssignments->first();
+                return [
+                    'id' => $approval->task->id,
+                    'approval_id' => $approval->id,
+                    'name' => $approval->task->name,
+                    'project_id' => $approval->task->project_id,
+                    'project_name' => $approval->task->project_name,
+                    'working_step_name' => $approval->task->working_step_name,
+                    'completion_status' => $approval->task->completion_status,
+                    'status' => $latestAssignment->status ?? 'Draft',
+                    'approval_role' => $approval->role,
+                    'is_required' => $approval->task->is_required,
+                    'updated_at' => $approval->task->updated_at,
+                ];
+            })
+            ->sortByDesc('updated_at')
+            ->take(10)
+            ->values()
+            : collect([]);
+
+        return response()->json([
+            'tasksPendingApproval' => $tasksPendingApproval
+        ]);
+    }
+
+    /**
      * Show list of projects for this company user
      */
     public function myProjects(Request $request)
@@ -805,14 +870,20 @@ class CompanyController extends Controller
                 $approverUserIds = $this->getApproverUserIds($task, $firstApproval->role);
                 \Log::info('Approver user IDs found', ['approver_ids' => $approverUserIds, 'role' => $firstApproval->role]);
                 
-                // Dispatch event to notify approvers
+                // SAVE FIRST, then dispatch event to ensure database is updated
+                $latestAssignment->save();
+                
+                // Dispatch event to notify approvers AFTER saving
                 if (!empty($approverUserIds)) {
                     \Log::info('Dispatching NewApprovalNotification event');
+                    
+                    // Dispatch event to notify team leaders
                     event(new NewApprovalNotification(
                         $task, 
                         $approverUserIds, 
                         "Task '{$task->name}' in project '{$task->project->name}' requires {$firstApproval->role} approval"
                     ));
+                    
                     \Log::info('NewApprovalNotification event dispatched successfully');
                 } else {
                     \Log::warning('No approver user IDs found for role', ['role' => $firstApproval->role]);
@@ -827,8 +898,8 @@ class CompanyController extends Controller
                     $task->completed_at = now();
                     $task->markAsCompleted(); // Use method to trigger unlock logic
                 }
+                $latestAssignment->save();
             }
-            $latestAssignment->save();
         } elseif ($currentStatus === 'Client Reply' || $currentStatus === 'Under Review by Team') {
             // If client replied, auto-submit to first approval
             $firstApproval = $task->taskApprovals()->orderBy('order', 'asc')->first();

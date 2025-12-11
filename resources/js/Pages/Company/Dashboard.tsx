@@ -1,7 +1,9 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import NewsCard from '@/Components/NewsCard';
+import { useState, useEffect } from 'react';
+import { useAutoMarkNotifications } from '@/hooks/useAutoMarkNotifications';
 
 interface ProjectStats {
 	total: number;
@@ -113,11 +115,71 @@ export default function CompanyDashboard({
 	statistics,
 	recentProjects,
 	myAssignedTasks,
-	tasksPendingApproval,
+	tasksPendingApproval: initialTasksPendingApproval,
 	taskTrend,
 	upcomingDeadlines,
 	latestNews,
 }: CompanyDashboardProps) {
+	const { auth } = usePage<PageProps>().props;
+	
+	// State untuk pending approval tasks (biar bisa real-time update)
+	const [tasksPendingApproval, setTasksPendingApproval] = useState<PendingApprovalTask[]>(initialTasksPendingApproval);
+	const [isRefreshing, setIsRefreshing] = useState(false);
+
+	// Auto mark approval notifications as read when viewing dashboard
+	useAutoMarkNotifications({
+		type: 'project_approval',
+		enabled: true
+	});
+
+	// Fetch latest pending approval tasks
+	const fetchPendingApprovals = async () => {
+		try {
+			setIsRefreshing(true);
+			const response = await fetch('/company/dashboard/pending-approvals');
+			const data = await response.json();
+			setTasksPendingApproval(data.tasksPendingApproval || []);
+			console.log('🔄 Dashboard pending approvals refreshed:', data.tasksPendingApproval?.length || 0);
+		} catch (error) {
+			console.error('Failed to fetch pending approvals:', error);
+		} finally {
+			setIsRefreshing(false);
+		}
+	};
+
+	// WebSocket listener untuk real-time updates
+	useEffect(() => {
+		if (!window.Echo || !auth.user?.id) return;
+
+		console.log('🔊 Setting up dashboard WebSocket listeners...');
+
+		// Listen for approval notifications
+		const channel = window.Echo.private(`user.${auth.user.id}`);
+		
+		channel.listen('.NewApprovalNotification', (event: any) => {
+			console.log('🔔 Dashboard received approval notification:', event);
+			
+			// Refresh pending approvals list
+			setTimeout(() => {
+				fetchPendingApprovals();
+			}, 1000); // Small delay to ensure database is updated
+			
+			// Show toast
+			// toast.success('New task requires your approval!');
+		});
+
+		return () => {
+			if (window.Echo) {
+				window.Echo.leave(`user.${auth.user.id}`);
+			}
+		};
+	}, [auth.user?.id]);
+
+	// Initial load of pending approvals
+	useEffect(() => {
+		fetchPendingApprovals();
+	}, []);
+
 	const formatDate = (dateString: string) => {
 		return new Date(dateString).toLocaleDateString('id-ID', {
 			day: 'numeric',

@@ -3,6 +3,7 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { useState, FormEventHandler, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { useAutoMarkNotifications } from '@/hooks/useAutoMarkNotifications';
 
 interface Document {
     id: number;
@@ -56,6 +57,12 @@ export default function ApprovalDetail({ auth, task, project }: Props) {
     const [showApproveModal, setShowApproveModal] = useState(false);
     const [rejectComment, setRejectComment] = useState('');
     const { flash } = usePage<any>().props;
+    
+    // Auto-mark notifications as read for this task approval
+    useAutoMarkNotifications({
+        type: 'task_approval',
+        task_id: task.id.toString()
+    });
     
     // Check if project is active (only allow actions for In Progress projects)
     const isProjectActive = project.status === 'In Progress';

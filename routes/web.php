@@ -260,6 +260,7 @@ Route::middleware(['auth', 'verified', 'role:admin', 'no.cache'])->prefix('admin
 // Company Routes
 Route::middleware(['auth', 'verified', 'role:company', 'no.cache'])->prefix('company')->name('company.')->group(function () {
     Route::get('/dashboard', [CompanyController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard/pending-approvals', [CompanyController::class, 'getPendingApprovals'])->name('dashboard.pending-approvals');
     Route::get('/projects', [CompanyController::class, 'myProjects'])->name('projects.index');
     Route::get('/projects/{project}', [CompanyController::class, 'showProject'])->name('projects.show');
     Route::put('/tasks/{task}/status', [CompanyController::class, 'updateTaskStatus'])->name('tasks.update-status');
@@ -328,6 +329,13 @@ Route::middleware(['auth', 'no.cache'])->prefix('api')->group(function () {
     Route::get('/realtime/updates', [\App\Http\Controllers\Api\RealTimeUpdatesController::class, 'getUpdates'])->name('api.realtime.updates');
     Route::post('/realtime/mark-seen', [\App\Http\Controllers\Api\RealTimeUpdatesController::class, 'markAsSeen'])->name('api.realtime.mark-seen');
     Route::get('/realtime/dashboard-summary', [\App\Http\Controllers\Api\RealTimeUpdatesController::class, 'getDashboardSummary'])->name('api.realtime.dashboard-summary');
+    
+    // Notifications API
+    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('api.notifications.index');
+    Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('api.notifications.read');
+    Route::post('/notifications/read-all', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('api.notifications.read-all');
+    Route::get('/notifications/unread-count', [\App\Http\Controllers\NotificationController::class, 'unreadCount'])->name('api.notifications.unread-count');
+    Route::post('/notifications/auto-mark', [\App\Http\Controllers\NotificationController::class, 'autoMarkByContext'])->name('api.notifications.auto-mark');
     
     // Test route
     Route::get('/test', function () {

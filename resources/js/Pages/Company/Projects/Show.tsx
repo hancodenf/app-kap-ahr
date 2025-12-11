@@ -4,7 +4,7 @@ import { PageProps } from '@/types';
 import { FormEventHandler, useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import SearchableSelect from '@/Components/SearchableSelect';
-import Echo from 'laravel-echo';
+import { useAutoMarkNotifications } from '@/hooks/useAutoMarkNotifications';
 
 interface Document {
     id: number;
@@ -136,6 +136,13 @@ interface ApprovalTask {
 export default function ShowProject({ auth, project, workingSteps, myRole, teamMembers }: Props) {
     // Check if project is active (only allow actions for In Progress projects)
     const isProjectActive = project.status === 'In Progress';
+    
+    // Auto mark notifications as read when viewing this project
+    useAutoMarkNotifications({
+        type: 'project_approval',
+        project_id: project.id,
+        enabled: true
+    });
     
     const [activeTab, setActiveTab] = useState<'my-tasks' | 'approval-requests'>('my-tasks');
     const [approvalTasks, setApprovalTasks] = useState<ApprovalTask[]>([]);
@@ -276,13 +283,20 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
     }, [activeTab]);
 
     const fetchApprovalRequests = async () => {
+        console.log('📡 fetchApprovalRequests called, current state:', approvalTasks.length);
         setLoadingApprovals(true);
         try {
             const response = await fetch(route('company.projects.approval-requests', project.id));
             const data = await response.json();
+            console.log('📥 Received approval requests data:', data);
+            console.log('📋 New tasks count:', data.tasks ? data.tasks.length : 0);
+            console.log('📋 Tasks:', data.tasks);
+            
+            const oldCount = approvalTasks.length;
             setApprovalTasks(data.tasks || []);
+            console.log('🔄 State updated: old count =', oldCount, 'new count =', data.tasks ? data.tasks.length : 0);
         } catch (error) {
-            console.error('Error fetching approval requests:', error);
+            console.error('💥 Error fetching approval requests:', error);
         } finally {
             setLoadingApprovals(false);
         }
@@ -351,34 +365,161 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
 
     // WebSocket integration for real-time approval notifications
     useEffect(() => {
+        console.log('🔍 WebSocket useEffect triggered with:', {
+            needsApprovalTab,
+            hasEcho: !!window.Echo,
+            userId: auth.user.id,
+            projectId: project.id
+        });
+        
         if (needsApprovalTab && window.Echo) {
-            const echo = window.Echo as Echo;
+            console.log('✅ Setting up WebSocket listener for approval notifications...');
+            console.log('👤 Current user ID:', auth.user.id);
+            console.log('📁 Current project ID:', project.id);
+            
+            const echo = window.Echo;
             
             // Listen to private channel for approval notifications
-            const channel = echo.private(`App.Models.User.${auth.user.id}`);
+            const channelName = `user.${auth.user.id}`;
+            console.log('🔊 Subscribing to channel:', channelName);
+            console.log('🆔 User auth data:', auth.user);
+            const channel = echo.private(channelName);
+            
+            // Test connection
+            channel.subscribed(() => {
+                console.log('🎯 Successfully subscribed to channel:', channelName);
+            });
+            
+            // Add listener for ANY event using notification method
+            channel.notification((notification: any) => {
+                console.log('🌟 NOTIFICATION RECEIVED:', notification);
+            });
+            
+            // Also try listening to the raw pusher channel
+            if (channel.pusher) {
+                const pusherChannel = channel.pusher.channel(`private-${channelName}`);
+                if (pusherChannel && pusherChannel.bind_global) {
+                    pusherChannel.bind_global((event: string, data: any) => {
+                        console.log('🌟 PUSHER GLOBAL EVENT:', event, data);
+                    });
+                }
+            }
             
             channel.listen('NewApprovalNotification', (event: any) => {
-                console.log('Received approval notification:', event);
+                console.log('🚨 SPECIFIC LISTENER TRIGGERED! ===========================');
+                console.log('🚨 RECEIVED APPROVAL NOTIFICATION:', event);
+                console.log('📋 Event task:', event.task);
+                console.log('🏗️ Event task project:', event.task?.project);
+                console.log('🆔 Expected project ID:', project.id);
+                console.log('🆔 Actual project ID:', event.task?.project?.id);
                 
                 // Check if this notification is for the current project
                 if (event.task && event.task.project && event.task.project.id === project.id) {
-                    // Refresh approval requests to show new notification
-                    fetchApprovalRequests();
+                    console.log('✅ Notification is for current project, refreshing approval requests...');
+                    console.log('� Current approvalTasks count before refresh:', approvalTasks.length);
+                    
+                    // Show toast notification IMMEDIATELY
+                    toast.success(
+                        `🔔 New approval required: ${event.task?.name || 'Unknown task'}`,
+                        {
+                            position: "top-right",
+                            duration: 10000,
+                        }
+                    );
+                    
+                    console.log('� Toast notification shown');
+                    
+                    // Add small delay to ensure database is fully updated before fetching
+                    setTimeout(() => {
+                        console.log('🔄 Calling fetchApprovalRequests...');
+                        fetchApprovalRequests().then(() => {
+                            console.log('🔄 fetchApprovalRequests completed');
+                        });
+                    }, 500); // 500ms delay
+                } else {
+                    console.log('❌ Notification is not for current project or missing project data');
+                    console.log('Expected project ID:', project.id);
+                    console.log('Actual project ID:', event.task?.project?.id);
+                }
+                
+                console.log('🚨 LISTENER PROCESSING COMPLETE ===========================');
+            });
+            
+            // Listen for approval notifications using dot notation (this works!)
+            channel.listen('.NewApprovalNotification', (event: any) => {
+                console.log('🔔 New approval notification received:', event);
+                
+                // Check if this notification is for the current project
+                if (event.task && event.task.project && event.task.project.id === project.id) {
+                    console.log('✅ Notification is for current project, updating UI...');
                     
                     // Show toast notification
-                    toast.success(`New task requires approval: ${event.task.name}`, {
-                        duration: 5000,
-                        position: 'top-right',
-                    });
+                    toast.success(
+                        `New approval required: ${event.task?.name || 'Unknown task'}`,
+                        {
+                            position: "top-right",
+                            duration: 5000,
+                        }
+                    );
+                    
+                    // Refresh approval requests to update badge
+                    setTimeout(() => {
+                        fetchApprovalRequests();
+                    }, 500); // Small delay to ensure database is updated
+                } else {
+                    console.log('ℹ️ Notification is for a different project');
                 }
             });
             
+            // ALSO listen to ANY event for debugging
+            channel.listen('.', (event: any) => {
+                console.log('🎧 RECEIVED ANY EVENT:', event);
+            });
+            
+            // Listen for client events
+            channel.listen('client-test', (event: any) => {
+                console.log('📞 RECEIVED CLIENT EVENT:', event);
+            });
+            
+            // Add error handling for channel
+            channel.error((error: any) => {
+                console.error('💥 WebSocket channel error:', error);
+            });
+            
+            console.log('🎉 WebSocket listener setup complete');
+            
+            // Test manual trigger from browser
+            (window as any).testWebSocket = () => {
+                console.log('🧪 Triggering manual WebSocket test...');
+                channel.trigger('client-test', {
+                    message: 'Test from browser',
+                    timestamp: new Date().toISOString()
+                });
+            };
+            
+            console.log('💡 You can test WebSocket by running: window.testWebSocket()');
+            
+            // Test if we can manually trigger - REMOVE THIS IN PRODUCTION
+            setTimeout(() => {
+                console.log('🧪 Testing manual refresh after 5 seconds...');
+                fetchApprovalRequests().then(() => {
+                    console.log('🧪 Manual test refresh completed');
+                });
+            }, 5000);
+            
             // Cleanup on unmount
             return () => {
+                console.log('🧹 Cleaning up WebSocket listener...');
                 channel.stopListening('NewApprovalNotification');
             };
+        } else {
+            if (!needsApprovalTab) {
+                console.log('⚠️ Approval tab not needed for this role:', myRole);
+            } else if (!window.Echo) {
+                console.log('⚠️ Echo not available, WebSocket listener not set up');
+            }
         }
-    }, [needsApprovalTab, project.id, auth.user.id]);
+    }, [needsApprovalTab, project.id, auth.user.id, approvalTasks.length]);
 
     // Disable body scroll when modal is open
     useEffect(() => {
@@ -1040,11 +1181,15 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
                                         } flex-1 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm relative inline-flex items-center justify-center`}
                                     >
                                         ✅ Approval Requests
-                                        {approvalTasks.length > 0 && (
-                                            <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full animate-pulse">
-                                                {approvalTasks.length}
-                                            </span>
-                                        )}
+                                        {(() => {
+                                            const count = approvalTasks.length;
+                                            console.log('🎯 Badge render: approvalTasks.length =', count);
+                                            return count > 0 ? (
+                                                <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full animate-pulse">
+                                                    {count}
+                                                </span>
+                                            ) : null;
+                                        })()}
                                     </button>
                                 </nav>
                             </div>
