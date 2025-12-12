@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Client;
 
+use App\Events\NewWorkerTaskNotification;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use App\Models\Task;
@@ -970,6 +971,14 @@ class ClientController extends Controller
                     ]);
                 }
 
+                // Trigger worker notification for client document upload
+                $this->triggerWorkerNotification(
+                    $task, 
+                    $task->project, 
+                    'client_uploaded', 
+                    "Client uploaded documents for task '{$task->name}' in project '{$task->project->name}'"
+                );
+
                 return back()->with('success', 'Dokumen berhasil diupload!');
             });
 
@@ -1113,6 +1122,14 @@ class ClientController extends Controller
             $successMessage = 'File berhasil diupload!';
         }
 
+        // Trigger worker notification for client reply
+        $this->triggerWorkerNotification(
+            $task, 
+            $task->project, 
+            'client_replied', 
+            "Client replied to task '{$task->name}' in project '{$task->project->name}'"
+        );
+
         return back()->with('success', $successMessage);
     }
 
@@ -1172,6 +1189,14 @@ class ClientController extends Controller
                 ]),
             ]);
 
+            // Trigger worker notification for client approval
+            $this->triggerWorkerNotification(
+                $task, 
+                $task->project, 
+                'client_approved', 
+                "Client approved your task '{$task->name}' in project '{$task->project->name}'"
+            );
+
             $successMessage = 'Task berhasil di-approve!';
         } else {
             // Update assignment status to Client Rejected
@@ -1201,9 +1226,57 @@ class ClientController extends Controller
                 ]),
             ]);
 
+            // Trigger worker notification for client rejection
+            $this->triggerWorkerNotification(
+                $task, 
+                $task->project, 
+                'client_returned', 
+                "Client requested revision for your task '{$task->name}' in project '{$task->project->name}'"
+            );
+
             $successMessage = 'Task berhasil di-reject. Tim akan melakukan revisi.';
         }
 
         return back()->with('success', $successMessage);
+    }
+    
+    /**
+     * Helper function to trigger worker notification when client interacts with task
+     */
+    private function triggerWorkerNotification($task, $project, $actionType, $customMessage = null)
+    {
+        // Get worker user IDs who are assigned to this task
+        $workerUserIds = $task->taskWorkers()
+            ->with('projectTeam.user')
+            ->get()
+            ->pluck('projectTeam.user.id')
+            ->filter()
+            ->unique()
+            ->toArray();
+            
+        if (!empty($workerUserIds)) {
+            // Dispatch event to notify workers
+            event(new NewWorkerTaskNotification(
+                $task, 
+                $project,
+                $workerUserIds,
+                $actionType,
+                $customMessage
+            ));
+            
+            Log::info('🔔 Worker notification triggered', [
+                'task_id' => $task->id,
+                'project_id' => $project->id,
+                'action_type' => $actionType,
+                'worker_count' => count($workerUserIds),
+                'worker_user_ids' => $workerUserIds
+            ]);
+        } else {
+            Log::warning('⚠️ No worker users found for task notification', [
+                'task_id' => $task->id,
+                'project_id' => $project->id,
+                'action_type' => $actionType
+            ]);
+        }
     }
 }

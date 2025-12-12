@@ -73,6 +73,61 @@ class Notification extends Model
         ]);
     }
 
+    public static function createClientTaskNotification(
+        $userId,
+        $taskName,
+        $projectName,
+        $taskId,
+        $projectId
+    ) {
+        return static::create([
+            'type' => 'client_task',
+            'user_id' => $userId,
+            'title' => 'New Task Submitted',
+            'message' => "Task '{$taskName}' in project '{$projectName}' has been submitted for your review",
+            'url' => "/client/projects/{$projectId}/tasks/{$taskId}",
+            'data' => [
+                'task_id' => $taskId,
+                'project_id' => $projectId,
+                'task_name' => $taskName,
+                'project_name' => $projectName,
+            ]
+        ]);
+    }
+
+    public static function createWorkerTaskNotification(
+        $userId,
+        $taskName,
+        $projectName,
+        $taskId,
+        $projectId,
+        $actionType,
+        $message
+    ) {
+        $title = match($actionType) {
+            'client_approved' => 'Task Approved by Client',
+            'client_uploaded' => 'Client Uploaded Documents',
+            'client_replied' => 'Client Replied to Task',
+            'client_returned' => 'Task Returned by Client',
+            default => 'Client Task Update'
+        };
+
+        return static::create([
+            'type' => 'worker_task',
+            'user_id' => $userId,
+            'title' => $title,
+            'message' => $message,
+            'url' => "/company/tasks/{$taskId}/detail",
+            'data' => [
+                'task_id' => $taskId,
+                'project_id' => $projectId,
+                'task_name' => $taskName,
+                'project_name' => $projectName,
+                'action_type' => $actionType,
+            ]
+        ]);
+    }
+
     /**
      * Auto mark notifications as read based on context
      */
@@ -89,6 +144,26 @@ class Notification extends Model
             case 'task_approval':
                 $query->where('type', 'approval')
                      ->where('data->task_id', $context['task_id']);
+                break;
+                
+            case 'client_task':
+                $query->where('type', 'client_task')
+                     ->where('data->task_id', $context['task_id']);
+                break;
+                
+            case 'client_project':
+                $query->where('type', 'client_task')
+                     ->where('data->project_id', $context['project_id']);
+                break;
+                
+            case 'worker_task':
+                $query->where('type', 'worker_task')
+                     ->where('data->task_id', $context['task_id']);
+                break;
+                
+            case 'worker_project':
+                $query->where('type', 'worker_task')
+                     ->where('data->project_id', $context['project_id']);
                 break;
         }
         

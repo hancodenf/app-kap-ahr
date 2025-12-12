@@ -23,13 +23,6 @@ class NewApprovalNotification implements ShouldBroadcastNow
      */
     public function __construct($task, $approverUserIds, $message = null)
     {
-        \Log::info('🔥 NewApprovalNotification constructor called', [
-            'task_id' => $task->id ?? 'N/A',
-            'task_name' => $task->name ?? 'N/A',
-            'approver_user_ids' => $approverUserIds,
-            'message' => $message
-        ]);
-        
         $this->task = $task;
         $this->approverUserIds = $approverUserIds;
         $this->message = $message ?? "New task '{$task->name}' requires your approval";
@@ -52,10 +45,6 @@ class NewApprovalNotification implements ShouldBroadcastNow
                 $this->task->project->id
             );
             
-            \Log::info('💾 Saved notification to database', [
-                'user_id' => $userId,
-                'task_id' => $this->task->id
-            ]);
         }
     }
 
@@ -68,18 +57,12 @@ class NewApprovalNotification implements ShouldBroadcastNow
     {
         $channels = [];
         
-        \Log::info('🎯 broadcastOn called - creating channels for users', [
-            'approver_user_ids' => $this->approverUserIds
-        ]);
-        
         // Broadcast to each approver's private channel
         foreach ($this->approverUserIds as $userId) {
             $channelName = "user.{$userId}";
             $channels[] = new PrivateChannel($channelName);
-            \Log::info('📡 Created private channel', ['channel' => $channelName]);
         }
         
-        \Log::info('🎉 broadcastOn returning channels', ['channel_count' => count($channels)]);
         return $channels;
     }
 
@@ -109,7 +92,6 @@ class NewApprovalNotification implements ShouldBroadcastNow
             'timestamp' => now()->toISOString(),
         ];
         
-        \Log::info('📤 broadcastWith called - preparing broadcast data', $broadcastData);
         
         return $broadcastData;
     }

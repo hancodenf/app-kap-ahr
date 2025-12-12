@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Company;
 
 use App\Events\NewApprovalNotification;
+use App\Events\NewClientTaskNotification;
+use App\Events\NewWorkerTaskNotification;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use App\Models\ProjectTeam;
@@ -10,9 +12,11 @@ use App\Models\WorkingStep;
 use App\Models\Task;
 use App\Models\TaskWorker;
 use App\Models\News;
+use App\Models\User;
 use App\Services\SafeTransactionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
@@ -856,11 +860,9 @@ class CompanyController extends Controller
 
         // AUTO-SUBMIT to approval workflow - ALWAYS go through approval first
         if ($currentStatus === 'Draft') {
-            \Log::info('Task is in Draft status, checking for approval workflow', ['task_id' => $task->id]);
             
             // Get first approval in workflow (lowest order)
             $firstApproval = $task->taskApprovals()->orderBy('order', 'asc')->first();
-            \Log::info('First approval found', ['first_approval' => $firstApproval]);
 
             if ($firstApproval) {
                 // ALWAYS submit to first approval level first, regardless of client interaction
@@ -868,14 +870,12 @@ class CompanyController extends Controller
                 
                 // Get users who have the approval role for this task
                 $approverUserIds = $this->getApproverUserIds($task, $firstApproval->role);
-                \Log::info('Approver user IDs found', ['approver_ids' => $approverUserIds, 'role' => $firstApproval->role]);
                 
                 // SAVE FIRST, then dispatch event to ensure database is updated
                 $latestAssignment->save();
                 
                 // Dispatch event to notify approvers AFTER saving
                 if (!empty($approverUserIds)) {
-                    \Log::info('Dispatching NewApprovalNotification event');
                     
                     // Dispatch event to notify team leaders
                     event(new NewApprovalNotification(
@@ -884,21 +884,22 @@ class CompanyController extends Controller
                         "Task '{$task->name}' in project '{$task->project->name}' requires {$firstApproval->role} approval"
                     ));
                     
-                    \Log::info('NewApprovalNotification event dispatched successfully');
-                } else {
-                    \Log::warning('No approver user IDs found for role', ['role' => $firstApproval->role]);
                 }
             } else {
                 // No approval workflow - check if needs client interaction
                 if ($hasClientDocs) {
                     $latestAssignment->status = 'Submitted to Client';
+                    $latestAssignment->save();
+                    
+                    // Trigger client notification
+                    $this->triggerClientNotification($task, $task->project);
                 } else {
                     // No approval, no client interaction - mark as completed
                     $latestAssignment->status = 'Completed';
                     $task->completed_at = now();
                     $task->markAsCompleted(); // Use method to trigger unlock logic
+                    $latestAssignment->save();
                 }
-                $latestAssignment->save();
             }
         } elseif ($currentStatus === 'Client Reply' || $currentStatus === 'Under Review by Team') {
             // If client replied, auto-submit to first approval
@@ -912,7 +913,14 @@ class CompanyController extends Controller
         } elseif (str_contains($currentStatus, 'Returned for Revision')) {
             // If resubmitting after rejection, go back to the approver who rejected it
             if (str_contains($currentStatus, 'Client')) {
-                $latestAssignment->status = $task->approval_type === 'Once' ? 'Submitted to Client' : $lowestApproval->status_name_pending;
+                $newStatus = $task->approval_type === 'Once' ? 'Submitted to Client' : $lowestApproval->status_name_pending;
+                $latestAssignment->status = $newStatus;
+                $latestAssignment->save();
+                
+                // Trigger client notification if status is 'Submitted to Client'
+                if ($newStatus === 'Submitted to Client') {
+                    $this->triggerClientNotification($task, $task->project);
+                }
             } else {
                 if (str_contains($currentStatus, 'Team Leader')) {
                     $approval = $task->taskApprovals()->where('role', 'team leader')->first();
@@ -1413,10 +1421,16 @@ class CompanyController extends Controller
                         // Has client documents to upload - send to client
                         $updateData['status'] = 'Submitted to Client';
                         $message = "Task approved! Waiting for client to upload requested documents.";
+                        
+                        // Set flag to trigger client notification after update
+                        $needsClientNotification = true;
                     } else {
                         // No client interaction needed - mark as completed
                         $updateData['status'] = 'Submitted to Client';
                         $message = "Task approved and marked as completed!";
+                        
+                        // Set flag to trigger client notification after update
+                        $needsClientNotification = true;
 
                         // Update task completion
                         $task->updateSafely([
@@ -1432,6 +1446,11 @@ class CompanyController extends Controller
 
                 // Update assignment safely
                 $latestAssignment->updateSafely($updateData, $latestAssignment->version);
+                
+                // Trigger client notification if status was set to 'Submitted to Client'
+                if (isset($needsClientNotification) && $needsClientNotification && $updateData['status'] === 'Submitted to Client') {
+                    $this->triggerClientNotification($task, $task->project);
+                }
 
                 // Log approval action
                 \App\Models\ActivityLog::create([
@@ -1456,6 +1475,30 @@ class CompanyController extends Controller
                     'ip_address' => $request->ip(),
                     'user_agent' => $request->header('User-Agent')
                 ]);
+
+                // Trigger worker notification about approval
+                if ($nextApproval) {
+                    // Task forwarded to next approval level
+                    $this->triggerWorkerNotification(
+                        $task, 
+                        $task->project, 
+                        'company_approved', 
+                        "Your task '{$task->name}' has been approved by {$role} and forwarded to the next level"
+                    );
+                } else if (isset($needsClientNotification) && $needsClientNotification) {
+                    // Final approval - task completed or sent to client
+                    $actionType = ($task->completion_status === 'completed') ? 'task_completed' : 'company_approved';
+                    $customMessage = ($task->completion_status === 'completed') 
+                        ? "Your task '{$task->name}' has been fully approved and completed" 
+                        : "Your task '{$task->name}' has been approved and sent to client";
+                        
+                    $this->triggerWorkerNotification(
+                        $task, 
+                        $task->project, 
+                        $actionType, 
+                        $customMessage
+                    );
+                }
 
                 return [
                     'success' => true,
@@ -1574,6 +1617,14 @@ class CompanyController extends Controller
                     'ip_address' => $request->ip(),
                     'user_agent' => $request->header('User-Agent')
                 ]);
+
+                // Trigger worker notification about rejection
+                $this->triggerWorkerNotification(
+                    $task, 
+                    $task->project, 
+                    'company_rejected', 
+                    "Your task '{$task->name}' has been rejected by {$role} and needs revision. Reason: {$request->comment}"
+                );
 
                 return [
                     'success' => true,
@@ -1748,6 +1799,7 @@ class CompanyController extends Controller
         $lowestApproval = $task->taskApprovals()->orderBy('order', 'asc')->first();
 
         // Create NEW task assignment (old one remains for history)
+        $newStatus = $task->approval_type == 'Once' ? 'Submitted to Client' : $lowestApproval->status_name_pending;
         $newAssignment = \App\Models\TaskAssignment::create([
             'task_id' => $task->id,
             'user_id' => $user->id,
@@ -1759,7 +1811,7 @@ class CompanyController extends Controller
             'notes' => "Re-upload requested\nComment:\n" . $request->comment,
             'maker' => $task->approval_type == 'Once' ? 'client' : 'company',
             'maker_can_edit' => true,
-            'status' => $task->approval_type == 'Once' ? 'Submitted to Client' : $lowestApproval->status_name_pending, // Set status to request re-upload from client
+            'status' => $newStatus, // Set status to request re-upload from client
         ]);
 
         // Copy team documents to new assignment (WITH files - keep team's uploaded documents)
@@ -1805,6 +1857,11 @@ class CompanyController extends Controller
                 'new_assignment_id' => $newAssignment->id,
             ]),
         ]);
+        
+        // Trigger client notification if status is 'Submitted to Client'
+        if ($newStatus === 'Submitted to Client') {
+            $this->triggerClientNotification($task, $task->project);
+        }
 
         return back()->with('success', 'Re-upload request sent to client. Previous submission kept in history.');
     }
@@ -2071,5 +2128,103 @@ class CompanyController extends Controller
         }
 
         return back()->with('success', 'Task settings updated successfully!');
+    }
+    
+    /**
+     * Helper function to trigger client notification when task is submitted to client
+     */
+    private function triggerClientNotification($task, $project)
+    {
+        // Get client user IDs for this project
+        // Method 1: Try to find client users through project teams
+        $clientUserIds = $project->users()
+            ->where('role', 'client')
+            ->pluck('users.id')
+            ->toArray();
+            
+        // Method 2: If no client users found through project teams, 
+        // try to find by project's client relationship
+        if (empty($clientUserIds) && $project->client_id) {
+            $clientUser = User::where('role', 'client')
+                ->where('id', $project->client_id)
+                ->first();
+            if ($clientUser) {
+                $clientUserIds = [$clientUser->id];
+            }
+        }
+        
+        // Method 3: As fallback, find any client users related to this project
+        if (empty($clientUserIds)) {
+            $clientUserIds = User::where('role', 'client')
+                ->whereHas('projects', function($query) use ($project) {
+                    $query->where('id', $project->id);
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+            
+        if (!empty($clientUserIds)) {
+            // Dispatch event to notify client
+            event(new NewClientTaskNotification(
+                $task, 
+                $project,
+                $clientUserIds, 
+                "New task '{$task->name}' has been submitted for your review in project '{$project->name}'"
+            ));
+            
+            Log::info('🔔 Client notification triggered', [
+                'task_id' => $task->id,
+                'project_id' => $project->id,
+                'client_count' => count($clientUserIds),
+                'client_user_ids' => $clientUserIds
+            ]);
+        } else {
+            Log::warning('⚠️ No client users found for project notification', [
+                'project_id' => $project->id,
+                'project_client_id' => $project->client_id
+            ]);
+        }
+    }
+    
+    /**
+     * Helper function to trigger worker notification when company approves/rejects task
+     */
+    private function triggerWorkerNotification($task, $project, $actionType, $customMessage = null)
+    {
+        // Get worker user IDs who are assigned to this task
+        $workerUserIds = $task->taskWorkers()
+            ->with('projectTeam.user')
+            ->get()
+            ->map(function ($taskWorker) {
+                return $taskWorker->projectTeam->user_id ?? null;
+            })
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray();
+
+        if (!empty($workerUserIds)) {
+            // Dispatch event to notify workers
+            event(new NewWorkerTaskNotification(
+                $task,
+                $project,
+                $workerUserIds,
+                $actionType,
+                $customMessage
+            ));
+
+            Log::info('🔔 Worker notification triggered', [
+                'task_id' => $task->id,
+                'project_id' => $project->id,
+                'action_type' => $actionType,
+                'worker_count' => count($workerUserIds),
+                'worker_user_ids' => $workerUserIds
+            ]);
+        } else {
+            Log::warning('⚠️ No worker users found for task notification', [
+                'task_id' => $task->id,
+                'project_id' => $project->id
+            ]);
+        }
     }
 }

@@ -41,7 +41,6 @@ class RealTimeUpdatesController extends Controller
             ]);
             
         } catch (\Exception $e) {
-            \Log::error('Real-time updates error: ' . $e->getMessage());
             
             return response()->json([
                 'hasUpdates' => false,

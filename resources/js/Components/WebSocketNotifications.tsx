@@ -8,7 +8,7 @@ interface Notification {
     title: string;
     message: string;
     url?: string;
-    type: 'approval' | 'assignment' | 'activity';
+    type: 'approval' | 'assignment' | 'activity' | 'worker_task';
     created_at: string;
     read_at?: string | null;
 }
@@ -115,6 +115,47 @@ const WebSocketNotifications: React.FC<{ className?: string }> = ({ className = 
                             });
                         }
                     })
+                        .listen('.NewWorkerTaskNotification', (data: any) => {
+                        console.log('🔔 Bell notification - New worker task notification:', data);
+                        
+                        // Refresh notifications from database to get the persistent version
+                        fetchNotifications();
+                        
+                        // Show browser notification if permitted
+                        if (Notification.permission === 'granted') {
+                            const actionIcon = data.action_type === 'client_approved' ? '✅' : 
+                                             data.action_type === 'client_uploaded' ? '📄' :
+                                             data.action_type === 'client_replied' ? '💬' :
+                                             data.action_type === 'client_returned' ? '🔄' : 
+                                             data.action_type === 'company_approved' ? '👍' :
+                                             data.action_type === 'company_rejected' ? '❌' :
+                                             data.action_type === 'task_completed' ? '🎉' : '🔔';
+                                             
+                            new Notification(`${actionIcon} Task Update`, {
+                                body: data.message || 'There has been an update on your task',
+                                icon: '/favicon.ico'
+                            });
+                        }
+                        
+                        // Show toast notification with action type emoji
+                        if (typeof window !== 'undefined' && (window as any).toast) {
+                            const actionEmoji = data.action_type === 'client_approved' ? '🎉' : 
+                                              data.action_type === 'client_uploaded' ? '📄' :
+                                              data.action_type === 'client_replied' ? '💬' :
+                                              data.action_type === 'client_returned' ? '🔄' : 
+                                              data.action_type === 'company_approved' ? '👍' :
+                                              data.action_type === 'company_rejected' ? '❌' :
+                                              data.action_type === 'task_completed' ? '🎉' : '🔔';
+                                              
+                            (window as any).toast.success(
+                                `${actionEmoji} ${data.message}`,
+                                {
+                                    position: "top-right",
+                                    duration: 8000,
+                                }
+                            );
+                        }
+                    })
                     .listen('TaskAssigned', (data: any) => {
                         console.log('Task assigned:', data);
                         
@@ -206,10 +247,28 @@ const WebSocketNotifications: React.FC<{ className?: string }> = ({ className = 
                                     onClick={() => handleNotificationClick(notification)}
                                 >
                                     <div className="flex items-start space-x-3">
-                                        <div className={`w-2 h-2 rounded-full mt-2 ${
-                                            notification.type === 'approval' ? 'bg-orange-500' :
-                                            notification.type === 'assignment' ? 'bg-blue-500' : 'bg-green-500'
-                                        }`} />
+                                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100">
+                                            <span className="text-sm">
+                                                {notification.type === 'approval_request' ? '👤' :
+                                                 notification.type === 'client_task' ? '💼' :
+                                                 notification.type === 'worker_task' ? (
+                                                     (() => {
+                                                         try {
+                                                             const data = JSON.parse(notification.data || '{}');
+                                                             return data.action_type === 'client_approved' ? '✅' :
+                                                                    data.action_type === 'client_uploaded' ? '📄' :
+                                                                    data.action_type === 'client_replied' ? '💬' :
+                                                                    data.action_type === 'client_returned' ? '🔄' :
+                                                                    data.action_type === 'company_approved' ? '👍' :
+                                                                    data.action_type === 'company_rejected' ? '❌' :
+                                                                    data.action_type === 'task_completed' ? '🎉' : '🔔';
+                                                         } catch {
+                                                             return '🔔';
+                                                         }
+                                                     })()
+                                                 ) : '🔔'}
+                                            </span>
+                                        </div>
                                         <div className="flex-1">
                                             <p className={`text-sm font-medium ${!notification.read_at ? 'text-gray-900' : 'text-gray-600'}`}>
                                                 {notification.title}

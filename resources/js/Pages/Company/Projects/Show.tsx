@@ -140,7 +140,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
     // Auto mark notifications as read when viewing this project
     useAutoMarkNotifications({
         type: 'project_approval',
-        project_id: project.id,
+        project_id: project.id.toString(),
         enabled: true
     });
     
