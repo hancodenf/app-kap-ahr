@@ -18,7 +18,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class CompanyController extends Controller
@@ -1424,6 +1423,7 @@ class CompanyController extends Controller
                         
                         // Set flag to trigger client notification after update
                         $needsClientNotification = true;
+                        $clientNotificationType = 'action_required';
                     } else {
                         // No client interaction needed - mark as completed
                         $updateData['status'] = 'Submitted to Client';
@@ -1431,6 +1431,7 @@ class CompanyController extends Controller
                         
                         // Set flag to trigger client notification after update
                         $needsClientNotification = true;
+                        $clientNotificationType = 'task_completed';
 
                         // Update task completion
                         $task->updateSafely([
@@ -1447,9 +1448,23 @@ class CompanyController extends Controller
                 // Update assignment safely
                 $latestAssignment->updateSafely($updateData, $latestAssignment->version);
                 
-                // Trigger client notification if status was set to 'Submitted to Client'
-                if (isset($needsClientNotification) && $needsClientNotification && $updateData['status'] === 'Submitted to Client') {
-                    $this->triggerClientNotification($task, $task->project);
+                // Trigger client notification for both task completion and client action required
+                if (isset($needsClientNotification) && $needsClientNotification) {
+                    if (isset($clientNotificationType) && $clientNotificationType === 'task_completed') {
+                        // Trigger client notification for completed task
+                        $this->triggerClientNotification(
+                            $task, 
+                            $task->project, 
+                            "Task '{$task->name}' in your project has been completed successfully!"
+                        );
+                    } elseif ($updateData['status'] === 'Submitted to Client') {
+                        // Trigger client notification for action required
+                        $this->triggerClientNotification(
+                            $task, 
+                            $task->project, 
+                            "Task '{$task->name}' in your project needs your attention - please upload requested documents"
+                        );
+                    }
                 }
 
                 // Log approval action
@@ -1485,18 +1500,37 @@ class CompanyController extends Controller
                         'company_approved', 
                         "Your task '{$task->name}' has been approved by {$role} and forwarded to the next level"
                     );
+                    
+                    // Trigger approval notification to next role
+                    $this->triggerApprovalNotificationForNextRole(
+                        $task, 
+                        $nextApproval->role,
+                        "Task '{$task->name}' needs your approval (forwarded from {$role})"
+                    );
                 } else if (isset($needsClientNotification) && $needsClientNotification) {
                     // Final approval - task completed or sent to client
                     $actionType = ($task->completion_status === 'completed') ? 'task_completed' : 'company_approved';
-                    $customMessage = ($task->completion_status === 'completed') 
+                    $workerMessage = ($task->completion_status === 'completed') 
                         ? "Your task '{$task->name}' has been fully approved and completed" 
                         : "Your task '{$task->name}' has been approved and sent to client";
+                    
+                    $clientMessage = ($task->completion_status === 'completed') 
+                        ? "Task '{$task->name}' in your project has been completed successfully!" 
+                        : "Task '{$task->name}' in your project has been approved and submitted to you";
                         
+                    // Notify worker about the approval
                     $this->triggerWorkerNotification(
                         $task, 
                         $task->project, 
                         $actionType, 
-                        $customMessage
+                        $workerMessage
+                    );
+                    
+                    // Notify client about the task status
+                    $this->triggerClientNotification(
+                        $task, 
+                        $task->project, 
+                        $clientMessage
                     );
                 }
 
@@ -2133,12 +2167,14 @@ class CompanyController extends Controller
     /**
      * Helper function to trigger client notification when task is submitted to client
      */
-    private function triggerClientNotification($task, $project)
+    /**
+     */
+    private function triggerClientNotification($task, $project, $customMessage = null)
     {
         // Get client user IDs for this project
         // Method 1: Try to find client users through project teams
         $clientUserIds = $project->users()
-            ->where('role', 'client')
+            ->where('users.role', 'client')  // Specify users.role to avoid ambiguity
             ->pluck('users.id')
             ->toArray();
             
@@ -2157,26 +2193,30 @@ class CompanyController extends Controller
         if (empty($clientUserIds)) {
             $clientUserIds = User::where('role', 'client')
                 ->whereHas('projects', function($query) use ($project) {
-                    $query->where('id', $project->id);
+                    $query->where('projects.id', $project->id);  // Specify projects.id to avoid ambiguity
                 })
                 ->pluck('id')
                 ->toArray();
         }
             
         if (!empty($clientUserIds)) {
+            // Use custom message if provided, otherwise use default
+            $message = $customMessage ?? "New task '{$task->name}' has been submitted for your review in project '{$project->name}'";
+            
             // Dispatch event to notify client
             event(new NewClientTaskNotification(
                 $task, 
                 $project,
                 $clientUserIds, 
-                "New task '{$task->name}' has been submitted for your review in project '{$project->name}'"
+                $message
             ));
             
             Log::info('🔔 Client notification triggered', [
                 'task_id' => $task->id,
                 'project_id' => $project->id,
                 'client_count' => count($clientUserIds),
-                'client_user_ids' => $clientUserIds
+                'client_user_ids' => $clientUserIds,
+                'message' => $message
             ]);
         } else {
             Log::warning('⚠️ No client users found for project notification', [
@@ -2224,6 +2264,41 @@ class CompanyController extends Controller
             Log::warning('⚠️ No worker users found for task notification', [
                 'task_id' => $task->id,
                 'project_id' => $project->id
+            ]);
+        }
+    }
+    
+    /**
+     * Helper function to trigger approval notification to next role when task is forwarded
+     */
+    private function triggerApprovalNotificationForNextRole($task, $nextRole, $customMessage = null)
+    {
+        // Find users with the next approval role in this project
+        $nextRoleUserIds = ProjectTeam::where('project_id', $task->project->id)
+            ->where('role', $nextRole)
+            ->pluck('user_id')
+            ->toArray();
+
+        if (!empty($nextRoleUserIds)) {
+            // Use existing NewApprovalNotification event
+            event(new NewApprovalNotification(
+                $task,
+                $nextRoleUserIds,
+                $customMessage ?? "Task '{$task->name}' requires your approval"
+            ));
+
+            Log::info('🔔 Approval notification triggered for next role', [
+                'task_id' => $task->id,
+                'project_id' => $task->project->id,
+                'next_role' => $nextRole,
+                'user_count' => count($nextRoleUserIds),
+                'user_ids' => $nextRoleUserIds
+            ]);
+        } else {
+            Log::warning('⚠️ No users found for next approval role', [
+                'task_id' => $task->id,
+                'project_id' => $task->project->id,
+                'next_role' => $nextRole
             ]);
         }
     }

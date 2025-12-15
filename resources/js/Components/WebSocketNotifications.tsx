@@ -8,9 +8,10 @@ interface Notification {
     title: string;
     message: string;
     url?: string;
-    type: 'approval' | 'assignment' | 'activity' | 'worker_task';
+    type: 'approval' | 'assignment' | 'activity' | 'worker_task' | 'approval_request' | 'client_task';
     created_at: string;
     read_at?: string | null;
+    data?: string; // JSON string containing additional data
 }
 
 const WebSocketNotifications: React.FC<{ className?: string }> = ({ className = "" }) => {
@@ -149,6 +150,37 @@ const WebSocketNotifications: React.FC<{ className?: string }> = ({ className = 
                                               
                             (window as any).toast.success(
                                 `${actionEmoji} ${data.message}`,
+                                {
+                                    position: "top-right",
+                                    duration: 8000,
+                                }
+                            );
+                        }
+                    })
+                    .listen('.NewClientTaskNotification', (data: any) => {
+                        console.log('🔔 Bell notification - New client task notification:', data);
+                        
+                        // Refresh notifications from database to get the persistent version
+                        fetchNotifications();
+                        
+                        // Show browser notification if permitted
+                        if (Notification.permission === 'granted') {
+                            const notificationIcon = data.message.includes('completed') ? '🎉' : 
+                                                    data.message.includes('attention') ? '📋' : '🔔';
+                                             
+                            new Notification(`${notificationIcon} Task Update`, {
+                                body: data.message || 'There has been an update on your project',
+                                icon: '/favicon.ico'
+                            });
+                        }
+                        
+                        // Show toast notification
+                        if (typeof window !== 'undefined' && (window as any).toast) {
+                            const toastEmoji = data.message.includes('completed') ? '🎉' : 
+                                             data.message.includes('attention') ? '📋' : '🔔';
+                                              
+                            (window as any).toast.success(
+                                `${toastEmoji} ${data.message}`,
                                 {
                                     position: "top-right",
                                     duration: 8000,
