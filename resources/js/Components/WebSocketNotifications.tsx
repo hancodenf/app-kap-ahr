@@ -101,9 +101,21 @@ const WebSocketNotifications: React.FC<{ className?: string }> = ({ className = 
                     console.log('Echo initialized, listening for notifications...');
                     
                     // Listen to private channel for current user (using new format)
+                    const shownApprovalNotifications = new Set();
+                    
                     window.Echo.private(`user.${auth.user.id}`)
                         .listen('.NewApprovalNotification', (data: any) => {
                         console.log('🔔 Bell notification - New approval notification:', data);
+                        
+                        // Create unique key for deduplication
+                        const notificationKey = `approval-${data.task?.id}-${Date.now()}`;
+                        
+                        if (shownApprovalNotifications.has(notificationKey)) {
+                            console.log('🚫 Duplicate approval notification prevented:', notificationKey);
+                            return;
+                        }
+                        
+                        shownApprovalNotifications.add(notificationKey);
                         
                         // Refresh notifications from database to get the persistent version
                         fetchNotifications();
@@ -114,6 +126,17 @@ const WebSocketNotifications: React.FC<{ className?: string }> = ({ className = 
                                 body: data.message || 'You have a new task that requires approval',
                                 icon: '/favicon.ico'
                             });
+                        }
+                        
+                        // Show toast notification
+                        if (typeof window !== 'undefined' && (window as any).toast) {
+                            (window as any).toast.success(
+                                `🔔 ${data.message || 'New task requires your approval'}`,
+                                {
+                                    position: "top-right",
+                                    duration: 8000,
+                                }
+                            );
                         }
                     })
                         .listen('.NewWorkerTaskNotification', (data: any) => {
@@ -157,37 +180,63 @@ const WebSocketNotifications: React.FC<{ className?: string }> = ({ className = 
                             );
                         }
                     })
-                    .listen('.NewClientTaskNotification', (data: any) => {
-                        console.log('🔔 Bell notification - New client task notification:', data);
+                    
+                    // Listen for client notifications (only for client users)
+                    if (auth.user?.role === 'client') {
+                        // Track shown notifications to prevent duplicates
+                        const shownNotifications = new Set();
                         
-                        // Refresh notifications from database to get the persistent version
-                        fetchNotifications();
-                        
-                        // Show browser notification if permitted
-                        if (Notification.permission === 'granted') {
-                            const notificationIcon = data.message.includes('completed') ? '🎉' : 
-                                                    data.message.includes('attention') ? '📋' : '🔔';
-                                             
-                            new Notification(`${notificationIcon} Task Update`, {
-                                body: data.message || 'There has been an update on your project',
-                                icon: '/favicon.ico'
-                            });
-                        }
-                        
-                        // Show toast notification
-                        if (typeof window !== 'undefined' && (window as any).toast) {
-                            const toastEmoji = data.message.includes('completed') ? '🎉' : 
-                                             data.message.includes('attention') ? '📋' : '🔔';
-                                              
-                            (window as any).toast.success(
-                                `${toastEmoji} ${data.message}`,
-                                {
-                                    position: "top-right",
-                                    duration: 8000,
+                        window.Echo.private(`user.${auth.user.id}`)
+                            .listen('.NewClientTaskNotification', (data: any) => {
+                                console.log('🔔 Bell notification - New client task notification:', data);
+                                
+                                // Create unique key for deduplication
+                                const notificationKey = `${data.task?.id}-${data.timestamp}`;
+                                
+                                if (shownNotifications.has(notificationKey)) {
+                                    console.log('🚫 Duplicate notification prevented:', notificationKey);
+                                    return;
                                 }
-                            );
-                        }
-                    })
+                                
+                                shownNotifications.add(notificationKey);
+                                
+                                // Refresh notifications from database to get the persistent version
+                                fetchNotifications();
+                                
+                                // Show browser notification if permitted
+                                if (Notification.permission === 'granted') {
+                                    const notificationIcon = data.message.includes('completed') ? '🎉' : 
+                                                            data.message.includes('attention') ? '📋' : '🔔';
+                                                     
+                                    new Notification(`${notificationIcon} Task Update`, {
+                                        body: data.message || 'There has been an update on your project',
+                                        icon: '/favicon.ico'
+                                    });
+                                }
+                                
+                                // Show toast notification
+                                if (typeof window !== 'undefined' && (window as any).toast) {
+                                    const toastEmoji = data.message.includes('completed') ? '🎉' : 
+                                                     data.message.includes('attention') ? '📋' : '🔔';
+                                                      
+                                    (window as any).toast.success(
+                                        `${toastEmoji} ${data.message}`,
+                                        {
+                                            position: "top-right",
+                                            duration: 8000,
+                                            action: data.url ? {
+                                                label: 'View Task',
+                                                onClick: () => {
+                                                    router.visit(data.url);
+                                                }
+                                            } : undefined
+                                        }
+                                    );
+                                }
+                            });
+                    }
+                    
+                    window.Echo.private(`user.${auth.user.id}`)
                     .listen('TaskAssigned', (data: any) => {
                         console.log('Task assigned:', data);
                         

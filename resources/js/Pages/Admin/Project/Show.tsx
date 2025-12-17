@@ -48,7 +48,7 @@ interface Task {
     is_required: boolean;
     completion_status: 'pending' | 'in_progress' | 'completed';
     status: string;
-    client_interact: boolean;
+    client_interact: 'read only' | 'restricted' | 'upload' | 'approval';
     multiple_files: boolean;
     is_assigned_to_me: boolean;
     my_assignment_id: number | null;
@@ -879,7 +879,7 @@ export default function ShowProject({ auth, project, workingSteps, teamMembers }
                                             )}
                                             
                                             {/* Client interaction statuses (conditional) */}
-                                            {selectedTask.client_interact && (
+                                            {selectedTask.client_interact !== 'read only' && (
                                                 <optgroup label="─── CLIENT INTERACTION ───">
                                                     <option value="Submitted to Client">📮 Submitted to Client</option>
                                                     <option value="Client Reply">💬 Client Reply</option>
@@ -1140,7 +1140,7 @@ export default function ShowProject({ auth, project, workingSteps, teamMembers }
                                     </div>
 
                                     {/* Request Documents from Client - Only for 'upload' permission */}
-                                    {selectedTask.client_interact && (
+                                    {selectedTask.client_interact !== 'read only' && (
                                         <div className="border-t border-gray-200 pt-6 mt-6">
                                             <div className="flex items-center justify-between mb-3">
                                                 <label className="block text-sm font-medium text-gray-700">

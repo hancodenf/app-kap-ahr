@@ -538,6 +538,23 @@ class ClientController extends Controller
             abort(404, 'Task not found.');
         }
 
+        // 📖 MARK RELATED NOTIFICATIONS AS READ
+        \App\Models\Notification::where('user_id', Auth::id())
+            ->whereNull('read_at')
+            ->where(function($query) use ($task) {
+                // Mark notifications related to this specific task as read
+                $query->whereRaw('JSON_EXTRACT(data, "$.task_id") = ?', [$task->id])
+                      ->orWhere('url', 'like', '%/tasks/' . $task->id . '%')
+                      ->orWhere('url', 'like', '%/klien/tasks/' . $task->id . '%');
+            })
+            ->update(['read_at' => now()]);
+
+        Log::info('📖 Client task notifications marked as read', [
+            'user_id' => Auth::id(),
+            'task_id' => $task->id,
+            'task_name' => $task->name
+        ]);
+
         // Load task with all necessary relationships
         $task->load([
             'workingStep',
@@ -561,13 +578,15 @@ class ClientController extends Controller
         $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
         $canEdit = false;
         if ($latestAssignment->maker === 'company' && $latestAssignment->maker_can_edit === 1 && ($latestAssignment->status === 'Submitted to Client' || $latestAssignment->status === 'Under Review by Client')) {
-            $latestAssignment->status = 'Under Review by Client';
-            $latestAssignment->maker_can_edit = false;
-            $latestAssignment->save();
+            $latestAssignment->updateSafely([
+                'status' => 'Under Review by Client',
+                'maker_can_edit' => false
+            ], $latestAssignment->version);
             $canEdit = true;
         } elseif ($latestAssignment->maker === 'company' && $latestAssignment->maker_can_edit === 0 && ($latestAssignment->status === 'Submitted to Client' || $latestAssignment->status === 'Under Review by Client')) {
-            $latestAssignment->status = 'Under Review by Client';
-            $latestAssignment->save();
+            $latestAssignment->updateSafely([
+                'status' => 'Under Review by Client'
+            ], $latestAssignment->version);
             $canEdit = true;
         } elseif ($latestAssignment->maker === 'client' && $latestAssignment->maker_can_edit === 1 && $latestAssignment->status === 'Client Reply') {
             $canEdit = true;
@@ -1037,12 +1056,12 @@ class ClientController extends Controller
         
         // Always update existing assignment, never create new one
         // Client reply is filling the existing assignment created by company
-        $latestAssignment->update([
+        $latestAssignment->updateSafely([
             'client_comment' => $request->client_comment,
             'status' => 'Client Reply',
             'maker' => 'client',
             'maker_can_edit' => true,
-        ]);
+        ], $latestAssignment->version);
         
         $assignment = $latestAssignment;
 
@@ -1076,12 +1095,12 @@ class ClientController extends Controller
                     $fileName = time() . '_' . $index . '_' . $file->getClientOriginalName();
                     $filePath = $file->storeAs($storageRelativePath, $fileName, 'public');
                     
-                    // Update existing client document with file
-                    $clientDoc->update([
+                    // Update existing client document with file safely
+                    $clientDoc->updateSafely([
                         'file' => $filePath,
                         'uploaded_at' => now(),
                         'description' => $file_labels[$index] ?? $clientDoc->description ?? 'Uploaded by client',
-                    ]);
+                    ], $clientDoc->version);
                 }
             }
         }
@@ -1164,11 +1183,11 @@ class ClientController extends Controller
         $clientComment = $request->client_comment;
 
         if ($action === 'approve') {
-            // Update assignment status to Client Approved
-            $latestAssignment->update([
+            // Update assignment status to Client Approved safely
+            $latestAssignment->updateSafely([
                 'status' => 'Approved by Client',
                 'client_comment' => $clientComment,
-            ]);
+            ], $latestAssignment->version);
             
             // Mark task as completed
             $task->markAsCompleted();
@@ -1199,16 +1218,16 @@ class ClientController extends Controller
 
             $successMessage = 'Task berhasil di-approve!';
         } else {
-            // Update assignment status to Client Rejected
-            $latestAssignment->update([
+            // Update assignment status to Client Rejected safely
+            $latestAssignment->updateSafely([
                 'status' => 'Returned for Revision (by Client)',
                 'client_comment' => $clientComment,
-            ]);
+            ], $latestAssignment->version);
             
-            // Update task status back to in progress
-            $task->update([
+            // Update task status back to in progress safely
+            $task->updateSafely([
                 'completion_status' => 'in_progress',
-            ]);
+            ], $task->version);
 
             // Log activity
             \App\Models\ActivityLog::create([

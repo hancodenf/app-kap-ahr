@@ -760,11 +760,11 @@ class CompanyController extends Controller
         }
 
         if ($taskAssignment && $isEditable) {
-            // UPDATE existing assignment (edit mode for Draft/Submitted)
-            $taskAssignment->update([
+            // UPDATE existing assignment (edit mode for Draft/Submitted) using safe method
+            $taskAssignment->updateSafely([
                 'notes' => $request->notes,
                 'time' => now(),
-            ]);
+            ], $taskAssignment->version);
 
             // Update existing document labels if provided (without uploading new files)
             if ($request->has('existing_document_labels') && is_array($request->existing_document_labels)) {
@@ -772,10 +772,10 @@ class CompanyController extends Controller
                     if (isset($docLabel['doc_id']) && isset($docLabel['label'])) {
                         $document = \App\Models\Document::find($docLabel['doc_id']);
                         if ($document && $document->task_assignment_id == $taskAssignment->id) {
-                            $document->update([
+                            $document->updateSafely([
                                 'name' => $docLabel['label'],
                                 'slug' => \Illuminate\Support\Str::slug($docLabel['label'] . '-' . time() . '-' . uniqid()),
-                            ]);
+                            ], $document->version);
                         }
                     }
                 }
@@ -865,13 +865,17 @@ class CompanyController extends Controller
 
             if ($firstApproval) {
                 // ALWAYS submit to first approval level first, regardless of client interaction
-                $latestAssignment->status = $firstApproval->status_name_pending;
+                // 🔒 RACE CONDITION PROTECTION: Use updateSafely instead of direct save
+                try {
+                    $latestAssignment->updateSafely([
+                        'status' => $firstApproval->status_name_pending
+                    ]);
+                } catch (\Exception $e) {
+                    return back()->withErrors(['error' => 'Task was modified by another user. Please refresh and try again.']);
+                }
                 
                 // Get users who have the approval role for this task
                 $approverUserIds = $this->getApproverUserIds($task, $firstApproval->role);
-                
-                // SAVE FIRST, then dispatch event to ensure database is updated
-                $latestAssignment->save();
                 
                 // Dispatch event to notify approvers AFTER saving
                 if (!empty($approverUserIds)) {
@@ -887,61 +891,117 @@ class CompanyController extends Controller
             } else {
                 // No approval workflow - check if needs client interaction
                 if ($hasClientDocs) {
-                    $latestAssignment->status = 'Submitted to Client';
-                    $latestAssignment->save();
+                    // 🔒 RACE CONDITION PROTECTION: Use updateSafely
+                    try {
+                        $latestAssignment->updateSafely(['status' => 'Submitted to Client']);
+                    } catch (\Exception $e) {
+                        return back()->withErrors(['error' => 'Task was modified by another user. Please refresh and try again.']);
+                    }
                     
                     // Trigger client notification
                     $this->triggerClientNotification($task, $task->project);
                 } else {
                     // No approval, no client interaction - mark as completed
-                    $latestAssignment->status = 'Completed';
-                    $task->completed_at = now();
-                    $task->markAsCompleted(); // Use method to trigger unlock logic
-                    $latestAssignment->save();
+                    DB::transaction(function() use ($latestAssignment, $task) {
+                        try {
+                            $latestAssignment->updateSafely(['status' => 'Completed']);
+                            $task->updateSafely([
+                                'completed_at' => now(),
+                                'completion_status' => 'completed'
+                            ]);
+                            $task->markAsCompleted(); // Use method to trigger unlock logic
+                        } catch (\Exception $e) {
+                            throw new \Exception('Task was modified by another user. Please refresh and try again.');
+                        }
+                    });
                 }
             }
         } elseif ($currentStatus === 'Client Reply' || $currentStatus === 'Under Review by Team') {
             // If client replied, auto-submit to first approval
             $firstApproval = $task->taskApprovals()->orderBy('order', 'asc')->first();
-            if ($firstApproval) {
-                $latestAssignment->status = $firstApproval->status_name_pending;
-            } else {
-                $latestAssignment->status = 'Completed';
+            $newStatus = $firstApproval ? $firstApproval->status_name_pending : 'Completed';
+            
+            // 🔒 RACE CONDITION PROTECTION: Use updateSafely
+            try {
+                $latestAssignment->updateSafely(['status' => $newStatus]);
+            } catch (\Exception $e) {
+                return back()->withErrors(['error' => 'Task was modified by another user. Please refresh and try again.']);
             }
-            $latestAssignment->save();
         } elseif (str_contains($currentStatus, 'Returned for Revision')) {
             // If resubmitting after rejection, go back to the approver who rejected it
             if (str_contains($currentStatus, 'Client')) {
                 $newStatus = $task->approval_type === 'Once' ? 'Submitted to Client' : $lowestApproval->status_name_pending;
-                $latestAssignment->status = $newStatus;
-                $latestAssignment->save();
+                $latestAssignment->updateSafely(['status' => $newStatus], $latestAssignment->version);
                 
                 // Trigger client notification if status is 'Submitted to Client'
                 if ($newStatus === 'Submitted to Client') {
                     $this->triggerClientNotification($task, $task->project);
                 }
             } else {
+                // Worker is resubmitting after approval rejection - notify the role that rejected it
+                $rejectedByRole = null;
+                $newStatus = null;
+                
                 if (str_contains($currentStatus, 'Team Leader')) {
+                    $rejectedByRole = 'team leader';
                     $approval = $task->taskApprovals()->where('role', 'team leader')->first();
-                    $latestAssignment->status = $approval ? $approval->status_name_pending : 'Pending Team Leader';
+                    $newStatus = $approval ? $approval->status_name_pending : 'Pending Team Leader';
                 } elseif (str_contains($currentStatus, 'Manager')) {
+                    $rejectedByRole = 'manager';
                     $approval = $task->taskApprovals()->where('role', 'manager')->first();
-                    $latestAssignment->status = $approval ? $approval->status_name_pending : 'Pending Manager';
+                    $newStatus = $approval ? $approval->status_name_pending : 'Pending Manager';
                 } elseif (str_contains($currentStatus, 'Supervisor')) {
+                    $rejectedByRole = 'supervisor';
                     $approval = $task->taskApprovals()->where('role', 'supervisor')->first();
-                    $latestAssignment->status = $approval ? $approval->status_name_pending : 'Pending Supervisor';
+                    $newStatus = $approval ? $approval->status_name_pending : 'Pending Supervisor';
                 } elseif (str_contains($currentStatus, 'Partner')) {
+                    $rejectedByRole = 'partner';
                     $approval = $task->taskApprovals()->where('role', 'partner')->first();
-                    $latestAssignment->status = $approval ? $approval->status_name_pending : 'Pending Partner';
+                    $newStatus = $approval ? $approval->status_name_pending : 'Pending Partner';
+                }
+                
+                if ($newStatus) {
+                    // 🔒 RACE CONDITION PROTECTION: Use updateSafely for resubmission
+                    try {
+                        $latestAssignment->updateSafely(['status' => $newStatus]);
+                    } catch (\Exception $e) {
+                        return back()->withErrors(['error' => 'Task was modified by another user. Please refresh and try again.']);
+                    }
+                    
+                    // 🔔 TRIGGER APPROVAL NOTIFICATION TO THE ROLE THAT REJECTED IT
+                    if ($rejectedByRole) {
+                        $approverUserIds = $this->getApproverUserIds($task, $rejectedByRole);
+                        
+                        if (!empty($approverUserIds)) {
+                            event(new NewApprovalNotification(
+                                $task, 
+                                $approverUserIds, 
+                                "Task '{$task->name}' has been revised and resubmitted for {$rejectedByRole} review"
+                            ));
+                            
+                            Log::info('🔔 Resubmission notification sent to rejecting role', [
+                                'task_id' => $task->id,
+                                'rejected_by_role' => $rejectedByRole,
+                                'approver_user_ids' => $approverUserIds,
+                                'new_status' => $newStatus
+                            ]);
+                        }
+                    }
                 }
             }
-            $latestAssignment->save();
         }
 
-        // Update completion_status to in_progress when first submission is made
+        // 🔒 RACE CONDITION PROTECTION: Update completion_status safely
         if ($task->completion_status === 'pending') {
-            $task->completion_status = 'in_progress';
-            $task->save();
+            try {
+                $task->updateSafely(['completion_status' => 'in_progress']);
+            } catch (\Exception $e) {
+                // If task update fails, log but don't fail the whole operation
+                Log::warning('Failed to update task completion status due to concurrent modification', [
+                    'task_id' => $task->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
         }
 
         return back()->with('success', 'Task submitted successfully!');
@@ -964,27 +1024,46 @@ class CompanyController extends Controller
      */
     public function addTaskComment(Request $request, Task $task)
     {
-        $user = Auth::user();
+        try {
+            $result = SafeTransactionService::executeWithRetry(function () use ($request, $task) {
+                $user = Auth::user();
 
-        // Check if user is assigned to this task
-        $taskWorker = \App\Models\TaskWorker::where('task_id', $task->id)
-            ->whereHas('projectTeam', function ($query) use ($user) {
-                $query->where('user_id', $user->id);
-            })
-            ->first();
+                // Check if user is assigned to this task
+                $taskWorker = \App\Models\TaskWorker::where('task_id', $task->id)
+                    ->whereHas('projectTeam', function ($query) use ($user) {
+                        $query->where('user_id', $user->id);
+                    })
+                    ->first();
 
-        if (!$taskWorker) {
-            return back()->withErrors(['error' => 'You are not assigned to this task.']);
+                if (!$taskWorker) {
+                    throw new \Exception('You are not assigned to this task.');
+                }
+
+                $request->validate([
+                    'comment' => 'required|string',
+                ]);
+
+                // Update task comment safely
+                $task->updateSafely([
+                    'comment' => $request->comment
+                ], $task->version);
+
+                return [
+                    'success' => true,
+                    'message' => 'Comment added successfully!'
+                ];
+            });
+
+            return back()->with('success', $result['message']);
+
+        } catch (\Exception $e) {
+            Log::error('Add task comment failed', [
+                'task_id' => $task->id,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+            return back()->withErrors(['error' => $e->getMessage()]);
         }
-
-        $request->validate([
-            'comment' => 'required|string',
-        ]);
-
-        $task->comment = $request->comment;
-        $task->save();
-
-        return back()->with('success', 'Comment added successfully!');
     }
 
     /**
@@ -1116,13 +1195,11 @@ class CompanyController extends Controller
         // dd($latestAssignment->status, $approval->status_name_pending, $latestAssignment->maker_can_edit);
         // Update status from pending to in-progress when detail page is opened (only if still pending)
         if ($latestAssignment->status === $approval->status_name_pending) {
-            $latestAssignment->status = $approval->status_name_progress;
-            $latestAssignment->save();
+            $latestAssignment->updateSafely(['status' => $approval->status_name_progress], $latestAssignment->version);
         }
 
         if ($latestAssignment->maker_can_edit === 1) {
-            $latestAssignment->maker_can_edit = false;
-            $latestAssignment->save();
+            $latestAssignment->updateSafely(['maker_can_edit' => false], $latestAssignment->version);
         }
 
         // Load task with relationships
@@ -1197,6 +1274,24 @@ class CompanyController extends Controller
             abort(403, 'You are not a member of this project.');
         }
 
+        // 📖 MARK RELATED APPROVAL NOTIFICATIONS AS READ
+        \App\Models\Notification::where('user_id', $user->id)
+            ->whereNull('read_at')
+            ->where(function($query) use ($task) {
+                // Mark notifications related to this specific task as read
+                $query->whereRaw('JSON_EXTRACT(data, "$.task_id") = ?', [$task->id])
+                      ->orWhere('url', 'like', '%/tasks/' . $task->id . '%')
+                      ->orWhere('url', 'like', '%/company/tasks/' . $task->id . '%');
+            })
+            ->update(['read_at' => now()]);
+
+        Log::info('📖 Company task notifications marked as read', [
+            'user_id' => $user->id,
+            'task_id' => $task->id,
+            'task_name' => $task->name,
+            'user_role' => $teamMember->role
+        ]);
+
         // Get latest assignment
         $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
         
@@ -1216,8 +1311,7 @@ class CompanyController extends Controller
             }
             if ($latestAssignment->maker === 'client' && $latestAssignment->maker_can_edit === 1 && $latestAssignment->status === 'Client Reply') {
                 // $latestAssignment->status = 'Under Review by Team';
-                $latestAssignment->maker_can_edit = false;
-                $latestAssignment->save();
+                $latestAssignment->updateSafely(['maker_can_edit' => false], $latestAssignment->version);
             }
             // Can edit if at lowest approval pending
             if (!$currentApprovalRole) {
@@ -1448,24 +1542,7 @@ class CompanyController extends Controller
                 // Update assignment safely
                 $latestAssignment->updateSafely($updateData, $latestAssignment->version);
                 
-                // Trigger client notification for both task completion and client action required
-                if (isset($needsClientNotification) && $needsClientNotification) {
-                    if (isset($clientNotificationType) && $clientNotificationType === 'task_completed') {
-                        // Trigger client notification for completed task
-                        $this->triggerClientNotification(
-                            $task, 
-                            $task->project, 
-                            "Task '{$task->name}' in your project has been completed successfully!"
-                        );
-                    } elseif ($updateData['status'] === 'Submitted to Client') {
-                        // Trigger client notification for action required
-                        $this->triggerClientNotification(
-                            $task, 
-                            $task->project, 
-                            "Task '{$task->name}' in your project needs your attention - please upload requested documents"
-                        );
-                    }
-                }
+                // Note: Client notification is now handled in the final approval section below
 
                 // Log approval action
                 \App\Models\ActivityLog::create([
@@ -1801,103 +1878,120 @@ class CompanyController extends Controller
      */
     public function requestReupload(Request $request, Task $task)
     {
-        $user = Auth::user();
+        try {
+            $result = SafeTransactionService::executeWithRetry(function () use ($request, $task) {
+                $user = Auth::user();
 
-        // Check if user is assigned to this task
-        $taskWorker = \App\Models\TaskWorker::where('task_id', $task->id)
-            ->whereHas('projectTeam', function ($query) use ($user) {
-                $query->where('user_id', $user->id);
-            })
-            ->first();
+                // Check if user is assigned to this task
+                $taskWorker = \App\Models\TaskWorker::where('task_id', $task->id)
+                    ->whereHas('projectTeam', function ($query) use ($user) {
+                        $query->where('user_id', $user->id);
+                    })
+                    ->first();
 
-        if (!$taskWorker) {
-            return back()->with('error', 'You are not assigned to this task.');
-        }
+                if (!$taskWorker) {
+                    throw new \Exception('You are not assigned to this task.');
+                }
 
-        // Get latest assignment
-        $latestAssignment = $task->taskAssignments()->latest()->first();
+                // Get latest assignment with row-level locking
+                $latestAssignment = $task->taskAssignments()
+                    ->latest()
+                    ->lockForUpdate()
+                    ->first();
 
-        if (!$latestAssignment) {
-            return back()->with('error', 'No assignment found for this task.');
-        }
+                if (!$latestAssignment) {
+                    throw new \Exception('No assignment found for this task.');
+                }
 
-        // Verify task assignment status is "Client Reply"
-        if ($latestAssignment->status !== 'Client Reply') {
-            return back()->with('error', 'Task is not in Client Reply status.');
-        }
+                // Verify task assignment status is "Client Reply"
+                if ($latestAssignment->status !== 'Client Reply') {
+                    throw new \Exception('Task is not in Client Reply status.');
+                }
 
-        $request->validate([
-            'comment' => 'required|string|max:1000',
-        ]);
+                $request->validate([
+                    'comment' => 'required|string|max:1000',
+                ]);
 
-        $lowestApproval = $task->taskApprovals()->orderBy('order', 'asc')->first();
+                $lowestApproval = $task->taskApprovals()->orderBy('order', 'asc')->first();
 
-        // Create NEW task assignment (old one remains for history)
-        $newStatus = $task->approval_type == 'Once' ? 'Submitted to Client' : $lowestApproval->status_name_pending;
-        $newAssignment = \App\Models\TaskAssignment::create([
-            'task_id' => $task->id,
-            'user_id' => $user->id,
-            'task_name' => $task->name,
-            'working_step_name' => $task->working_step_name,
-            'project_name' => $task->project_name,
-            'project_client_name' => $task->project_client_name,
-            'time' => now(),
-            'notes' => "Re-upload requested\nComment:\n" . $request->comment,
-            'maker' => $task->approval_type == 'Once' ? 'client' : 'company',
-            'maker_can_edit' => true,
-            'status' => $newStatus, // Set status to request re-upload from client
-        ]);
+                // Create NEW task assignment (old one remains for history) using safe method
+                $newStatus = $task->approval_type == 'Once' ? 'Submitted to Client' : $lowestApproval->status_name_pending;
+                $newAssignment = (new \App\Models\TaskAssignment)->createSafely([
+                    'task_id' => $task->id,
+                    'user_id' => $user->id,
+                    'task_name' => $task->name,
+                    'working_step_name' => $task->working_step_name,
+                    'project_name' => $task->project_name,
+                    'project_client_name' => $task->project_client_name,
+                    'time' => now(),
+                    'notes' => "Re-upload requested\nComment:\n" . $request->comment,
+                    'maker' => $task->approval_type == 'Once' ? 'client' : 'company',
+                    'maker_can_edit' => true,
+                    'status' => $newStatus, // Set status to request re-upload from client
+                ]);
 
-        // Copy team documents to new assignment (WITH files - keep team's uploaded documents)
-        $oldDocuments = $latestAssignment->documents;
-        foreach ($oldDocuments as $oldDoc) {
-            \App\Models\Document::create([
-                'task_assignment_id' => $newAssignment->id,
-                'name' => $oldDoc->name,
-                'slug' => \Illuminate\Support\Str::slug($oldDoc->name . '-' . time() . '-' . uniqid()),
-                'file' => $oldDoc->file, // Copy same file path - team's documents preserved
-                'uploaded_at' => $oldDoc->uploaded_at,
-            ]);
-        }
+                // Copy team documents to new assignment (WITH files - keep team's uploaded documents)
+                $oldDocuments = $latestAssignment->documents;
+                foreach ($oldDocuments as $oldDoc) {
+                    (new \App\Models\Document)->createSafely([
+                        'task_assignment_id' => $newAssignment->id,
+                        'name' => $oldDoc->name,
+                        'slug' => \Illuminate\Support\Str::slug($oldDoc->name . '-' . time() . '-' . uniqid()),
+                        'file' => $oldDoc->file, // Copy same file path - team's documents preserved
+                        'uploaded_at' => $oldDoc->uploaded_at,
+                    ]);
+                }
 
-        // Copy client document requests to new assignment (WITHOUT files - client needs to re-upload)
-        $oldClientDocuments = $latestAssignment->clientDocuments;
-        foreach ($oldClientDocuments as $oldDoc) {
-            \App\Models\ClientDocument::create([
-                'task_assignment_id' => $newAssignment->id,
-                'name' => $oldDoc->name,
-                'slug' => \Illuminate\Support\Str::slug($oldDoc->name . '-' . time() . '-' . uniqid()),
-                'description' => $oldDoc->description,
-                'file' => null, // No file - client needs to upload again
-                'uploaded_at' => null,
-            ]);
-        }
+                // Copy client document requests to new assignment (WITHOUT files - client needs to re-upload)
+                $oldClientDocuments = $latestAssignment->clientDocuments;
+                foreach ($oldClientDocuments as $oldDoc) {
+                    (new \App\Models\ClientDocument)->createSafely([
+                        'task_assignment_id' => $newAssignment->id,
+                        'name' => $oldDoc->name,
+                        'slug' => \Illuminate\Support\Str::slug($oldDoc->name . '-' . time() . '-' . uniqid()),
+                        'description' => $oldDoc->description,
+                        'file' => null, // No file - client needs to upload again
+                        'uploaded_at' => null,
+                    ]);
+                }
 
-        // Note: Task status is now managed through task_assignments
-        // No need to update task.status anymore
+                // Log activity
+                \App\Models\ActivityLog::create([
+                    'user_id' => Auth::id(),
+                    'user_name' => Auth::user()->name,
+                    'action_type' => 'task_status',
+                    'action' => 'requested_reupload',
+                    'target_name' => $task->name,
+                    'description' => "Requested client to re-upload documents for task: {$task->name}",
+                    'meta' => [
+                        'task_id' => $task->id,
+                        'comment' => $request->comment,
+                        'previous_assignment_id' => $latestAssignment->id,
+                        'new_assignment_id' => $newAssignment->id,
+                    ],
+                ]);
+                
+                // Trigger client notification if status is 'Submitted to Client'
+                if ($newStatus === 'Submitted to Client') {
+                    $this->triggerClientNotification($task, $task->project);
+                }
 
-        // Log activity
-        \App\Models\ActivityLog::create([
-            'user_id' => Auth::id(),
-            'user_name' => Auth::user()->name,
-            'action_type' => 'task_status',
-            'action' => 'requested_reupload',
-            'target_name' => $task->name,
-            'description' => "Requested client to re-upload documents for task: {$task->name}",
-            'meta' => json_encode([
+                return [
+                    'success' => true,
+                    'message' => 'Re-upload request sent to client. Previous submission kept in history.',
+                ];
+            });
+
+            return back()->with('success', $result['message']);
+
+        } catch (\Exception $e) {
+            Log::error('Request reupload failed', [
                 'task_id' => $task->id,
-                'comment' => $request->comment,
-                'previous_assignment_id' => $latestAssignment->id,
-                'new_assignment_id' => $newAssignment->id,
-            ]),
-        ]);
-        
-        // Trigger client notification if status is 'Submitted to Client'
-        if ($newStatus === 'Submitted to Client') {
-            $this->triggerClientNotification($task, $task->project);
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+            return back()->with('error', $e->getMessage());
         }
-
-        return back()->with('success', 'Re-upload request sent to client. Previous submission kept in history.');
     }
 
     // ==================== TASK ASSIGNMENT MANAGEMENT ====================
@@ -2092,15 +2186,15 @@ class CompanyController extends Controller
             'approval_type' => 'required|in:Once,All Attempts',
         ]);
 
-        // Update task settings
-        $task->update([
+        // Update task settings safely
+        $task->updateSafely([
             'client_interact' => $request->client_interact,
             'can_upload_files' => $request->can_upload_files,
             'multiple_files' => $request->multiple_files,
             'is_required' => $request->is_required,
             'due_date' => $request->due_date,
             'approval_type' => $request->approval_type,
-        ]);
+        ], $task->version);
 
         // Update task worker assignments
         if ($request->has('worker_ids')) {
@@ -2167,37 +2261,33 @@ class CompanyController extends Controller
     /**
      * Helper function to trigger client notification when task is submitted to client
      */
-    /**
-     */
     private function triggerClientNotification($task, $project, $customMessage = null)
     {
         // Get client user IDs for this project
-        // Method 1: Try to find client users through project teams
-        $clientUserIds = $project->users()
-            ->where('users.role', 'client')  // Specify users.role to avoid ambiguity
-            ->pluck('users.id')
-            ->toArray();
-            
-        // Method 2: If no client users found through project teams, 
-        // try to find by project's client relationship
-        if (empty($clientUserIds) && $project->client_id) {
-            $clientUser = User::where('role', 'client')
-                ->where('id', $project->client_id)
-                ->first();
-            if ($clientUser) {
-                $clientUserIds = [$clientUser->id];
-            }
-        }
+        $clientUserIds = [];
         
-        // Method 3: As fallback, find any client users related to this project
-        if (empty($clientUserIds)) {
-            $clientUserIds = User::where('role', 'client')
-                ->whereHas('projects', function($query) use ($project) {
-                    $query->where('projects.id', $project->id);  // Specify projects.id to avoid ambiguity
-                })
+        // Method 1: If project has client_id, find users with that client_id
+        if ($project->client_id) {
+            $clientUsers = User::where('role', 'client')
+                ->where('client_id', $project->client_id)
                 ->pluck('id')
                 ->toArray();
+                
+            $clientUserIds = array_merge($clientUserIds, $clientUsers);
         }
+        
+        // Method 2: Try to find client users through project teams as fallback
+        if (empty($clientUserIds)) {
+            $projectTeamClientIds = $project->users()
+                ->where('users.role', 'client')
+                ->pluck('users.id')
+                ->toArray();
+                
+            $clientUserIds = array_merge($clientUserIds, $projectTeamClientIds);
+        }
+        
+        // Remove duplicates
+        $clientUserIds = array_unique($clientUserIds);
             
         if (!empty($clientUserIds)) {
             // Use custom message if provided, otherwise use default

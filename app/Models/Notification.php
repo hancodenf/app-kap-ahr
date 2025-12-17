@@ -85,7 +85,7 @@ class Notification extends Model
             'user_id' => $userId,
             'title' => 'New Task Submitted',
             'message' => "Task '{$taskName}' in project '{$projectName}' has been submitted for your review",
-            'url' => "/client/projects/{$projectId}/tasks/{$taskId}",
+            'url' => "/klien/tasks/{$taskId}",
             'data' => [
                 'task_id' => $taskId,
                 'project_id' => $projectId,

@@ -245,7 +245,9 @@ function DraggableTask({ task, onEdit, onDelete }: {
                             )}
                             {task.client_interact !== 'read only' && (
                                 <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                                    {task.client_interact === 'upload' ? '📤 Client Upload' : '✅ Client Approval'}
+                                    {task.client_interact === 'restricted' ? '🔒 Client Restricted' : 
+                                     task.client_interact === 'upload' ? '📤 Client Upload' : 
+                                     '✅ Client Approval'}
                                 </span>
                             )}
                             {!!task.multiple_files && (
@@ -1408,7 +1410,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                         >
                                             <option value="read only">👁️ Read Only - Client can only view</option>
-                                            <option value="restricted">� Restricted - Client has limited access</option>
+                                            <option value="restricted">🔒 Restricted - Client has limited access</option>
                                             <option value="upload">📤 Upload - Client can upload files</option>
                                             <option value="approval">✅ Approval - Client can approve or reject</option>
                                         </select>
@@ -1693,7 +1695,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                             >
                                                 <option value="read only">👁️ Read Only - Client can only view</option>
-                                                <option value="restricted">� Restricted - Client has limited access</option>
+                                                <option value="restricted">🔒 Restricted - Client has limited access</option>
                                                 <option value="upload">📤 Upload - Client can upload files</option>
                                                 <option value="approval">✅ Approval - Client can approve or reject</option>
                                             </select>

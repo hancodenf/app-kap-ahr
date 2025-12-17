@@ -752,7 +752,7 @@ class ProjectController extends Controller
         // Generate new slug if name changed
         $updateData = [
             'name' => $request->name,
-            'client_interact' => $request->client_interact ? $request->client_interact : 'read only',
+            'client_interact' => $request->client_interact,
             'approval_type' => $request->approval_type,
             'can_upload_files' => $request->boolean('can_upload_files'),
             'multiple_files' => $request->boolean('multiple_files'),
@@ -1109,18 +1109,16 @@ class ProjectController extends Controller
             }
         }
         
-        // Admin can manually set BOTH status fields
+        // Admin can manually set BOTH status fields safely
         // 1. Update task_assignments.status (assignment workflow status)
         $latestAssignment = $task->taskAssignments()->latest()->first();
         if ($latestAssignment && $request->has('assignment_status')) {
-            $latestAssignment->status = $request->assignment_status;
-            $latestAssignment->save();
+            $latestAssignment->updateSafely(['status' => $request->assignment_status], $latestAssignment->version);
         }
         
         // 2. Update tasks.completion_status (overall task progress)
         if ($request->has('completion_status')) {
-            $task->completion_status = $request->completion_status;
-            $task->save();
+            $task->updateSafely(['completion_status' => $request->completion_status], $task->version);
         }
         
         return back()->with('success', 'Task updated successfully - Completion: ' . $request->completion_status . ', Assignment: ' . $request->assignment_status);

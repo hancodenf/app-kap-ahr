@@ -405,46 +405,6 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
                 }
             }
             
-            channel.listen('NewApprovalNotification', (event: any) => {
-                console.log('🚨 SPECIFIC LISTENER TRIGGERED! ===========================');
-                console.log('🚨 RECEIVED APPROVAL NOTIFICATION:', event);
-                console.log('📋 Event task:', event.task);
-                console.log('🏗️ Event task project:', event.task?.project);
-                console.log('🆔 Expected project ID:', project.id);
-                console.log('🆔 Actual project ID:', event.task?.project?.id);
-                
-                // Check if this notification is for the current project
-                if (event.task && event.task.project && event.task.project.id === project.id) {
-                    console.log('✅ Notification is for current project, refreshing approval requests...');
-                    console.log('� Current approvalTasks count before refresh:', approvalTasks.length);
-                    
-                    // Show toast notification IMMEDIATELY
-                    toast.success(
-                        `🔔 New approval required: ${event.task?.name || 'Unknown task'}`,
-                        {
-                            position: "top-right",
-                            duration: 10000,
-                        }
-                    );
-                    
-                    console.log('� Toast notification shown');
-                    
-                    // Add small delay to ensure database is fully updated before fetching
-                    setTimeout(() => {
-                        console.log('🔄 Calling fetchApprovalRequests...');
-                        fetchApprovalRequests().then(() => {
-                            console.log('🔄 fetchApprovalRequests completed');
-                        });
-                    }, 500); // 500ms delay
-                } else {
-                    console.log('❌ Notification is not for current project or missing project data');
-                    console.log('Expected project ID:', project.id);
-                    console.log('Actual project ID:', event.task?.project?.id);
-                }
-                
-                console.log('🚨 LISTENER PROCESSING COMPLETE ===========================');
-            });
-            
             // Listen for approval notifications using dot notation (this works!)
             channel.listen('.NewApprovalNotification', (event: any) => {
                 console.log('🔔 New approval notification received:', event);
@@ -453,16 +413,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
                 if (event.task && event.task.project && event.task.project.id === project.id) {
                     console.log('✅ Notification is for current project, updating UI...');
                     
-                    // Show toast notification
-                    toast.success(
-                        `New approval required: ${event.task?.name || 'Unknown task'}`,
-                        {
-                            position: "top-right",
-                            duration: 5000,
-                        }
-                    );
-                    
-                    // Refresh approval requests to update badge
+                    // Refresh approval requests to update badge (no toast - handled by layout)
                     setTimeout(() => {
                         fetchApprovalRequests();
                     }, 500); // Small delay to ensure database is updated
@@ -510,7 +461,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
             // Cleanup on unmount
             return () => {
                 console.log('🧹 Cleaning up WebSocket listener...');
-                channel.stopListening('NewApprovalNotification');
+                channel.stopListening('.NewApprovalNotification');
             };
         } else {
             if (!needsApprovalTab) {

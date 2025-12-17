@@ -111,6 +111,7 @@ class NewClientTaskNotification implements ShouldBroadcastNow
                     'name' => $this->project->name,
                 ]
             ],
+            'url' => "/klien/tasks/{$this->task->id}",
             'timestamp' => now()->toISOString(),
         ];
         
