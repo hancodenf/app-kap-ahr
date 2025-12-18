@@ -23,10 +23,13 @@ class CompanyClientController extends Controller
         $search = $request->get('search');
 
         // Get client IDs from projects where the user is a team member
+        // Exclude draft and archived projects for company level
         $clientIds = DB::table('project_teams')
             ->join('projects', 'project_teams.project_id', '=', 'projects.id')
             ->where('project_teams.user_id', $user->id)
             ->whereNotNull('projects.client_id')
+            ->whereNotIn('projects.status', ['Draft'])
+            ->where('projects.is_archived', false)
             ->distinct()
             ->pluck('projects.client_id');
 
@@ -35,7 +38,9 @@ class CompanyClientController extends Controller
             ->withCount(['projects' => function ($q) use ($user) {
                 $q->whereHas('projectTeams', function ($query) use ($user) {
                     $query->where('user_id', $user->id);
-                });
+                })
+                ->whereNotIn('status', ['Draft'])
+                ->where('is_archived', false);
             }]);
 
         // Apply search filter
@@ -65,10 +70,13 @@ class CompanyClientController extends Controller
         $user = Auth::user();
 
         // Check if user has access to this client (through projects)
+        // Exclude draft and archived projects for company level
         $hasAccess = DB::table('project_teams')
             ->join('projects', 'project_teams.project_id', '=', 'projects.id')
             ->where('project_teams.user_id', $user->id)
             ->where('projects.client_id', $client->id)
+            ->whereNotIn('projects.status', ['Draft'])
+            ->where('projects.is_archived', false)
             ->exists();
 
         if (!$hasAccess) {
@@ -94,10 +102,15 @@ class CompanyClientController extends Controller
             });
         }
 
-        // Apply status filter
-        if ($status && in_array($status, ['Draft', 'In Progress', 'Completed', 'Archived'])) {
+        // Apply status filter - Company level hanya bisa melihat status: In Progress, Completed, Suspended, Canceled  
+        // Draft dan Archived tidak ditampilkan untuk level company
+        if ($status && in_array($status, ['In Progress', 'Completed', 'Suspended', 'Canceled'])) {
             $projectsQuery->where('status', $status);
         }
+
+        // Filter out Draft and Archived projects for company users
+        $projectsQuery->whereNotIn('status', ['Draft'])
+                     ->where('is_archived', false);
 
         $projects = $projectsQuery->latest()->paginate(6)->withQueryString();
 

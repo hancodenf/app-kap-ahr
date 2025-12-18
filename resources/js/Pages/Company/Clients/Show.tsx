@@ -64,10 +64,12 @@ export default function Show({ client, projects, filters }: Props) {
 
     const getStatusBadge = (status: string) => {
         const statusConfig = {
-            open: { color: 'bg-blue-100 text-blue-800', label: 'Open' },
-            closed: { color: 'bg-green-100 text-green-800', label: 'Closed' },
+            'In Progress': { color: 'bg-blue-100 text-blue-800', label: 'In Progress' },
+            'Completed': { color: 'bg-green-100 text-green-800', label: 'Completed' },
+            'Suspended': { color: 'bg-orange-100 text-orange-800', label: 'Suspended' },
+            'Canceled': { color: 'bg-red-100 text-red-800', label: 'Canceled' },
         };
-        const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.open;
+        const config = statusConfig[status as keyof typeof statusConfig] || { color: 'bg-gray-100 text-gray-800', label: status };
         return (
             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${config.color}`}>
                 {config.label}
@@ -231,16 +233,6 @@ export default function Show({ client, projects, filters }: Props) {
                                         All Status
                                     </button>
                                     <button
-                                        onClick={() => handleFilterChange('Draft')}
-                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                                            statusFilter === 'Draft'
-                                                ? 'bg-yellow-600 text-white'
-                                                : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'
-                                        }`}
-                                    >
-                                        Draft
-                                    </button>
-                                    <button
                                         onClick={() => handleFilterChange('In Progress')}
                                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                                             statusFilter === 'In Progress'
@@ -261,15 +253,26 @@ export default function Show({ client, projects, filters }: Props) {
                                         Completed
                                     </button>
                                     <button
-                                        onClick={() => handleFilterChange('Archived')}
+                                        onClick={() => handleFilterChange('Suspended')}
                                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                                            statusFilter === 'Archived'
-                                                ? 'bg-gray-600 text-white'
-                                                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                                            statusFilter === 'Suspended'
+                                                ? 'bg-orange-600 text-white'
+                                                : 'bg-orange-50 text-orange-700 hover:bg-orange-100'
                                         }`}
                                     >
-                                        Archived
+                                        Suspended
                                     </button>
+                                    <button
+                                        onClick={() => handleFilterChange('Canceled')}
+                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                                            statusFilter === 'Canceled'
+                                                ? 'bg-red-600 text-white'
+                                                : 'bg-red-50 text-red-700 hover:bg-red-100'
+                                        }`}
+                                    >
+                                        Canceled
+                                    </button>
+                                    
                                 </div>
                             </div>
 
