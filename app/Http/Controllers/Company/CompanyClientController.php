@@ -80,7 +80,7 @@ class CompanyClientController extends Controller
         $status = $request->get('status');
 
         // Get projects where user is a team member with pagination
-        $projectsQuery = Project::where('client_id', $client->id)->where('status', '!=', 'Archived')->where('status', '!=', 'Draft')
+        $projectsQuery = Project::where('client_id', $client->id)
             ->whereHas('projectTeams', function ($q) use ($user) {
                 $q->where('user_id', $user->id);
             })
