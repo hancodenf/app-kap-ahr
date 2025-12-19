@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, useForm, router } from '@inertiajs/react';
+import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { FormEventHandler, useState, useEffect } from 'react';
 
@@ -403,13 +403,23 @@ export default function ShowProject({ auth, project, workingSteps, teamMembers }
         }
     };
 
+    const { url } = usePage();
+    const params = new URLSearchParams(url.split('?')[1] || '');
+    const from_page = params.get('from_page') || '1';
+    const search = params.get('search') || '';
+    const year = params.get('year') || '';
+    const status = params.get('status') || '';
+    const archived = params.get('archived') || 'false';
+
+    const backUrl = `${route('admin.projects.bundles.index')}?page=${from_page}&search=${search}&year=${year}&status=${status}&archived=${archived}`;
+
     return (
         <AuthenticatedLayout
             header={
                 <div className="flex items-center justify-between">
                     <div>
                         <Link
-                            href={route('admin.projects.bundles.index')}
+                            href={backUrl}
                             className="text-sm text-gray-500 hover:text-gray-700 mb-1 inline-block"
                         >
                             ← Back to Projects

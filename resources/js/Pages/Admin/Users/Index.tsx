@@ -406,6 +406,8 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                                     <div className="flex justify-end gap-1">
                                                         <Link
                                                             href={route('admin.users.show', user.id)}
+                                                            preserveState
+                                                            preserveScroll
                                                             className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
                                                             title="View Details"
                                                         >
@@ -416,6 +418,8 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                                         </Link>
                                                         <Link
                                                             href={route('admin.users.edit', user.id)}
+                                                            preserveState
+                                                            preserveScroll
                                                             className="inline-flex items-center px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded-md hover:bg-yellow-100 transition-colors"
                                                             title="Edit"
                                                         >
@@ -544,6 +548,8 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                         <div className="flex gap-2">
                                             <Link
                                                 href={route('admin.users.show', user.id)}
+                                                preserveState
+                                                preserveScroll
                                                 className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors text-sm font-medium"
                                             >
                                                 <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -554,6 +560,8 @@ export default function Index({ users, filters, roleCounts }: UsersPageProps) {
                                             </Link>
                                             <Link
                                                 href={route('admin.users.edit', user.id)}
+                                                preserveState
+                                                preserveScroll
                                                 className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-yellow-50 text-yellow-700 rounded-md hover:bg-yellow-100 transition-colors text-sm font-medium"
                                             >
                                                 <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

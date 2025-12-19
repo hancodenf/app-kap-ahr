@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 
 interface WorkingStep {
@@ -65,6 +65,16 @@ interface Props extends PageProps {
 }
 
 export default function Show({ auth, bundle, workingSteps, teamMembers }: Props) {
+    const { url } = usePage();
+    const params = new URLSearchParams(url.split('?')[1] || '');
+    const from_page = params.get('from_page') || '1';
+    const search = params.get('search') || '';
+    const year = params.get('year') || '';
+    const status = params.get('status') || '';
+    const archived = params.get('archived') || 'false';
+
+    const backUrl = `${route('admin.projects.bundles.index')}?page=${from_page}&search=${search}&year=${year}&status=${status}&archived=${archived}`;
+
     const steps = workingSteps || [];
     const members = teamMembers || [];
 
@@ -100,7 +110,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers }: Props)
                             Edit Project
                         </Link>
                         <Link
-                            href={route('admin.projects.bundles.index')}
+                            href={backUrl}
                             className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                         >
                             Back to Projects

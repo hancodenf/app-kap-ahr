@@ -267,6 +267,8 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 													<div className="flex justify-end gap-1">
 														<Link
 															href={route('admin.clients.show', client.id)}
+															preserveState
+															preserveScroll
 															className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors"
 															title="View Details"
 														>
@@ -277,6 +279,8 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 														</Link>
 														<Link
 															href={route('admin.clients.edit', client.id)}
+															preserveState
+															preserveScroll
 															className="inline-flex items-center px-2 py-1 bg-yellow-50 text-yellow-700 rounded hover:bg-yellow-100 transition-colors"
 															title="Edit"
 														>
@@ -375,6 +379,8 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 										<div className="flex gap-2">
 											<Link
 												href={route('admin.clients.show', client.id)}
+												preserveState
+												preserveScroll
 												className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors text-sm font-medium"
 											>
 												<svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -385,6 +391,8 @@ export default function Index({ clients, filters }: ClientsPageProps) {
 											</Link>
 											<Link
 												href={route('admin.clients.edit', client.id)}
+												preserveState
+												preserveScroll
 												className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-yellow-50 text-yellow-700 rounded-md hover:bg-yellow-100 transition-colors text-sm font-medium"
 											>
 												<svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

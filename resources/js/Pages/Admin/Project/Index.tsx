@@ -79,9 +79,14 @@ export default function Index({ bundles, filters, availableYears, overallStats, 
     const [archived, setArchived] = useState(filters.archived === 'true');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [bundleToDelete, setBundleToDelete] = useState<ProjectBundle | null>(null);
+    const [isInitialMount, setIsInitialMount] = useState(true);
 
-    // Auto-trigger search when status or archived changes
+    // Auto-trigger search when status or archived changes (except on initial mount)
     useEffect(() => {
+        if (isInitialMount) {
+            setIsInitialMount(false);
+            return;
+        }
         handleSearch();
     }, [status, archived]);
 
@@ -430,7 +435,7 @@ export default function Index({ bundles, filters, availableYears, overallStats, 
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                     <div className="flex justify-end gap-2">
                                                         <Link
-                                                            href={route('admin.projects.bundles.show', bundle.id)}
+                                                            href={`${route('admin.projects.bundles.show', bundle.id)}?from_page=${bundles.current_page}&search=${search}&year=${year}&status=${status}&archived=${archived ? 'true' : 'false'}`}
                                                             className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
                                                             title="View Details"
                                                         >
@@ -440,7 +445,7 @@ export default function Index({ bundles, filters, availableYears, overallStats, 
                                                             </svg>
                                                         </Link>
                                                         <Link
-                                                            href={route('admin.projects.bundles.edit', bundle.id)}
+                                                            href={`${route('admin.projects.bundles.edit', bundle.id)}?from_page=${bundles.current_page}&search=${search}&year=${year}&status=${status}&archived=${archived ? 'true' : 'false'}`}
                                                             className="inline-flex items-center px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded-md hover:bg-yellow-100 transition-colors"
                                                             title="Edit"
                                                         >
@@ -541,7 +546,7 @@ export default function Index({ bundles, filters, availableYears, overallStats, 
 
                                         <div className="flex gap-2">
                                             <Link
-                                                href={route('admin.projects.bundles.show', bundle.id)}
+                                                href={`${route('admin.projects.bundles.show', bundle.id)}?from_page=${bundles.current_page}&search=${search}&year=${year}&status=${status}&archived=${archived ? 'true' : 'false'}`}
                                                 className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors text-sm font-medium"
                                             >
                                                 <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -551,7 +556,7 @@ export default function Index({ bundles, filters, availableYears, overallStats, 
                                                 View
                                             </Link>
                                             <Link
-                                                href={route('admin.projects.bundles.edit', bundle.id)}
+                                                href={`${route('admin.projects.bundles.edit', bundle.id)}?from_page=${bundles.current_page}&search=${search}&year=${year}&status=${status}&archived=${archived ? 'true' : 'false'}`}
                                                 className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-yellow-50 text-yellow-700 rounded-md hover:bg-yellow-100 transition-colors text-sm font-medium"
                                             >
                                                 <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -614,7 +619,25 @@ export default function Index({ bundles, filters, availableYears, overallStats, 
                                         {bundles.links.map((link, index) => (
                                             <button
                                                 key={index}
-                                                onClick={() => link.url && router.get(link.url)}
+                                                onClick={() => {
+                                                    if (link.url) {
+                                                        // Parse the URL to get the page number
+                                                        const url = new URL(link.url);
+                                                        const page = url.searchParams.get('page');
+                                                        
+                                                        // Navigate with all current filters
+                                                        router.get(route('admin.projects.bundles.index'), {
+                                                            page: page || '1',
+                                                            search,
+                                                            year,
+                                                            status,
+                                                            archived: archived ? 'true' : 'false'
+                                                        }, {
+                                                            preserveState: true,
+                                                            preserveScroll: true,
+                                                        });
+                                                    }
+                                                }}
                                                 disabled={!link.url}
                                                 className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-md transition-colors ${
                                                     link.active

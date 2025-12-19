@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import ConfirmDialog from '@/Components/ConfirmDialog';
-import { Head, Link, useForm, router } from '@inertiajs/react';
+import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { useState, useEffect, useMemo } from 'react';
 import SearchableSelect from '@/Components/SearchableSelect';
@@ -307,6 +307,16 @@ function DraggableTask({ task, onEdit, onDelete }: {
 }
 
 export default function Show({ auth, bundle, workingSteps, teamMembers, availableUsers, registeredApUserIds, clients }: Props) {
+    const { url } = usePage();
+    const params = new URLSearchParams(url.split('?')[1] || '');
+    const from_page = params.get('from_page') || '1';
+    const search = params.get('search') || '';
+    const year = params.get('year') || '';
+    const status = params.get('status') || '';
+    const archived = params.get('archived') || 'false';
+
+    const backUrl = `${route('admin.projects.bundles.index')}?page=${from_page}&search=${search}&year=${year}&status=${status}&archived=${archived}`;
+
     const [steps, setSteps] = useState(workingSteps || []);
     const [activeStep, setActiveStep] = useState<WorkingStep | null>(null);
     const [activeTask, setActiveTask] = useState<Task | null>(null);
@@ -978,7 +988,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                         </p>
                     </div>
                     <Link
-                        href={route('admin.projects.bundles.index')}
+                        href={backUrl}
                         className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-xs font-medium transition-all duration-200 hover:shadow-sm"
                     >
                         Back to Projects

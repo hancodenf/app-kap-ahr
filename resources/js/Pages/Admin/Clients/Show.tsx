@@ -325,6 +325,7 @@ export default function Show(props: Props) {
 					<div className="flex justify-between items-center">
 						<Link
 							href={route('admin.clients.index')}
+							only={['clients', 'filters']}
 							className="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors gap-2"
 						>
 							<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
