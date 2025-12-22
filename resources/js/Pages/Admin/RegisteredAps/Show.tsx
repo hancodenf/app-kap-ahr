@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 
 interface User {
@@ -32,6 +32,16 @@ interface Props {
 }
 
 export default function Show({ registeredAp }: Props) {
+    // Get URL parameters for back navigation
+    const { url } = usePage();
+    const params = new URLSearchParams(url.split('?')[1] || '');
+    const from_page = params.get('from_page') || '1';
+    const search = params.get('search') || '';
+    const status = params.get('status') || '';
+    
+    // Build back URL with preserved state
+    const backUrl = `${route('admin.registered-aps.index')}?page=${from_page}&search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}`;
+    
     const getStatusBadge = (status: 'active' | 'inactive' | 'expired') => {
         const statusConfig = {
             active: { bg: 'bg-green-100', text: 'text-green-800', label: 'Active' },
@@ -52,7 +62,7 @@ export default function Show({ registeredAp }: Props) {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div className="flex items-center gap-4">
                         <Link 
-                            href={route('admin.registered-aps.index')}
+                            href={backUrl}
                             className="text-gray-500 hover:text-gray-700"
                         >
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,7 +74,7 @@ export default function Show({ registeredAp }: Props) {
                         </h2>
                     </div>
                     <Link
-                        href={route('admin.registered-aps.edit', registeredAp.id)}
+                        href={`${route('admin.registered-aps.edit', registeredAp.id)}?from_page=${from_page}&search=${search}&status=${status}`}
                         className="w-full sm:w-auto bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors text-center"
                     >
                         Edit
@@ -223,7 +233,7 @@ export default function Show({ registeredAp }: Props) {
                                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
                                 <div className="space-y-3">
                                     <Link
-                                        href={route('admin.registered-aps.edit', registeredAp.id)}
+                                        href={`${route('admin.registered-aps.edit', registeredAp.id)}?from_page=${from_page}&search=${search}&status=${status}`}
                                         className="w-full flex items-center justify-center px-4 py-2 bg-yellow-50 text-yellow-700 rounded-md hover:bg-yellow-100 transition-colors font-medium"
                                     >
                                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -241,7 +251,7 @@ export default function Show({ registeredAp }: Props) {
                                         View User Profile
                                     </Link>
                                     <Link
-                                        href={route('admin.registered-aps.index')}
+                                        href={backUrl}
                                         className="w-full flex items-center justify-center px-4 py-2 bg-gray-50 text-gray-700 rounded-md hover:bg-gray-100 transition-colors font-medium"
                                     >
                                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { FormEventHandler, useEffect, useRef, useState } from 'react';
 
@@ -17,6 +17,17 @@ interface News {
 }
 
 export default function Edit({ auth, news }: PageProps<{ news: News }>) {
+    // Get URL parameters for back navigation
+    const { url } = usePage();
+    const params = new URLSearchParams(url.split('?')[1] || '');
+    const from_page = params.get('from_page') || '1';
+    const search = params.get('search') || '';
+    const status = params.get('status') || '';
+    const author = params.get('author') || '';
+    
+    // Build back URL with preserved state
+    const backUrl = `${route('admin.news.index')}?page=${from_page}&search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}&author=${encodeURIComponent(author)}`;
+    
     const { data, setData, post, processing, errors, transform } = useForm({
         title: news.title,
         excerpt: news.excerpt || '',
@@ -218,7 +229,7 @@ Berikan output dalam format kode HTML yang siap digunakan, tanpa penjelasan tamb
                 <div className="flex justify-between items-center">
                     <h2 className="text-xl font-semibold leading-tight text-gray-800">Edit News</h2>
                     <Link
-                        href={route('admin.news.index')}
+                        href={backUrl}
                         className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                     >
                         Back to News
@@ -356,7 +367,7 @@ Berikan output dalam format kode HTML yang siap digunakan, tanpa penjelasan tamb
                             {/* Submit Buttons */}
                             <div className="flex justify-end space-x-3 pt-4 border-t">
                                 <Link
-                                    href={route('admin.news.index')}
+                                    href={backUrl}
                                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                                 >
                                     Cancel

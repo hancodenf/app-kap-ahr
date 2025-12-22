@@ -121,6 +121,8 @@ class CompanyClientController extends Controller
                 'search' => $search,
                 'status' => $status,
             ],
+            'from_page' => $request->input('from_page'),
+            'from_search' => $request->input('search'),
         ]);
     }
 }

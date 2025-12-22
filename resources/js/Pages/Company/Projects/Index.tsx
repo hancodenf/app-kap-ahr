@@ -283,7 +283,11 @@ export default function ProjectsIndex({ auth, projects, filters, statusCounts }:
                                                 </td>
                                                 <td className="px-4 py-4" style={{ maxWidth: '400px' }}>
                                                     <Link
-                                                        href={route('company.projects.show', project.id)}
+                                                        href={route('company.projects.show', {
+                                                            project: project.id,
+                                                            from_search: search || undefined,
+                                                            from_status: activeStatus || undefined,
+                                                        })}
                                                         className="text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline block"
                                                         title={project.name}
                                                     >
@@ -313,7 +317,11 @@ export default function ProjectsIndex({ auth, projects, filters, statusCounts }:
                                                 </td>
                                                 <td className="px-3 py-4 whitespace-nowrap text-sm">
                                                     <Link
-                                                        href={route('company.projects.show', project.id)}
+                                                        href={route('company.projects.show', {
+                                                            project: project.id,
+                                                            from_search: search || undefined,
+                                                            from_status: activeStatus || undefined,
+                                                        })}
                                                         className="inline-flex items-center px-2 py-1 bg-primary-50 text-primary-700 rounded-md hover:bg-primary-100 transition-colors font-medium text-xs"
                                                     >
                                                         <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -373,7 +381,11 @@ export default function ProjectsIndex({ auth, projects, filters, statusCounts }:
                                         </div>
 
                                         <Link
-                                            href={route('company.projects.show', project.id)}
+                                            href={route('company.projects.show', {
+                                                project: project.id,
+                                                from_search: search || undefined,
+                                                from_status: activeStatus || undefined,
+                                            })}
                                             className="w-full inline-flex items-center justify-center px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
                                         >
                                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -50,7 +50,7 @@ export default function Create({ auth, clients, availableUsers, templates, regis
         client_id: 0,
         year: currentYear,
         team_members: [] as TeamMemberRow[],
-        template_id: 0,
+        template_id: '0',
     });
 
     // Helper function to check if user is registered AP
@@ -312,14 +312,14 @@ export default function Create({ auth, clients, availableUsers, templates, regis
                                     </label>
                                     <SearchableSelect
                                         options={[
-                                            { value: 0, label: '-- No Template --' },
+                                            { value: '0', label: '-- No Template --' },
                                             ...templates.map(template => ({
                                                 value: template.id,
                                                 label: template.name,
                                             }))
                                         ]}
                                         value={data.template_id}
-                                        onChange={(value) => setData('template_id', value as number)}
+                                        onChange={(value) => setData('template_id', String(value))}
                                         placeholder="Choose a template..."
                                     />
                                     <p className="mt-1 text-xs text-gray-500">Optional: If selected, working steps will be copied from the template</p>

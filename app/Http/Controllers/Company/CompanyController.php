@@ -461,7 +461,7 @@ class CompanyController extends Controller
     /**
      * Show specific project with step locking logic
      */
-    public function showProject(Project $project)
+    public function showProject(Request $request, Project $project)
     {
         $user = Auth::user();
 
@@ -690,6 +690,8 @@ class CompanyController extends Controller
             'workingSteps' => $workingSteps,
             'myRole' => $teamMember->role,
             'teamMembers' => $teamMembers,
+            'from_search' => $request->input('from_search'),
+            'from_status' => $request->input('from_status'),
         ]);
     }
 

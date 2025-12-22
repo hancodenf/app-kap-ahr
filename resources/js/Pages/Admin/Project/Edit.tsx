@@ -245,9 +245,9 @@ function DraggableTask({ task, onEdit, onDelete }: {
                             )}
                             {task.client_interact !== 'read only' && (
                                 <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                                    {task.client_interact === 'restricted' ? '🔒 Client Restricted' : 
-                                     task.client_interact === 'upload' ? '📤 Client Upload' : 
-                                     '✅ Client Approval'}
+                                    {task.client_interact === 'restricted' ? '🔒 Client Restricted' :
+                                        task.client_interact === 'upload' ? '📤 Client Upload' :
+                                            '✅ Client Approval'}
                                 </span>
                             )}
                             {!!task.multiple_files && (
@@ -1132,10 +1132,10 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{member.user_position || '-'}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${member.role === 'partner' ? 'bg-purple-100 text-purple-800' :
-                                                                member.role === 'manager' ? 'bg-blue-100 text-blue-800' :
-                                                                    member.role === 'supervisor' ? 'bg-indigo-100 text-indigo-800' :
-                                                                        member.role === 'team leader' ? 'bg-green-100 text-green-800' :
-                                                                            'bg-gray-100 text-gray-800'
+                                                            member.role === 'manager' ? 'bg-blue-100 text-blue-800' :
+                                                                member.role === 'supervisor' ? 'bg-indigo-100 text-indigo-800' :
+                                                                    member.role === 'team leader' ? 'bg-green-100 text-green-800' :
+                                                                        'bg-gray-100 text-gray-800'
                                                             }`}>
                                                             {member.role}
                                                         </span>
@@ -1429,6 +1429,9 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         </p>
                                     </div>
 
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Worker can upload files
+                                    </label>
                                     <label className="flex items-center">
                                         <input
                                             type="checkbox"
@@ -1714,6 +1717,9 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                             </p>
                                         </div>
 
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Worker can upload files
+                                        </label>
                                         <label className="flex items-center">
                                             <input
                                                 type="checkbox"

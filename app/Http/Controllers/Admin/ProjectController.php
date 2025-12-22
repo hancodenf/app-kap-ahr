@@ -207,13 +207,13 @@ class ProjectController extends Controller
             'team_members' => 'nullable|array',
             'team_members.*.user_id' => 'required|exists:users,id',
             'team_members.*.role' => 'required|in:partner,manager,supervisor,team leader,member',
-            'template_id' => 'nullable|integer|min:0',
+            'template_id' => 'nullable|string',
         ]);
 
-        // Additional validation for template_id if not 0
-        if ($request->template_id && $request->template_id > 0) {
+        // Additional validation for template_id if provided and not '0'
+        if ($request->template_id && $request->template_id !== '0') {
             $request->validate([
-                'template_id' => 'exists:project_templates,id',
+                'template_id' => 'uuid|exists:project_templates,id',
             ]);
         }
 
@@ -262,8 +262,8 @@ class ProjectController extends Controller
             }
         }
 
-        // Copy from template if provided and not 0
-        if ($request->template_id && $request->template_id > 0) {
+        // Copy from template if provided and not '0'
+        if ($request->template_id && $request->template_id !== '0') {
             $this->copyTemplateToProject($request->template_id, $project->id);
         }
 
@@ -279,11 +279,23 @@ class ProjectController extends Controller
         $template = \App\Models\ProjectTemplate::find($templateId);
         $project = Project::find($projectId);
 
+        if (!$template) {
+            \Log::error("Template not found: {$templateId}");
+            return;
+        }
+
+        if (!$project) {
+            \Log::error("Project not found: {$projectId}");
+            return;
+        }
+
         // Get template steps from template_working_steps table
         $templateSteps = \App\Models\TemplateWorkingStep::where('project_template_id', $templateId)
             ->with('templateTasks')
             ->orderBy('order')
             ->get();
+
+        \Log::info("Copying template '{$template->name}' to project '{$project->name}'. Found {$templateSteps->count()} steps.");
 
         foreach ($templateSteps as $index => $templateStep) {
             // Create step for project in working_steps table
@@ -326,14 +338,15 @@ class ProjectController extends Controller
 
                 // Create approval records if template has approval roles defined
                 if ($templateTask->approval_roles && count($templateTask->approval_roles) > 0) {
-                    $approvalType = $templateTask->approval_type ?? 'All Attempts';
-                    
                     foreach ($templateTask->approval_roles as $index => $role) {
                         TaskApproval::create([
                             'task_id' => $task->id,
                             'role' => $role,
                             'order' => $index + 1,
-                            'type' => $approvalType,
+                            'task_name' => $task->name,
+                            'working_step_name' => $newStep->name,
+                            'project_name' => $project->name,
+                            'project_client_name' => $project->client_name,
                         ]);
                     }
                 }

@@ -59,9 +59,12 @@ interface PaginatedProjectTeams {
 interface Props {
 	user: User;
 	projectTeams: PaginatedProjectTeams;
+	from_page?: number;
+	from_search?: string;
+	from_position?: string;
 }
 
-export default function Show({ user, projectTeams }: Props) {
+export default function Show({ user, projectTeams, from_page, from_search, from_position }: Props) {
 	const formatDate = (dateString: string) => {
 		return new Date(dateString).toLocaleDateString('id-ID', {
 			year: 'numeric',
@@ -112,6 +115,14 @@ export default function Show({ user, projectTeams }: Props) {
 		);
 	};
 
+	const backUrl = from_page
+		? route('company.teams.index', {
+			page: from_page,
+			search: from_search || undefined,
+			position: from_position || undefined,
+		})
+		: route('company.teams.index');
+
 	return (
 		<AuthenticatedLayout
 			header={
@@ -120,7 +131,7 @@ export default function Show({ user, projectTeams }: Props) {
 						Team Member Details
 					</h2>
 					<Link
-						href={route('company.teams.index')}
+						href={backUrl}
 						className="inline-flex items-center px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-medium rounded-lg transition-colors"
 					>
 						<svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

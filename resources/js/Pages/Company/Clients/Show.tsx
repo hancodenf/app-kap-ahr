@@ -48,9 +48,11 @@ interface Props extends PageProps {
         search?: string;
         status?: string;
     };
+    from_page?: number;
+    from_search?: string;
 }
 
-export default function Show({ client, projects, filters }: Props) {
+export default function Show({ client, projects, filters, from_page, from_search }: Props) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || '');
 
@@ -81,7 +83,7 @@ export default function Show({ client, projects, filters }: Props) {
         e.preventDefault();
         router.get(
             route('company.clients.show', client.id),
-            { search: searchTerm, status: statusFilter },
+            { search: searchTerm, status: statusFilter, page: 1 },
             { preserveState: true, preserveScroll: true }
         );
     };
@@ -90,7 +92,7 @@ export default function Show({ client, projects, filters }: Props) {
         setStatusFilter(status);
         router.get(
             route('company.clients.show', client.id),
-            { search: searchTerm, status: status },
+            { search: searchTerm, status: status, page: 1 },
             { preserveState: true, preserveScroll: true }
         );
     };
@@ -98,8 +100,15 @@ export default function Show({ client, projects, filters }: Props) {
     const handleReset = () => {
         setSearchTerm('');
         setStatusFilter('');
-        router.get(route('company.clients.show', client.id));
+        router.get(route('company.clients.show', { client: client.id, page: 1 }));
     };
+
+    const backUrl = from_page
+        ? route('company.clients.index', {
+            page: from_page,
+            search: from_search || undefined,
+        })
+        : route('company.clients.index');
 
     return (
         <AuthenticatedLayout
@@ -107,7 +116,7 @@ export default function Show({ client, projects, filters }: Props) {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
                         <Link
-                            href={route('company.clients.index')}
+                            href={backUrl}
                             className="text-sm text-gray-500 hover:text-gray-700 mb-1 inline-flex items-center"
                         >
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

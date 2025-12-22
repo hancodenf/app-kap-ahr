@@ -62,7 +62,7 @@ export default function Index({ users, filters, positionCounts }: TeamsPageProps
     ];
 
     const handleSearch = () => {
-        router.get(route('company.teams.index'), { search, position: activePosition !== 'all' ? activePosition : undefined }, {
+        router.get(route('company.teams.index'), { search, position: activePosition !== 'all' ? activePosition : undefined, page: 1 }, {
             preserveState: true,
             replace: true,
         });
@@ -71,7 +71,7 @@ export default function Index({ users, filters, positionCounts }: TeamsPageProps
     const handleReset = () => {
         setSearch('');
         setActivePosition('all');
-        router.get(route('company.teams.index'), {}, {
+        router.get(route('company.teams.index'), { page: 1 }, {
             preserveState: true,
             replace: true,
         });
@@ -79,7 +79,7 @@ export default function Index({ users, filters, positionCounts }: TeamsPageProps
 
     const handlePositionChange = (position: string) => {
         setActivePosition(position);
-        router.get(route('company.teams.index'), { position: position !== 'all' ? position : undefined, search }, {
+        router.get(route('company.teams.index'), { position: position !== 'all' ? position : undefined, search, page: 1 }, {
             preserveState: true,
             replace: true,
         });
@@ -275,7 +275,12 @@ export default function Index({ users, filters, positionCounts }: TeamsPageProps
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                     <Link
-                                                        href={route('company.teams.show', user.id)}
+                                                        href={route('company.teams.show', {
+                                                            user: user.id,
+                                                            from_page: users.current_page,
+                                                            search: search || undefined,
+                                                            position: activePosition !== 'all' ? activePosition : undefined,
+                                                        })}
                                                         className="text-primary-600 hover:text-primary-900"
                                                     >
                                                         View Details

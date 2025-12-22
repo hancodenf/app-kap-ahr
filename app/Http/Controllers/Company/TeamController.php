@@ -126,6 +126,9 @@ class TeamController extends Controller
         return Inertia::render('Company/Teams/Show', [
             'user' => $userData,
             'projectTeams' => $projectTeams,
+            'from_page' => $request->input('from_page'),
+            'from_search' => $request->input('search'),
+            'from_position' => $request->input('position'),
         ]);
     }
 }

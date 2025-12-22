@@ -103,6 +103,8 @@ interface Props extends PageProps {
     workingSteps: WorkingStep[];
     myRole: string;
     teamMembers: TeamMember[];
+    from_search?: string;
+    from_status?: string;
 }
 
 interface ApprovalTask {
@@ -133,7 +135,7 @@ interface ApprovalTask {
     } | null;
 }
 
-export default function ShowProject({ auth, project, workingSteps, myRole, teamMembers }: Props) {
+export default function ShowProject({ auth, project, workingSteps, myRole, teamMembers, from_search, from_status }: Props) {
     // Check if project is active (only allow actions for In Progress projects)
     const isProjectActive = project.status === 'In Progress';
     
@@ -251,6 +253,14 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
             progressPercentage,
         };
     }, [workingSteps]);
+
+    // Back URL with preserved filters
+    const backUrl = from_search || from_status
+        ? route('company.projects.index', {
+            search: from_search || undefined,
+            status: from_status || undefined,
+        })
+        : route('company.projects.index');
 
     // Fetch approval requests on initial load if user has approval access
     useEffect(() => {
@@ -854,7 +864,7 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
                 <div className="flex items-center justify-between">
                     <div>
                         <Link
-                            href={route('company.projects.index')}
+                            href={backUrl}
                             className="text-sm text-gray-500 hover:text-gray-700 mb-1 inline-block"
                         >
                             ← Back to Projects

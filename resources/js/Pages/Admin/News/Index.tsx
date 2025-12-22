@@ -273,7 +273,7 @@ export default function Index({ auth, news, authors, filters }: PageProps<{ news
                                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                         <div className="flex justify-end gap-1">
                                                             <Link
-                                                                href={route('admin.news.show', item.id)}
+                                                                href={`${route('admin.news.show', item.id)}?from_page=${news.current_page}&search=${search}&status=${status}&author=${author}`}
                                                                 className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors"
                                                                 title="View Details"
                                                             >
@@ -283,7 +283,7 @@ export default function Index({ auth, news, authors, filters }: PageProps<{ news
                                                                 </svg>
                                                             </Link>
                                                             <Link
-                                                                href={route('admin.news.edit', item.id)}
+                                                                href={`${route('admin.news.edit', item.id)}?from_page=${news.current_page}&search=${search}&status=${status}&author=${author}`}
                                                                 className="inline-flex items-center px-2 py-1 bg-yellow-50 text-yellow-700 rounded hover:bg-yellow-100 transition-colors"
                                                                 title="Edit"
                                                             >

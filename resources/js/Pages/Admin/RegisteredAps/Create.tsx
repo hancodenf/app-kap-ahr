@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { FormEventHandler, useState } from 'react';
 import SearchableSelect from '@/Components/SearchableSelect';
@@ -16,6 +16,16 @@ interface CreateRegisteredApPageProps extends PageProps {
 }
 
 export default function Create({ availableUsers }: CreateRegisteredApPageProps) {
+    // Get URL parameters for back navigation
+    const { url } = usePage();
+    const params = new URLSearchParams(url.split('?')[1] || '');
+    const from_page = params.get('from_page') || '1';
+    const search = params.get('search') || '';
+    const status = params.get('status') || '';
+    
+    // Build back URL with preserved state
+    const backUrl = `${route('admin.registered-aps.index')}?page=${from_page}&search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}`;
+    
     const { data, setData, post, processing, errors, reset } = useForm({
         user_id: '',
         ap_number: '',
@@ -52,7 +62,7 @@ export default function Create({ availableUsers }: CreateRegisteredApPageProps) 
                         Add Registered AP
                     </h2>
                     <Link
-                        href={route('admin.registered-aps.index')}
+                        href={backUrl}
                         className="w-full sm:w-auto bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors text-center"
                     >
                         ← Back to List
@@ -190,7 +200,7 @@ export default function Create({ availableUsers }: CreateRegisteredApPageProps) 
                                         {processing ? 'Creating...' : 'Create Registered AP'}
                                     </button>
                                     <Link
-                                        href={route('admin.registered-aps.index')}
+                                        href={backUrl}
                                         className="w-full sm:w-auto bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-md font-medium transition-colors text-center"
                                     >
                                         Cancel

@@ -3,7 +3,6 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import NewsCard from '@/Components/NewsCard';
 import { useState, useEffect } from 'react';
-import { useAutoMarkNotifications } from '@/hooks/useAutoMarkNotifications';
 
 interface ProjectStats {
 	total: number;
@@ -126,12 +125,9 @@ export default function CompanyDashboard({
 	const [tasksPendingApproval, setTasksPendingApproval] = useState<PendingApprovalTask[]>(initialTasksPendingApproval);
 	const [isRefreshing, setIsRefreshing] = useState(false);
 
-	// Auto mark approval notifications as read when viewing dashboard
-	useAutoMarkNotifications({
-		type: 'project_approval',
-		enabled: true
-	});
-
+	// Note: Auto-mark disabled on dashboard since there's no specific project context
+	// Notifications will be marked when user enters specific project pages
+	
 	// Fetch latest pending approval tasks
 	const fetchPendingApprovals = async () => {
 		try {

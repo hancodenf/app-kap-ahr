@@ -1,4 +1,4 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import React from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import InputLabel from '@/Components/InputLabel';
@@ -31,6 +31,16 @@ interface Props {
 
 export default function Edit(props: Props) {
 	const { client } = props;
+	
+	// Get URL parameters for back navigation
+	const { url } = usePage();
+	const params = new URLSearchParams(url.split('?')[1] || '');
+	const from_page = params.get('from_page') || '1';
+	const search = params.get('search') || '';
+	
+	// Build back URL with preserved state
+	const backUrl = `${route('admin.clients.index')}?page=${from_page}&search=${encodeURIComponent(search)}`;
+	
 	const { data, setData, post, processing, errors } = useForm({
 		name: client.name || '',
 		alamat: client.alamat || '',
@@ -78,7 +88,7 @@ export default function Edit(props: Props) {
 			header={
 				<div className="flex items-center gap-4">
 					<Link 
-						href={route('admin.clients.index')}
+						href={backUrl}
 						className="text-gray-500 hover:text-gray-700"
 					>
 						<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -226,7 +236,7 @@ export default function Edit(props: Props) {
 
 								{/* Action Buttons */}
 								<div className="flex items-center justify-end gap-3 pt-4 border-t">
-									<Link href={route('admin.clients.index')}>
+									<Link href={backUrl}>
 										<SecondaryButton type="button">
 											Cancel
 										</SecondaryButton>

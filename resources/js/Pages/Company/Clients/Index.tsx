@@ -40,7 +40,7 @@ export default function Index({ clients, filters }: Props) {
     const [search, setSearch] = useState(filters.search || '');
 
     const handleSearch = () => {
-        router.get(route('company.clients.index'), { search }, {
+        router.get(route('company.clients.index'), { search, page: 1 }, {
             preserveState: true,
             replace: true,
         });
@@ -48,7 +48,7 @@ export default function Index({ clients, filters }: Props) {
 
     const handleReset = () => {
         setSearch('');
-        router.get(route('company.clients.index'), {}, {
+        router.get(route('company.clients.index'), { page: 1 }, {
             preserveState: true,
             replace: true,
         });
@@ -194,7 +194,11 @@ export default function Index({ clients, filters }: Props) {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                     <Link
-                                                        href={route('company.clients.show', client.id)}
+                                                        href={route('company.clients.show', {
+                                                            client: client.id,
+                                                            from_page: clients.current_page,
+                                                            search: search || undefined,
+                                                        })}
                                                         className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
                                                         title="View Details"
                                                     >
@@ -268,7 +272,11 @@ export default function Index({ clients, filters }: Props) {
                                         </div>
 
                                         <Link
-                                            href={route('company.clients.show', client.id)}
+                                            href={route('company.clients.show', {
+                                                client: client.id,
+                                                from_page: clients.current_page,
+                                                search: search || undefined,
+                                            })}
                                             className="w-full inline-flex items-center justify-center px-3 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors text-sm font-medium"
                                         >
                                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

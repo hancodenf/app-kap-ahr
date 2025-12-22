@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { FormEventHandler, useState, useCallback } from 'react';
 import Select from 'react-select';
@@ -49,6 +49,16 @@ interface EditUserPageProps extends PageProps {
 }
 
 export default function Edit({ user, roles, positions, userTypes, clients }: EditUserPageProps) {
+    // Get URL parameters for back navigation
+    const { url } = usePage();
+    const params = new URLSearchParams(url.split('?')[1] || '');
+    const from_page = params.get('from_page') || '1';
+    const search = params.get('search') || '';
+    const role = params.get('role') || '';
+    
+    // Build back URL with preserved state
+    const backUrl = `${route('admin.users.index')}?page=${from_page}&search=${encodeURIComponent(search)}&role=${encodeURIComponent(role)}`;
+    
     // Parse existing WhatsApp number
     const parseWhatsApp = (whatsapp: string | null | undefined) => {
         if (!whatsapp) return { countryCode: '+62', number: '' };
@@ -300,7 +310,7 @@ export default function Edit({ user, roles, positions, userTypes, clients }: Edi
                         Edit User: {user.name}
                     </h2>
                     <Link
-                        href={route('admin.users.index')}
+                        href={backUrl}
                         className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                     >
                         Back
@@ -794,7 +804,7 @@ export default function Edit({ user, roles, positions, userTypes, clients }: Edi
                                 {/* Submit Button */}
                                 <div className="flex justify-end space-x-3">
                                     <Link
-                                        href={route('admin.users.index')}
+                                        href={backUrl}
                                         className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-md text-sm font-medium transition-colors"
                                     >
                                         Batal

@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 
 interface News {     
@@ -19,6 +19,17 @@ interface News {
 }
 
 export default function Show({ auth, news }: PageProps<{ news: News }>) {
+    // Get URL parameters for back navigation
+    const { url } = usePage();
+    const params = new URLSearchParams(url.split('?')[1] || '');
+    const from_page = params.get('from_page') || '1';
+    const search = params.get('search') || '';
+    const status = params.get('status') || '';
+    const author = params.get('author') || '';
+    
+    // Build back URL with preserved state
+    const backUrl = `${route('admin.news.index')}?page=${from_page}&search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}&author=${encodeURIComponent(author)}`;
+    
     return (
         <AuthenticatedLayout
             header={
@@ -26,13 +37,13 @@ export default function Show({ auth, news }: PageProps<{ news: News }>) {
                     <h2 className="text-lg sm:text-xl font-semibold leading-tight text-gray-800">News Details</h2>
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
                         <Link
-                            href={route('admin.news.edit', news.id)}
+                            href={`${route('admin.news.edit', news.id)}?from_page=${from_page}&search=${search}&status=${status}&author=${author}`}
                             className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors text-center"
                         >
                             Edit
                         </Link>
                         <Link
-                            href={route('admin.news.index')}
+                            href={backUrl}
                             className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors text-center"
                         >
                             Back to News
