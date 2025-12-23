@@ -1191,17 +1191,43 @@ class CompanyController extends Controller
         $latestAssignment = $task->taskAssignments()->latest()->first();
 
         if (!$latestAssignment || ($latestAssignment->status !== $approval->status_name_pending && $latestAssignment->status !== $approval->status_name_progress)) {
-            abort(403, 'This task is not waiting for your approval.');
+            // Check if this role has already approved (status is approved or completed for this role)
+            $hasApproved = $latestAssignment && (
+                $latestAssignment->status === $approval->status_name_complete ||
+                str_contains(strtolower($latestAssignment->status), 'approved by ' . $role)
+            );
+            
+            if ($hasApproved) {
+                // User has already approved, redirect with info message
+                return redirect()
+                    ->route('company.projects.show', $task->workingStep->project_id)
+                    ->with('info', 'You have already approved this task. It is now awaiting approval from other team members.');
+            }
+            
+            // Otherwise, it's truly not their turn
+            return redirect()
+                ->route('company.projects.show', $task->workingStep->project_id)
+                ->with('error', 'This task is not currently waiting for your approval.');
         }
 
         // dd($latestAssignment->status, $approval->status_name_pending, $latestAssignment->maker_can_edit);
         // Update status from pending to in-progress when detail page is opened (only if still pending)
+        // Also disable maker_can_edit in the same update to avoid version conflicts
+        $updates = [];
+        
         if ($latestAssignment->status === $approval->status_name_pending) {
-            $latestAssignment->updateSafely(['status' => $approval->status_name_progress], $latestAssignment->version);
+            $updates['status'] = $approval->status_name_progress;
         }
-
+        
         if ($latestAssignment->maker_can_edit === 1) {
-            $latestAssignment->updateSafely(['maker_can_edit' => false], $latestAssignment->version);
+            $updates['maker_can_edit'] = false;
+        }
+        
+        // Perform single update if there are any changes
+        if (!empty($updates)) {
+            $latestAssignment->updateSafely($updates, $latestAssignment->version);
+            // Refresh the model to get the updated version
+            $latestAssignment->refresh();
         }
 
         // Load task with relationships
@@ -1927,7 +1953,8 @@ class CompanyController extends Controller
                     'project_client_name' => $task->project_client_name,
                     'time' => now(),
                     'notes' => "Re-upload requested\nComment:\n" . $request->comment,
-                    'maker' => $task->approval_type == 'Once' ? 'client' : 'company',
+                    // 'maker' => $task->approval_type == 'Once' ? 'client' : 'company',
+                    'maker' => 'company',
                     'maker_can_edit' => true,
                     'status' => $newStatus, // Set status to request re-upload from client
                 ]);

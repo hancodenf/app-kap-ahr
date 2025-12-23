@@ -592,6 +592,8 @@ class ClientController extends Controller
             $canEdit = true;
         }
 
+        // dd($canEdit);
+
         // $canEdit = $latestAssignment->maker === 'client' && $latestAssignment->status === 'Client Reply' && $latestAssignment->maker_can_edit === 1;
 
         // Find pending client documents from LATEST filtered assignment ONLY
@@ -837,6 +839,8 @@ class ClientController extends Controller
                 ];
             }),
         ];
+
+        // dd($pendingClientDocs);
 
         return Inertia::render('Client/Projects/TaskDetail', [
             'task' => $taskData,

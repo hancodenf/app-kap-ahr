@@ -280,12 +280,12 @@ class ProjectController extends Controller
         $project = Project::find($projectId);
 
         if (!$template) {
-            \Log::error("Template not found: {$templateId}");
+            Log::error("Template not found: {$templateId}");
             return;
         }
 
         if (!$project) {
-            \Log::error("Project not found: {$projectId}");
+            Log::error("Project not found: {$projectId}");
             return;
         }
 
@@ -295,7 +295,7 @@ class ProjectController extends Controller
             ->orderBy('order')
             ->get();
 
-        \Log::info("Copying template '{$template->name}' to project '{$project->name}'. Found {$templateSteps->count()} steps.");
+        Log::info("Copying template '{$template->name}' to project '{$project->name}'. Found {$templateSteps->count()} steps.");
 
         foreach ($templateSteps as $index => $templateStep) {
             // Create step for project in working_steps table
