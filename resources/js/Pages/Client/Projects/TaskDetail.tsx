@@ -401,11 +401,28 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                                 </p>
                                                             </div>
                                                         </div>
-                                                        <span className={`px-3 py-1 text-xs rounded-full font-medium ${assignment.status === 'Client Reply'
-                                                            ? 'bg-green-100 text-green-800'
-                                                            : 'bg-purple-100 text-purple-800'
-                                                            }`}>
-                                                            {assignment.status === 'Client Reply' ? '✓ Replied' : '⏳ Need Action'}
+                                                        <span className={`px-3 py-1 text-xs rounded-full font-medium ${
+                                                            assignment.status === 'Client Reply'
+                                                                ? 'bg-blue-100 text-blue-800'
+                                                                : assignment.status === 'Submitted to Client'
+                                                                ? 'bg-purple-100 text-purple-800'
+                                                                : assignment.status === 'Under Review by Client'
+                                                                ? 'bg-yellow-100 text-yellow-800'
+                                                                : assignment.status === 'Approved by Client'
+                                                                ? 'bg-green-100 text-green-800'
+                                                                : assignment.status === 'Returned for Revision (by Client)'
+                                                                ? 'bg-red-100 text-red-800'
+                                                                : assignment.status === 'Completed'
+                                                                ? 'bg-emerald-100 text-emerald-800'
+                                                                : 'bg-gray-100 text-gray-800'
+                                                        }`}>
+                                                            {assignment.status === 'Client Reply' && '💬 Replied'}
+                                                            {assignment.status === 'Submitted to Client' && '📤 Need Action'}
+                                                            {assignment.status === 'Under Review by Client' && '👀 Under Review'}
+                                                            {assignment.status === 'Approved by Client' && '✅ Approved'}
+                                                            {assignment.status === 'Returned for Revision (by Client)' && '🔙 Returned'}
+                                                            {assignment.status === 'Completed' && '✓ Completed'}
+                                                            {!['Client Reply', 'Submitted to Client', 'Under Review by Client', 'Approved by Client', 'Returned for Revision (by Client)', 'Completed'].includes(assignment.status) && assignment.status}
                                                         </span>
                                                     </div>
                                                 </div>

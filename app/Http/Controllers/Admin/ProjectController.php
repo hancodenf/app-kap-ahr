@@ -1131,7 +1131,12 @@ class ProjectController extends Controller
         
         // 2. Update tasks.completion_status (overall task progress)
         if ($request->has('completion_status')) {
-            $task->updateSafely(['completion_status' => $request->completion_status], $task->version);
+            // If status is being set to 'completed', use markAsCompleted to trigger step unlock
+            if ($request->completion_status === 'completed') {
+                $task->markAsCompleted();
+            } else {
+                $task->updateSafely(['completion_status' => $request->completion_status], $task->version);
+            }
         }
         
         return back()->with('success', 'Task updated successfully - Completion: ' . $request->completion_status . ', Assignment: ' . $request->assignment_status);
