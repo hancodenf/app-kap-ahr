@@ -204,4 +204,55 @@ class NewsController extends Controller
             'filters' => $request->only(['search']),
         ]);
     }
+
+    // Public news index (no authentication required)
+    public function publicIndex(Request $request)
+    {
+        $query = News::with('creator')->published();
+
+        // Filter by search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('excerpt', 'like', "%{$search}%")
+                  ->orWhere('content', 'like', "%{$search}%");
+            });
+        }
+
+        $news = $query->orderBy('published_at', 'desc')
+            ->paginate(12)
+            ->withQueryString();
+
+        return Inertia::render('Frontend/News/Index', [
+            'news' => $news,
+            'filters' => $request->only(['search']),
+        ]);
+    }
+
+    // Public news detail (no authentication required)
+    public function publicShow(News $news)
+    {
+        // Only show published news
+        if ($news->status !== 'published') {
+            abort(404);
+        }
+
+        $news->load('creator');
+
+        return Inertia::render('Frontend/News/Show', [
+            'news' => [
+                'id' => $news->id,
+                'title' => $news->title,
+                'slug' => $news->slug,
+                'excerpt' => $news->excerpt,
+                'content' => $news->content,
+                'featured_image' => $news->featured_image,
+                'published_at' => $news->published_at,
+                'creator' => [
+                    'name' => $news->creator->name,
+                ],
+            ],
+        ]);
+    }
 }

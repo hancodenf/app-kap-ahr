@@ -69,7 +69,7 @@ class ProjectSeeder extends Seeder
                     'name' => 'Audit ' . $clients->name . ' Tahun 2026',
                     'slug' => Str::slug('Audit ' . $clients->name . ' Tahun 2026'),
                     'client_id' => $clients->id,
-                    'status' => 'Draft',
+                    'status' => 'In Progress',
                     'year' => 2026,
 
                     'client_name' => $clients->name, // Denormalized client data
@@ -187,7 +187,7 @@ class ProjectSeeder extends Seeder
         $statuses = ['Draft', 'In Progress', 'Completed', 'Suspended', 'Canceled'];
         
         foreach ($historicalYears as $year) {
-            // Create 3-5 historical projects per year
+            // Create 3-5 historical projects per    
             $projectCount = rand(3, 5);
             
             for ($i = 0; $i < $projectCount; $i++) {

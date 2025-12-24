@@ -3,9 +3,22 @@ import { Head, Link } from '@inertiajs/react';
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import { useEffect, useState } from 'react';
 
+interface NewsItem {
+    id: number;
+    title: string;
+    slug: string;
+    excerpt: string;
+    featured_image: string | null;
+    published_at: string;
+    creator: {
+        name: string;
+    };
+}
+
 export default function Welcome({
     auth,
-}: PageProps) {
+    latestNews = [],
+}: PageProps<{ latestNews?: NewsItem[] }>) {
     const [scrollY, setScrollY] = useState(0);
     const [isVisible, setIsVisible] = useState<{ [key: string]: boolean }>({});
     const [activeTab, setActiveTab] = useState<'admin' | 'company' | 'client'>('admin');
@@ -195,6 +208,9 @@ export default function Welcome({
                                 <a href="#workflow" className={`font-medium transition-colors ${
                                     scrollY > 50 ? 'text-gray-700 hover:text-primary-600' : 'text-white/90 hover:text-white drop-shadow'
                                 }`}>Workflow</a>
+                                <a href="#news" className={`font-medium transition-colors ${
+                                    scrollY > 50 ? 'text-gray-700 hover:text-primary-600' : 'text-white/90 hover:text-white drop-shadow'
+                                }`}>News</a>
                                 <a href="#testimonials" className={`font-medium transition-colors ${
                                     scrollY > 50 ? 'text-gray-700 hover:text-primary-600' : 'text-white/90 hover:text-white drop-shadow'
                                 }`}>Testimonials</a>
@@ -204,6 +220,14 @@ export default function Welcome({
                             </nav>
 
                             <div className="flex items-center space-x-3">
+                                <Link
+                                    href="/berita"
+                                    className={`hidden md:inline-flex font-medium transition-colors ${
+                                        scrollY > 50 ? 'text-gray-700 hover:text-primary-600' : 'text-white/90 hover:text-white drop-shadow'
+                                    }`}
+                                >
+                                    Berita
+                                </Link>
                                 {auth.user ? (
                                     <Link
                                         href={route('dashboard')}
@@ -575,6 +599,133 @@ export default function Welcome({
                         </div>
                     </div>
 
+                    {/* News Section - White Background */}
+                    <div id="news" className="bg-white py-32">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div 
+                                className="text-center mb-16"
+                                id="news-header"
+                                data-animate
+                                style={{
+                                    opacity: isVisible['news-header'] ? 1 : 0,
+                                    transform: isVisible['news-header'] ? 'translateY(0)' : 'translateY(30px)',
+                                    transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
+                                }}
+                            >
+                                <div className="inline-block bg-blue-50 border border-blue-200 rounded-full px-5 py-2 mb-6">
+                                    <span className="text-sm font-bold text-blue-600">LATEST NEWS</span>
+                                </div>
+                                <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-6">
+                                    News & <span className="bg-gradient-to-r from-primary-600 to-emerald-600 bg-clip-text text-transparent">Updates</span>
+                                </h2>
+                                <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                                    Stay updated with the latest announcements, news, and important information
+                                </p>
+                            </div>
+
+                            {/* News Grid */}
+                            {latestNews && latestNews.length > 0 ? (
+                                <>
+                                    <div 
+                                        className="grid grid-cols-1 md:grid-cols-3 gap-8"
+                                        id="news-grid"
+                                        data-animate
+                                        style={{
+                                            opacity: isVisible['news-grid'] ? 1 : 0,
+                                            transform: isVisible['news-grid'] ? 'translateY(0)' : 'translateY(30px)',
+                                            transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
+                                        }}
+                                    >
+                                        {latestNews.map((newsItem, index) => (
+                                            <div
+                                                key={newsItem.id}
+                                                className="group bg-gradient-to-br from-white to-gray-50 rounded-2xl overflow-hidden border border-gray-200 hover:border-primary-300 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+                                            >
+                                                {/* Featured Image */}
+                                                <div className="relative h-48 bg-gradient-to-br from-primary-100 to-emerald-100 overflow-hidden">
+                                                    {newsItem.featured_image ? (
+                                                        <img 
+                                                            src={`/storage/${newsItem.featured_image}`}
+                                                            alt={newsItem.title}
+                                                            className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center">
+                                                            <svg className="w-20 h-20 text-primary-300 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                                                            </svg>
+                                                        </div>
+                                                    )}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+                                                </div>
+                                                
+                                                {/* Content */}
+                                                <div className="p-6">
+                                                    <div className="flex items-center text-sm text-gray-500 mb-3">
+                                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                        {new Date(newsItem.published_at).toLocaleDateString('id-ID', {
+                                                            day: 'numeric',
+                                                            month: 'long',
+                                                            year: 'numeric'
+                                                        })}
+                                                    </div>
+                                                    <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-primary-600 transition-colors line-clamp-2">
+                                                        {newsItem.title}
+                                                    </h3>
+                                                    <p className="text-gray-600 leading-relaxed line-clamp-3 mb-4">
+                                                        {newsItem.excerpt}
+                                                    </p>
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center text-sm text-gray-500">
+                                                            <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-emerald-500 rounded-full flex items-center justify-center text-white text-xs font-bold mr-2">
+                                                                {newsItem.creator.name.charAt(0)}
+                                                            </div>
+                                                            {newsItem.creator.name}
+                                                        </div>
+                                                        <Link
+                                                            href={`/berita/${newsItem.slug}`}
+                                                            className="inline-flex items-center text-primary-600 font-semibold text-sm group-hover:text-primary-700 transition-colors"
+                                                        >
+                                                            Baca Selengkapnya
+                                                            <svg className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                            </svg>
+                                                        </Link>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* View All News Button */}
+                                    <div className="text-center mt-12">
+                                        <Link
+                                            href="/berita"
+                                            className="inline-flex items-center bg-gradient-to-r from-primary-600 to-emerald-600 hover:from-primary-700 hover:to-emerald-700 text-white px-8 py-4 rounded-full font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                                        >
+                                            Lihat Semua Berita
+                                            <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                            </svg>
+                                        </Link>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-12 shadow-sm border border-gray-200 text-center">
+                                    <svg className="mx-auto h-16 w-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                                    </svg>
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No News Available</h3>
+                                    <p className="text-gray-500">
+                                        Check back later for the latest updates and announcements.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Testimonials Section - White Background */}
                     <div id="testimonials" className="bg-white py-32">
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -767,6 +918,7 @@ export default function Welcome({
                                         { label: 'About Us', href: '#about' },
                                         { label: 'Features', href: '#features' },
                                         { label: 'Workflow', href: '#workflow' },
+                                        { label: 'News', href: '#news' },
                                         { label: 'Testimonials', href: '#testimonials' },
                                         { label: 'Contact', href: '#contact' }
                                     ].map((link, index) => (
