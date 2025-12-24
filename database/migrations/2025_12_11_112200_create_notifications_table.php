@@ -21,7 +21,7 @@ return new class extends Migration
             $table->json('data')->nullable(); // Extra data like task_id, project_id, etc.
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
-            
+             
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->index(['user_id', 'read_at']);
             $table->index(['user_id', 'created_at']);
