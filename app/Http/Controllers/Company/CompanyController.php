@@ -680,6 +680,12 @@ class CompanyController extends Controller
                 ];
             });
 
+        // Get project document requests
+        $documentRequests = \App\Models\ProjectDocumentRequest::where('project_id', $project->id)
+            ->with(['requestedBy'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return Inertia::render('Company/Projects/Show', [
             'project' => [
                 'id' => $project->id,
@@ -690,6 +696,7 @@ class CompanyController extends Controller
             'workingSteps' => $workingSteps,
             'myRole' => $teamMember->role,
             'teamMembers' => $teamMembers,
+            'documentRequests' => $documentRequests,
             'from_search' => $request->input('from_search'),
             'from_status' => $request->input('from_status'),
         ]);
@@ -2420,5 +2427,270 @@ class CompanyController extends Controller
                 'next_role' => $nextRole
             ]);
         }
+    }
+
+    /**
+     * Download Excel template for bulk client document requests
+     */
+    public function downloadClientDocumentTemplate()
+    {
+        $headers = [
+            'Document Name',
+            'Description',
+        ];
+
+        $exampleData = [
+            ['NPWP Perusahaan', 'Salinan NPWP yang masih berlaku'],
+            ['KTP Direktur', 'KTP Direktur Utama (scan berwarna)'],
+            ['Akta Pendirian', 'Akta pendirian perusahaan'],
+        ];
+
+        $callback = function() use ($headers, $exampleData) {
+            $file = fopen('php://output', 'w');
+            
+            // Write headers
+            fputcsv($file, $headers);
+            
+            // Write example data
+            foreach ($exampleData as $row) {
+                fputcsv($file, $row);
+            }
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="client_document_template.csv"',
+        ]);
+    }
+
+    /**
+     * Parse uploaded Excel file and return client documents data
+     */
+    public function parseClientDocumentExcel(Request $request)
+    {
+        $request->validate([
+            'excel_file' => 'required|file|mimes:csv,xlsx,xls|max:2048',
+        ]);
+
+        try {
+            $file = $request->file('excel_file');
+            $extension = $file->getClientOriginalExtension();
+            
+            $documents = [];
+
+            if ($extension === 'csv') {
+                // Parse CSV
+                $handle = fopen($file->getRealPath(), 'r');
+                $headers = fgetcsv($handle); // Skip header row
+                
+                while (($row = fgetcsv($handle)) !== false) {
+                    if (!empty($row[0])) { // Check if document name exists
+                        $documents[] = [
+                            'name' => trim($row[0]),
+                            'description' => isset($row[1]) ? trim($row[1]) : '',
+                        ];
+                    }
+                }
+                
+                fclose($handle);
+            } else {
+                // Parse Excel using Maatwebsite/Excel
+                $data = \Maatwebsite\Excel\Facades\Excel::toArray(new \stdClass(), $file)[0];
+                
+                // Skip header row
+                array_shift($data);
+                
+                foreach ($data as $row) {
+                    if (!empty($row[0])) { // Check if document name exists
+                        $documents[] = [
+                            'name' => trim($row[0]),
+                            'description' => isset($row[1]) ? trim($row[1]) : '',
+                        ];
+                    }
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'documents' => $documents,
+                'count' => count($documents),
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to parse file: ' . $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Get project document requests (for company users viewing their project)
+     */
+    public function getProjectDocumentRequests(Project $project)
+    {
+        // Check if user is part of this project
+        $user = Auth::user();
+        $projectTeam = ProjectTeam::where('project_id', $project->id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$projectTeam) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $requests = \App\Models\ProjectDocumentRequest::where('project_id', $project->id)
+            ->with(['requestedBy'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json(['requests' => $requests]);
+    }
+
+    /**
+     * Store new project document requests (bulk or single)
+     */
+    public function storeProjectDocumentRequests(Request $request, Project $project)
+    {
+        // Check if user is part of this project
+        $user = Auth::user();
+        $projectTeam = ProjectTeam::where('project_id', $project->id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$projectTeam) {
+            abort(403, 'Unauthorized access to this project.');
+        }
+
+        $request->validate([
+            'documents' => 'required|array|min:1',
+            'documents.*.name' => 'required|string|max:255',
+            'documents.*.description' => 'nullable|string|max:1000',
+        ]);
+
+        $createdRequests = [];
+
+        foreach ($request->documents as $doc) {
+            $documentRequest = \App\Models\ProjectDocumentRequest::create([
+                'project_id' => $project->id,
+                'requested_by_user_id' => $user->id,
+                'requested_by_name' => $user->name,
+                'requested_by_role' => $projectTeam->role,
+                'document_name' => $doc['name'],
+                'description' => $doc['description'] ?? null,
+                'status' => 'pending',
+            ]);
+
+            $createdRequests[] = $documentRequest;
+        }
+
+        // Get all client users for this project
+        $clientUserIds = User::where('role', 'client')
+            ->where('client_id', $project->client_id)
+            ->pluck('id')
+            ->toArray();
+
+        // Trigger notification to client users
+        if (!empty($clientUserIds) && !empty($createdRequests)) {
+            $message = count($createdRequests) > 1 
+                ? "New document requests ({count} documents) for project: {$project->name}"
+                : "New document request: {$createdRequests[0]->document_name}";
+            
+            $message = str_replace('{count}', count($createdRequests), $message);
+
+            // Broadcast event via WebSocket
+            event(new \App\Events\NewProjectDocumentRequest(
+                $createdRequests[0], // Use first request as representative
+                $clientUserIds,
+                $message
+            ));
+
+            // Create database notifications for each client user
+            foreach ($clientUserIds as $clientUserId) {
+                \App\Models\Notification::create([
+                    'id' => (string) \Illuminate\Support\Str::uuid(),
+                    'type' => 'App\\Notifications\\ProjectDocumentRequestNotification',
+                    'user_id' => $clientUserId,
+                    'title' => count($createdRequests) > 1 
+                        ? 'Permintaan Dokumen Baru (' . count($createdRequests) . ' dokumen)'
+                        : 'Permintaan Dokumen Baru',
+                    'message' => $message,
+                    'url' => route('klien.projects.show', $project->slug),
+                    'data' => json_encode([
+                        'project_id' => $project->id,
+                        'project_name' => $project->name,
+                        'document_count' => count($createdRequests),
+                        'first_document' => $createdRequests[0]->document_name,
+                        'requested_by' => Auth::user()->name,
+                        'type' => 'project_document_request',
+                    ]),
+                    'read_at' => null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            Log::info('🔔 Document request notification triggered', [
+                'project_id' => $project->id,
+                'client_user_ids' => $clientUserIds,
+                'request_count' => count($createdRequests)
+            ]);
+        }
+
+        return back()->with('success', count($createdRequests) . ' document request(s) sent to client!');
+    }
+
+    /**
+     * Download document from project document request
+     */
+    public function downloadProjectDocument(\App\Models\ProjectDocumentRequest $documentRequest)
+    {
+        // Check if user is part of this project
+        $user = Auth::user();
+        $projectTeam = ProjectTeam::where('project_id', $documentRequest->project_id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$projectTeam) {
+            abort(403, 'Unauthorized access to this document.');
+        }
+
+        if (!$documentRequest->file_path) {
+            abort(404, 'Document file not found.');
+        }
+
+        $filePath = storage_path('app/public/' . $documentRequest->file_path);
+
+        if (!file_exists($filePath)) {
+            abort(404, 'Document file not found on server.');
+        }
+
+        return response()->download($filePath, $documentRequest->document_name);
+    }
+
+    /**
+     * Mark project document request as completed
+     */
+    public function markProjectDocumentCompleted(\App\Models\ProjectDocumentRequest $documentRequest)
+    {
+        // Check if user is part of this project
+        $user = Auth::user();
+        $projectTeam = ProjectTeam::where('project_id', $documentRequest->project_id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$projectTeam) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        if ($documentRequest->status !== 'uploaded') {
+            return back()->with('error', 'Document must be uploaded before marking as completed.');
+        }
+
+        $documentRequest->markAsCompleted();
+
+        return back()->with('success', 'Document marked as completed!');
     }
 }

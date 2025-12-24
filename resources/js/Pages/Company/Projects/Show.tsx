@@ -98,11 +98,32 @@ interface TeamMember {
     role: string;
 }
 
+interface ProjectDocumentRequest {
+    id: string;
+    project_id: string;
+    requested_by_user_id: string;
+    requested_by_name: string;
+    requested_by_role: string;
+    document_name: string;
+    description: string | null;
+    status: 'pending' | 'uploaded' | 'completed';
+    file_path: string | null;
+    uploaded_at: string | null;
+    created_at: string;
+    updated_at: string;
+    requested_by?: {
+        id: string;
+        name: string;
+        email: string;
+    };
+}
+
 interface Props extends PageProps {
     project: Project;
     workingSteps: WorkingStep[];
     myRole: string;
     teamMembers: TeamMember[];
+    documentRequests: ProjectDocumentRequest[];
     from_search?: string;
     from_status?: string;
 }
@@ -135,7 +156,7 @@ interface ApprovalTask {
     } | null;
 }
 
-export default function ShowProject({ auth, project, workingSteps, myRole, teamMembers, from_search, from_status }: Props) {
+export default function ShowProject({ auth, project, workingSteps, myRole, teamMembers, documentRequests, from_search, from_status }: Props) {
     // Check if project is active (only allow actions for In Progress projects)
     const isProjectActive = project.status === 'In Progress';
     
@@ -174,6 +195,14 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
     const [clientDocInputs, setClientDocInputs] = useState<Array<{ id: number; name: string; description: string }>>([{ id: 0, name: '', description: '' }]);
     const [nextFileId, setNextFileId] = useState(1);
     const [nextClientDocId, setNextClientDocId] = useState(1);
+    
+    // Project document request states
+    const [showDocRequestModal, setShowDocRequestModal] = useState(false);
+    const [docRequestInputs, setDocRequestInputs] = useState<Array<{ id: number; name: string; description: string }>>([{ id: 0, name: '', description: '' }]);
+    const [nextDocRequestId, setNextDocRequestId] = useState(1);
+    const [isUploadingExcel, setIsUploadingExcel] = useState(false);
+    const [excelError, setExcelError] = useState<string | null>(null);
+    const [processingDocRequest, setProcessingDocRequest] = useState(false);
     
     // Task assignment states
     const [showAssignmentModal, setShowAssignmentModal] = useState(false);
@@ -806,6 +835,154 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
         });
     };
 
+    // Project Document Request Handlers
+    const openDocRequestModal = () => {
+        setShowDocRequestModal(true);
+        setDocRequestInputs([{ id: 0, name: '', description: '' }]);
+        setNextDocRequestId(1);
+        setExcelError(null);
+    };
+
+    const addDocRequestInput = () => {
+        setDocRequestInputs([...docRequestInputs, { id: nextDocRequestId, name: '', description: '' }]);
+        setNextDocRequestId(nextDocRequestId + 1);
+    };
+
+    const removeDocRequestInput = (id: number) => {
+        if (docRequestInputs.length === 1) {
+            setDocRequestInputs([{ id: nextDocRequestId, name: '', description: '' }]);
+            setNextDocRequestId(nextDocRequestId + 1);
+        } else {
+            setDocRequestInputs(docRequestInputs.filter(input => input.id !== id));
+        }
+    };
+
+    const handleDocRequestNameChange = (id: number, name: string) => {
+        setDocRequestInputs(docRequestInputs.map(input => 
+            input.id === id ? { ...input, name } : input
+        ));
+    };
+
+    const handleDocRequestDescriptionChange = (id: number, description: string) => {
+        setDocRequestInputs(docRequestInputs.map(input => 
+            input.id === id ? { ...input, description } : input
+        ));
+    };
+
+    const handleDownloadTemplate = () => {
+        window.location.href = route('company.client-documents.template');
+    };
+
+    const handleExcelUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const validTypes = ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+        if (!validTypes.includes(file.type) && !file.name.match(/\.(csv|xls|xlsx)$/)) {
+            setExcelError('Please upload a valid CSV or Excel file');
+            event.target.value = '';
+            return;
+        }
+
+        setIsUploadingExcel(true);
+        setExcelError(null);
+
+        const formData = new FormData();
+        formData.append('excel_file', file);
+
+        try {
+            const response = await fetch(route('company.client-documents.parse-excel'), {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Parse excel error:', response.status, errorText);
+                throw new Error(`Server error: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success && result.documents) {
+                const newDocs = result.documents.map((doc: { name: string; description: string }, index: number) => ({
+                    id: nextDocRequestId + index,
+                    name: doc.name,
+                    description: doc.description || '',
+                }));
+
+                setDocRequestInputs(prev => [...prev, ...newDocs]);
+                setNextDocRequestId(prev => prev + result.documents.length);
+
+                toast.success(`Successfully imported ${result.count} document requests!`);
+            } else {
+                setExcelError(result.message || 'Failed to parse Excel file');
+                toast.error(result.message || 'Failed to parse Excel file');
+            }
+        } catch (error) {
+            console.error('Excel upload error:', error);
+            setExcelError(error instanceof Error ? error.message : 'An error occurred while uploading the file');
+            toast.error(error instanceof Error ? error.message : 'An error occurred while uploading the file');
+        } finally {
+            setIsUploadingExcel(false);
+            event.target.value = '';
+        }
+    };
+
+    const handleSubmitDocRequests = () => {
+        const validDocs = docRequestInputs.filter(input => input.name.trim() !== '');
+        
+        if (validDocs.length === 0) {
+            toast.error('Please add at least one document request');
+            return;
+        }
+
+        setProcessingDocRequest(true);
+
+        router.post(route('company.projects.store-document-requests', project.id), {
+            documents: validDocs.map(doc => ({
+                name: doc.name,
+                description: doc.description || null,
+            })),
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowDocRequestModal(false);
+                setDocRequestInputs([{ id: 0, name: '', description: '' }]);
+                setNextDocRequestId(1);
+                toast.success('Document requests sent to client!');
+                router.reload({ only: ['documentRequests'] });
+            },
+            onError: (errors) => {
+                console.error('Submit doc request errors:', errors);
+                const errorMessage = Object.values(errors).join(', ') || 'Failed to send document requests';
+                toast.error(errorMessage);
+            },
+            onFinish: () => {
+                setProcessingDocRequest(false);
+            }
+        });
+    };
+
+    const handleDownloadDocument = (documentRequest: ProjectDocumentRequest) => {
+        window.location.href = route('company.document-requests.download', documentRequest.id);
+    };
+
+    const handleMarkAsCompleted = (documentRequest: ProjectDocumentRequest) => {
+        if (!confirm('Mark this document as completed?')) return;
+
+        router.post(route('company.document-requests.complete', documentRequest.id), {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Document marked as completed!');
+                router.reload({ only: ['documentRequests'] });
+            },
+        });
+    };
+
     const getStatusBadgeClass = (status: string) => {
         switch (status) {
             case 'completed':
@@ -1117,6 +1294,270 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
                             </div>
                         </div>
                     </div>
+
+                    {/* Document Requests Section */}
+                    <div className="mb-6 bg-white shadow-sm rounded-lg overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                                <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Document Requests from Client
+                                <span className="ml-2 text-sm font-normal text-gray-500">({documentRequests.length} requests)</span>
+                            </h3>
+                            <button
+                                onClick={openDocRequestModal}
+                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                            >
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                Request Documents
+                            </button>
+                        </div>
+                        <div className="px-6 py-4">
+                            {documentRequests.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <h3 className="mt-2 text-sm font-medium text-gray-900">No document requests</h3>
+                                    <p className="mt-1 text-sm text-gray-500">Get started by requesting documents from the client.</p>
+                                    <div className="mt-6">
+                                        <button
+                                            onClick={openDocRequestModal}
+                                            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                                        >
+                                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                            </svg>
+                                            Request Documents
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {documentRequests.map((request) => (
+                                        <div
+                                            key={request.id}
+                                            className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                                        >
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-3 mb-2">
+                                                        <h4 className="text-sm font-semibold text-gray-900">
+                                                            {request.document_name}
+                                                        </h4>
+                                                        {request.status === 'pending' && (
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+                                                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                                                </svg>
+                                                                Pending
+                                                            </span>
+                                                        )}
+                                                        {request.status === 'uploaded' && (
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                                                                </svg>
+                                                                Uploaded
+                                                            </span>
+                                                        )}
+                                                        {request.status === 'completed' && (
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                                                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                                </svg>
+                                                                Completed
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {request.description && (
+                                                        <p className="text-sm text-gray-600 mb-2">{request.description}</p>
+                                                    )}
+                                                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                                                        <span className="flex items-center">
+                                                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                            </svg>
+                                                            Requested by {request.requested_by?.name || 'Unknown'}
+                                                        </span>
+                                                        {request.uploaded_at && (
+                                                            <span className="flex items-center">
+                                                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                </svg>
+                                                                Uploaded {new Date(request.uploaded_at).toLocaleDateString()}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 ml-4">
+                                                    {request.status === 'uploaded' || request.status === 'completed' ? (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleDownloadDocument(request)}
+                                                                className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                                                            >
+                                                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                                </svg>
+                                                                Download
+                                                            </button>
+                                                            {request.status === 'uploaded' && (
+                                                                <button
+                                                                    onClick={() => handleMarkAsCompleted(request)}
+                                                                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                                                >
+                                                                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                    </svg>
+                                                                    Mark Complete
+                                                                </button>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-xs text-gray-500 italic">Waiting for upload...</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Document Request Modal */}
+                    {showDocRequestModal && (
+                        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+                            <div className="relative mx-auto p-5 border w-full max-w-3xl shadow-lg rounded-md bg-white">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-lg font-semibold text-gray-900">Request Documents from Client</h3>
+                                    <button
+                                        onClick={() => setShowDocRequestModal(false)}
+                                        className="text-gray-400 hover:text-gray-500"
+                                    >
+                                        <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                {/* Excel Upload Section */}
+                                <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <div className="flex items-start">
+                                        <div className="flex-shrink-0">
+                                            <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div className="ml-3 flex-1">
+                                            <h3 className="text-sm font-medium text-blue-800">
+                                                Bulk Upload via Excel/CSV
+                                            </h3>
+                                            <div className="mt-2 text-sm text-blue-700">
+                                                <p>Need to request multiple documents? Upload an Excel or CSV file!</p>
+                                                <div className="mt-2 flex items-center gap-2">
+                                                    <button
+                                                        onClick={handleDownloadTemplate}
+                                                        className="inline-flex items-center px-3 py-1 border border-blue-300 shadow-sm text-xs font-medium rounded text-blue-700 bg-white hover:bg-blue-50"
+                                                    >
+                                                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                        </svg>
+                                                        Download Template
+                                                    </button>
+                                                    <label className="inline-flex items-center px-3 py-1 border border-blue-300 shadow-sm text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700 cursor-pointer">
+                                                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                        </svg>
+                                                        {isUploadingExcel ? 'Uploading...' : 'Upload Excel/CSV'}
+                                                        <input
+                                                            type="file"
+                                                            accept=".xlsx,.xls,.csv"
+                                                            onChange={handleExcelUpload}
+                                                            className="hidden"
+                                                            disabled={isUploadingExcel}
+                                                        />
+                                                    </label>
+                                                </div>
+                                                {excelError && (
+                                                    <p className="mt-2 text-sm text-red-600">{excelError}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Manual Input Section */}
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Or enter document requests manually:
+                                    </label>
+                                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                                        {docRequestInputs.map((input, index) => (
+                                            <div key={input.id} className="flex gap-2 items-start p-3 bg-gray-50 rounded-lg">
+                                                <div className="flex-1 space-y-2">
+                                                    <input
+                                                        type="text"
+                                                        value={input.name}
+                                                        onChange={(e) => handleDocRequestNameChange(input.id, e.target.value)}
+                                                        placeholder="Document name"
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
+                                                    />
+                                                    <textarea
+                                                        value={input.description}
+                                                        onChange={(e) => handleDocRequestDescriptionChange(input.id, e.target.value)}
+                                                        placeholder="Description (optional)"
+                                                        rows={2}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
+                                                    />
+                                                </div>
+                                                {docRequestInputs.length > 1 && (
+                                                    <button
+                                                        onClick={() => removeDocRequestInput(input.id)}
+                                                        className="flex-shrink-0 p-2 text-red-600 hover:text-red-800"
+                                                    >
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button
+                                        onClick={addDocRequestInput}
+                                        className="mt-3 inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                                    >
+                                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        Add Another Document
+                                    </button>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
+                                    <button
+                                        onClick={() => setShowDocRequestModal(false)}
+                                        className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSubmitDocRequests}
+                                        disabled={processingDocRequest || docRequestInputs.every(input => !input.name.trim())}
+                                        className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {processingDocRequest ? 'Submitting...' : 'Submit Requests'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Tab Navigation - Only for Team Leader, Manager, Supervisor, Partner */}
                     {needsApprovalTab && (

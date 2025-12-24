@@ -279,6 +279,16 @@ Route::middleware(['auth', 'verified', 'role:company', 'no.cache'])->prefix('com
     Route::post('/tasks/{task}/accept-client-documents', [CompanyController::class, 'acceptClientDocuments'])->name('tasks.accept-client-documents');
     Route::post('/tasks/{task}/request-reupload', [CompanyController::class, 'requestReupload'])->name('tasks.request-reupload');
     
+    // Bulk client document request routes
+    Route::get('/client-documents/template', [CompanyController::class, 'downloadClientDocumentTemplate'])->name('client-documents.template');
+    Route::post('/client-documents/parse-excel', [CompanyController::class, 'parseClientDocumentExcel'])->name('client-documents.parse-excel');
+    
+    // Project document request routes (ad-hoc document requests)
+    Route::get('/projects/{project}/document-requests', [CompanyController::class, 'getProjectDocumentRequests'])->name('projects.document-requests');
+    Route::post('/projects/{project}/document-requests', [CompanyController::class, 'storeProjectDocumentRequests'])->name('projects.store-document-requests');
+    Route::get('/document-requests/{documentRequest}/download', [CompanyController::class, 'downloadProjectDocument'])->name('document-requests.download');
+    Route::post('/document-requests/{documentRequest}/complete', [CompanyController::class, 'markProjectDocumentCompleted'])->name('document-requests.complete');
+    
     // Task management routes for team leaders and above
     Route::post('/projects/{project}/tasks/{task}/update', [CompanyController::class, 'updateTaskSettings'])->name('projects.update-task');
     
@@ -316,6 +326,9 @@ Route::middleware(['auth', 'verified', 'role:klien', 'no.cache'])->prefix('klien
     Route::post('/tasks/{task}/submit-reply', [ClientController::class, 'submitTaskReply'])->name('tasks.submit-reply');
     Route::post('/tasks/{task}/upload-client-documents', [ClientController::class, 'uploadClientDocuments'])->name('client-documents.upload');
     Route::post('/tasks/{task}/approval', [ClientController::class, 'approveTask'])->name('tasks.approval');
+    
+    // Project document request routes (for clients to upload requested documents)
+    Route::post('/document-requests/{documentRequest}/upload', [ClientController::class, 'uploadProjectDocument'])->name('document-requests.upload');
 });
 
 // Public News Route (accessible by all authenticated users)

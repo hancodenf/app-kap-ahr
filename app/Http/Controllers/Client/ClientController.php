@@ -505,6 +505,32 @@ class ClientController extends Controller
                 ];
             });
 
+        // Get project document requests
+        $documentRequests = \App\Models\ProjectDocumentRequest::where('project_id', $project->id)
+            ->with('requestedBy:id,name,email')
+            ->orderByRaw("FIELD(status, 'pending', 'uploaded', 'completed')")
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function($request) {
+                return [
+                    'id' => $request->id,
+                    'project_id' => $request->project_id,
+                    'requested_by_user_id' => $request->requested_by_user_id,
+                    'document_name' => $request->document_name,
+                    'description' => $request->description,
+                    'status' => $request->status,
+                    'file_path' => $request->file_path,
+                    'uploaded_at' => $request->uploaded_at,
+                    'created_at' => $request->created_at,
+                    'updated_at' => $request->updated_at,
+                    'requested_by' => $request->requestedBy ? [
+                        'id' => $request->requestedBy->id,
+                        'name' => $request->requestedBy->name,
+                        'email' => $request->requestedBy->email,
+                    ] : null,
+                ];
+            });
+
         return Inertia::render('Client/Projects/Show', [
             'project' => [
                 'id' => $project->id,
@@ -520,6 +546,7 @@ class ClientController extends Controller
             ],
             'workingSteps' => $workingSteps,
             'projectTeams' => $projectTeams,
+            'documentRequests' => $documentRequests,
         ]);
     }
 
@@ -1301,5 +1328,80 @@ class ClientController extends Controller
                 'action_type' => $actionType
             ]);
         }
+    }
+
+    /**
+     * Upload document for project document request
+     */
+    public function uploadProjectDocument(Request $request, \App\Models\ProjectDocumentRequest $documentRequest)
+    {
+        // Verify client owns this project
+        if ($documentRequest->project->client_id !== Auth::user()->client_id) {
+            abort(403, 'Unauthorized access to this document request.');
+        }
+
+        $request->validate([
+            'file' => 'required|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:10240', // 10MB
+        ]);
+
+        // Get storage path for this project
+        $project = $documentRequest->project;
+        $clientSlug = \Str::slug($project->client_name);
+        $projectSlug = \Str::slug($project->name);
+        $storagePath = "clients/{$clientSlug}/{$projectSlug}/project-documents";
+
+        // Store file
+        $file = $request->file('file');
+        $fileName = time() . '_' . $file->getClientOriginalName();
+        $filePath = $file->storeAs($storagePath, $fileName, 'public');
+
+        // Update document request
+        $documentRequest->markAsUploaded($filePath);
+
+        // Get all company users in this project for notification
+        $companyUserIds = \App\Models\ProjectTeam::where('project_id', $project->id)
+            ->pluck('user_id')
+            ->toArray();
+
+        // Trigger notification to company users
+        if (!empty($companyUserIds)) {
+            // Broadcast event via WebSocket
+            event(new \App\Events\ProjectDocumentUploaded(
+                $documentRequest,
+                $companyUserIds,
+                "Client uploaded document: {$documentRequest->document_name}"
+            ));
+
+            // Create database notifications for each company user
+            foreach ($companyUserIds as $companyUserId) {
+                \App\Models\Notification::create([
+                    'id' => (string) \Illuminate\Support\Str::uuid(),
+                    'type' => 'App\\Notifications\\ProjectDocumentUploadedNotification',
+                    'user_id' => $companyUserId,
+                    'title' => 'Dokumen Diupload Client',
+                    'message' => "Client uploaded document: {$documentRequest->document_name}",
+                    'url' => route('company.projects.show', $project->slug),
+                    'data' => json_encode([
+                        'project_id' => $project->id,
+                        'project_name' => $project->name,
+                        'document_name' => $documentRequest->document_name,
+                        'document_request_id' => $documentRequest->id,
+                        'uploaded_by' => Auth::user()->name,
+                        'type' => 'project_document_uploaded',
+                    ]),
+                    'read_at' => null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            Log::info('🔔 Document uploaded notification triggered', [
+                'project_id' => $project->id,
+                'document_request_id' => $documentRequest->id,
+                'company_user_ids' => $companyUserIds
+            ]);
+        }
+
+        return back()->with('success', 'Document uploaded successfully!');
     }
 }

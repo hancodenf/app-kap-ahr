@@ -123,15 +123,36 @@ interface ProjectTeam {
     };
 }
 
+interface ProjectDocumentRequest {
+    id: string;
+    project_id: string;
+    requested_by_user_id: string;
+    document_name: string;
+    description: string | null;
+    status: 'pending' | 'uploaded' | 'completed';
+    file_path: string | null;
+    uploaded_at: string | null;
+    created_at: string;
+    updated_at: string;
+    requested_by?: {
+        id: string;
+        name: string;
+        email: string;
+    };
+}
+
 interface Props extends PageProps {
     project: Project;
     workingSteps: WorkingStep[];
     projectTeams: ProjectTeam[];
+    documentRequests: ProjectDocumentRequest[];
 }
 
-export default function Show({ project, workingSteps, projectTeams }: Props) {
+export default function Show({ project, workingSteps, projectTeams, documentRequests }: Props) {
     const [activeTab, setActiveTab] = useState<number>(0);
     const [hoveredWorker, setHoveredWorker] = useState<string | null>(null);
+    const [uploadingDocumentId, setUploadingDocumentId] = useState<string | null>(null);
+    const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
     
     // Check if project is active (only In Progress allows interactions)
     const isProjectActive = project.status === 'In Progress';
@@ -144,6 +165,58 @@ export default function Show({ project, workingSteps, projectTeams }: Props) {
     const pendingTasks = allTasks.filter(t => t.completion_status === 'pending').length;
     
     const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+    // Handler for uploading document
+    const handleUploadDocument = async (documentRequestId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        // Validate file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            setUploadErrors(prev => ({
+                ...prev,
+                [documentRequestId]: 'File size must be less than 10MB'
+            }));
+            return;
+        }
+
+        setUploadingDocumentId(documentRequestId);
+        setUploadErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors[documentRequestId];
+            return newErrors;
+        });
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch(route('client.document-requests.upload', documentRequestId), {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.message || 'Upload failed');
+            }
+
+            // Success - reload page to show updated status
+            window.location.reload();
+        } catch (error) {
+            setUploadErrors(prev => ({
+                ...prev,
+                [documentRequestId]: error instanceof Error ? error.message : 'Upload failed'
+            }));
+        } finally {
+            setUploadingDocumentId(null);
+            // Reset file input
+            event.target.value = '';
+        }
+    };
 
     const getStatusBadgeClass = (status: string) => {
         switch (status) {
@@ -380,6 +453,174 @@ export default function Show({ project, workingSteps, projectTeams }: Props) {
                                         </div>
                                     );
                                 })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Document Requests Section */}
+                    {documentRequests && documentRequests.length > 0 && (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+                            <div className="mb-4 flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                                        <svg className="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        Permintaan Dokumen
+                                    </h3>
+                                    <p className="text-sm text-gray-600 mt-1">
+                                        Dokumen yang diminta oleh tim audit ({documentRequests.length} dokumen)
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm">
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        {documentRequests.filter(req => req.status === 'pending').length} Pending
+                                    </span>
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        {documentRequests.filter(req => req.status === 'uploaded').length} Uploaded
+                                    </span>
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        {documentRequests.filter(req => req.status === 'completed').length} Completed
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-3">
+                                {documentRequests.map((request) => (
+                                    <div
+                                        key={request.id}
+                                        className={`border-2 rounded-lg p-4 transition-all ${
+                                            request.status === 'pending' 
+                                                ? 'border-yellow-200 bg-yellow-50 hover:shadow-md' 
+                                                : request.status === 'uploaded'
+                                                ? 'border-blue-200 bg-blue-50'
+                                                : 'border-green-200 bg-green-50'
+                                        }`}
+                                    >
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <h4 className="text-base font-semibold text-gray-900">
+                                                        {request.document_name}
+                                                    </h4>
+                                                    {request.status === 'pending' && (
+                                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">
+                                                            <svg className="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                                            </svg>
+                                                            Menunggu Upload
+                                                        </span>
+                                                    )}
+                                                    {request.status === 'uploaded' && (
+                                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">
+                                                            <svg className="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                                                            </svg>
+                                                            Sudah Diupload
+                                                        </span>
+                                                    )}
+                                                    {request.status === 'completed' && (
+                                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-300">
+                                                            <svg className="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                            </svg>
+                                                            Selesai
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {request.description && (
+                                                    <p className="text-sm text-gray-700 mb-3 bg-white px-3 py-2 rounded border border-gray-200">
+                                                        {request.description}
+                                                    </p>
+                                                )}
+                                                <div className="flex items-center gap-4 text-xs text-gray-600">
+                                                    <span className="flex items-center">
+                                                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                        </svg>
+                                                        Diminta oleh: <strong className="ml-1">{request.requested_by?.name || 'Tim Audit'}</strong>
+                                                    </span>
+                                                    <span className="flex items-center">
+                                                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                        {new Date(request.created_at).toLocaleDateString('id-ID', { 
+                                                            day: 'numeric', 
+                                                            month: 'long', 
+                                                            year: 'numeric' 
+                                                        })}
+                                                    </span>
+                                                    {request.uploaded_at && (
+                                                        <span className="flex items-center text-green-700 font-medium">
+                                                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                            Diupload: {new Date(request.uploaded_at).toLocaleDateString('id-ID', { 
+                                                                day: 'numeric', 
+                                                                month: 'short',
+                                                                hour: '2-digit',
+                                                                minute: '2-digit'
+                                                            })}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Action Area */}
+                                            <div className="flex flex-col items-end gap-2 min-w-[200px]">
+                                                {request.status === 'pending' && isProjectActive && (
+                                                    <div className="w-full">
+                                                        <label className="cursor-pointer">
+                                                            <div className="inline-flex items-center justify-center w-full px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                                                                {uploadingDocumentId === request.id ? (
+                                                                    <>
+                                                                        <svg className="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+                                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                                        </svg>
+                                                                        Uploading...
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                                        </svg>
+                                                                        Upload Dokumen
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                            <input
+                                                                type="file"
+                                                                onChange={(e) => handleUploadDocument(request.id, e)}
+                                                                className="hidden"
+                                                                disabled={uploadingDocumentId === request.id}
+                                                            />
+                                                        </label>
+                                                        {uploadErrors[request.id] && (
+                                                            <p className="mt-1 text-xs text-red-600">{uploadErrors[request.id]}</p>
+                                                        )}
+                                                        <p className="mt-1 text-xs text-gray-500">Max: 10MB</p>
+                                                    </div>
+                                                )}
+                                                {(request.status === 'uploaded' || request.status === 'completed') && (
+                                                    <div className="flex items-center gap-2 text-sm text-gray-700">
+                                                        <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                        </svg>
+                                                        <span className="font-medium">
+                                                            {request.status === 'uploaded' ? 'Menunggu Review' : 'Dokumen Diterima'}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {!isProjectActive && request.status === 'pending' && (
+                                                    <div className="text-sm text-gray-500 italic">
+                                                        Proyek tidak aktif
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     )}

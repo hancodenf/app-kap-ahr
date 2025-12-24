@@ -106,6 +106,10 @@ export default function TaskDetail({ auth, task, project }: Props) {
     const [showReuploadModal, setShowReuploadModal] = useState(false);
     const [reuploadComment, setReuploadComment] = useState('');
     const [showAcceptModal, setShowAcceptModal] = useState(false);
+    
+    // States for Excel bulk upload
+    const [isUploadingExcel, setIsUploadingExcel] = useState(false);
+    const [excelError, setExcelError] = useState<string | null>(null);
 
     const { data, setData, post, processing, errors, reset } = useForm<{
         notes: string;
@@ -394,6 +398,66 @@ export default function TaskDetail({ auth, task, project }: Props) {
                 window.location.reload();
             },
         });
+    };
+
+    // Handler for downloading Excel template
+    const handleDownloadTemplate = () => {
+        window.location.href = route('company.client-documents.template');
+    };
+
+    // Handler for uploading Excel file
+    const handleExcelUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        // Validate file type
+        const validTypes = ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+        if (!validTypes.includes(file.type) && !file.name.match(/\.(csv|xls|xlsx)$/)) {
+            setExcelError('Please upload a valid CSV or Excel file');
+            event.target.value = '';
+            return;
+        }
+
+        setIsUploadingExcel(true);
+        setExcelError(null);
+
+        const formData = new FormData();
+        formData.append('excel_file', file);
+
+        try {
+            const response = await fetch(route('company.client-documents.parse-excel'), {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.documents) {
+                // Add all documents from Excel to clientDocInputs
+                const newDocs = result.documents.map((doc: { name: string; description: string }, index: number) => ({
+                    id: nextClientDocId + index,
+                    name: doc.name,
+                    description: doc.description || '',
+                }));
+
+                setClientDocInputs(prev => [...prev, ...newDocs]);
+                setNextClientDocId(prev => prev + result.documents.length);
+
+                toast.success(`Successfully imported ${result.count} document requests!`);
+            } else {
+                setExcelError(result.message || 'Failed to parse Excel file');
+                toast.error(result.message || 'Failed to parse Excel file');
+            }
+        } catch (error) {
+            setExcelError('An error occurred while uploading the file');
+            toast.error('An error occurred while uploading the file');
+        } finally {
+            setIsUploadingExcel(false);
+            event.target.value = ''; // Reset file input
+        }
     };
 
     const getTaskStatusBadgeClass = (status: string) => {
@@ -875,6 +939,9 @@ export default function TaskDetail({ auth, task, project }: Props) {
                                                                             <p className="mt-2 text-sm text-gray-600">
                                                                                 Click to upload or drag and drop
                                                                             </p>
+                                                                            <p className="mt-1 text-xs text-gray-500">
+                                                                                PDF, DOC, DOCX, XLS, XLSX, JPG, PNG (Max: 10MB)
+                                                                            </p>
                                                                         </label>
                                                                     </div>
                                                                 )}
@@ -901,17 +968,68 @@ export default function TaskDetail({ auth, task, project }: Props) {
                                     {/* Client Document Requests */}
                                     {(task.client_interact !== 'read only' && task.client_interact === 'upload') && (
                                         <div>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <label className="block text-sm font-medium text-gray-700">
+                                            <div className="mb-4">
+                                                <label className="block text-sm font-medium text-gray-700 mb-3">
                                                     Request Documents from Client
                                                 </label>
-                                                <button
-                                                    type="button"
-                                                    onClick={addClientDocInput}
-                                                    className="text-sm text-purple-600 hover:text-purple-800"
-                                                >
-                                                    + Add Document Request
-                                                </button>
+                                                
+                                                {/* Bulk Upload Section */}
+                                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                        </svg>
+                                                        <h4 className="text-sm font-semibold text-blue-900">Bulk Upload via Excel</h4>
+                                                    </div>
+                                                    <p className="text-xs text-blue-700 mb-3">
+                                                        Need to request many documents? Download the template, fill it out, and upload it here.
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleDownloadTemplate}
+                                                            className="inline-flex items-center px-3 py-2 text-sm bg-white border border-blue-300 text-blue-700 rounded-md hover:bg-blue-50 transition-colors"
+                                                        >
+                                                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                            </svg>
+                                                            Download Template
+                                                        </button>
+                                                        <label className="inline-flex items-center px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors cursor-pointer">
+                                                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                            </svg>
+                                                            {isUploadingExcel ? 'Uploading...' : 'Upload Excel'}
+                                                            <input
+                                                                type="file"
+                                                                accept=".csv,.xls,.xlsx"
+                                                                onChange={handleExcelUpload}
+                                                                disabled={isUploadingExcel}
+                                                                className="hidden"
+                                                            />
+                                                        </label>
+                                                    </div>
+                                                    {excelError && (
+                                                        <div className="mt-2 text-xs text-red-600 flex items-center gap-1">
+                                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                            </svg>
+                                                            {excelError}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Manual Input Section */}
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-sm text-gray-600">or add manually:</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={addClientDocInput}
+                                                        className="text-sm text-purple-600 hover:text-purple-800 font-medium"
+                                                    >
+                                                        + Add Document Request
+                                                    </button>
+                                                </div>
                                             </div>
                                             
                                             <div className="space-y-3">
