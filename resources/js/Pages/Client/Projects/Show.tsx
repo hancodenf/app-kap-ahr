@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { useState } from 'react';
+import { useAutoMarkNotifications } from '@/hooks/useAutoMarkNotifications';
 
 interface ClientDocument {
     id: number;
@@ -94,7 +95,7 @@ interface WorkingStep {
 }
 
 interface Project {
-    id: number;
+    id: string; // UUID
     name: string;
     slug: string;
     status: string;
@@ -154,6 +155,12 @@ export default function Show({ project, workingSteps, projectTeams, documentRequ
     const [uploadingDocumentId, setUploadingDocumentId] = useState<string | null>(null);
     const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
     
+    // Auto-mark project document request notifications as read when viewing this page
+    useAutoMarkNotifications({
+        type: 'project_document_request',
+        relatedId: project.id
+    });
+    
     // Check if project is active (only In Progress allows interactions)
     const isProjectActive = project.status === 'In Progress';
 
@@ -191,7 +198,7 @@ export default function Show({ project, workingSteps, projectTeams, documentRequ
         formData.append('file', file);
 
         try {
-            const response = await fetch(route('client.document-requests.upload', documentRequestId), {
+            const response = await fetch(route('klien.document-requests.upload', documentRequestId), {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',

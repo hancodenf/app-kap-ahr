@@ -1348,7 +1348,7 @@ class ClientController extends Controller
         $project = $documentRequest->project;
         $clientSlug = \Str::slug($project->client_name);
         $projectSlug = \Str::slug($project->name);
-        $storagePath = "clients/{$clientSlug}/{$projectSlug}/project-documents";
+        $storagePath = "clients/{$clientSlug}/projects/{$projectSlug}/project-documents";
 
         // Store file
         $file = $request->file('file');
@@ -1358,10 +1358,18 @@ class ClientController extends Controller
         // Update document request
         $documentRequest->markAsUploaded($filePath);
 
-        // Get all company users in this project for notification
+        // Get the user who requested this document (the requester)
+        $requesterId = $documentRequest->requested_by_user_id;
+        
+        // Also get all company users in this project for notification
         $companyUserIds = \App\Models\ProjectTeam::where('project_id', $project->id)
             ->pluck('user_id')
             ->toArray();
+        
+        // Ensure requester is in the list (in case they're not in project team)
+        if ($requesterId && !in_array($requesterId, $companyUserIds)) {
+            $companyUserIds[] = $requesterId;
+        }
 
         // Trigger notification to company users
         if (!empty($companyUserIds)) {
@@ -1374,12 +1382,23 @@ class ClientController extends Controller
 
             // Create database notifications for each company user
             foreach ($companyUserIds as $companyUserId) {
+                // Highlight notification for the requester
+                $isRequester = $companyUserId === $requesterId;
+                $title = $isRequester 
+                    ? '✅ Client Uploaded Your Requested Document' 
+                    : 'Dokumen Diupload Client';
+                $message = $isRequester
+                    ? "Client has uploaded the document you requested: {$documentRequest->document_name}"
+                    : "Client uploaded document: {$documentRequest->document_name}";
+                
                 \App\Models\Notification::create([
                     'id' => (string) \Illuminate\Support\Str::uuid(),
                     'type' => 'App\\Notifications\\ProjectDocumentUploadedNotification',
+                    'notifiable_type' => 'App\\Models\\User',
+                    'notifiable_id' => $companyUserId,
                     'user_id' => $companyUserId,
-                    'title' => 'Dokumen Diupload Client',
-                    'message' => "Client uploaded document: {$documentRequest->document_name}",
+                    'title' => $title,
+                    'message' => $message,
                     'url' => route('company.projects.show', $project->slug),
                     'data' => json_encode([
                         'project_id' => $project->id,
@@ -1387,6 +1406,8 @@ class ClientController extends Controller
                         'document_name' => $documentRequest->document_name,
                         'document_request_id' => $documentRequest->id,
                         'uploaded_by' => Auth::user()->name,
+                        'requested_by' => $requesterId,
+                        'is_requester' => $isRequester,
                         'type' => 'project_document_uploaded',
                     ]),
                     'read_at' => null,
@@ -1398,7 +1419,9 @@ class ClientController extends Controller
             Log::info('🔔 Document uploaded notification triggered', [
                 'project_id' => $project->id,
                 'document_request_id' => $documentRequest->id,
-                'company_user_ids' => $companyUserIds
+                'requester_id' => $requesterId,
+                'company_user_ids' => $companyUserIds,
+                'total_notified' => count($companyUserIds)
             ]);
         }
 

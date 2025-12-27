@@ -62,7 +62,13 @@ const WebSocketNotifications: React.FC<{ className?: string }> = ({ className = 
 
     const markAsRead = async (notificationId: string) => {
         try {
-            await fetch(`/api/notifications/${notificationId}/read`, { method: 'POST' });
+            await fetch(`/api/notifications/${notificationId}/read`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                }
+            });
             setNotifications(prev => 
                 prev.map(n => n.id === notificationId ? { ...n, read_at: new Date().toISOString() } : n)
             );
@@ -74,7 +80,13 @@ const WebSocketNotifications: React.FC<{ className?: string }> = ({ className = 
 
     const markAllAsRead = async () => {
         try {
-            await fetch('/api/notifications/read-all', { method: 'POST' });
+            await fetch('/api/notifications/read-all', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                }
+            });
             setNotifications(prev => 
                 prev.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() }))
             );
@@ -180,6 +192,31 @@ const WebSocketNotifications: React.FC<{ className?: string }> = ({ className = 
                             );
                         }
                     })
+                    .listen('.ProjectDocumentUploaded', (data: any) => {
+                        console.log('📤 Bell notification - Client uploaded document:', data);
+                        
+                        // Refresh notifications from database to get the persistent version
+                        fetchNotifications();
+                        
+                        // Show browser notification if permitted
+                        if (Notification.permission === 'granted') {
+                            new Notification('📤 Document Uploaded', {
+                                body: data.message || 'Client has uploaded a document',
+                                icon: '/favicon.ico'
+                            });
+                        }
+                        
+                        // Show toast notification
+                        if (typeof window !== 'undefined' && (window as any).toast) {
+                            (window as any).toast.success(
+                                `📤 ${data.message}`,
+                                {
+                                    position: "top-right",
+                                    duration: 8000,
+                                }
+                            );
+                        }
+                    })
                     
                     // Listen for client notifications (only for client users)
                     if (auth.user?.role === 'client') {
@@ -230,6 +267,31 @@ const WebSocketNotifications: React.FC<{ className?: string }> = ({ className = 
                                                     router.visit(data.url);
                                                 }
                                             } : undefined
+                                        }
+                                    );
+                                }
+                            })
+                            .listen('.NewProjectDocumentRequest', (data: any) => {
+                                console.log('📄 Bell notification - New project document request:', data);
+                                
+                                // Refresh notifications from database
+                                fetchNotifications();
+                                
+                                // Show browser notification if permitted
+                                if (Notification.permission === 'granted') {
+                                    new Notification('📄 Document Request', {
+                                        body: data.message || 'New document request for your project',
+                                        icon: '/favicon.ico'
+                                    });
+                                }
+                                
+                                // Show toast notification
+                                if (typeof window !== 'undefined' && (window as any).toast) {
+                                    (window as any).toast.info(
+                                        `📄 ${data.message}`,
+                                        {
+                                            position: "top-right",
+                                            duration: 8000,
                                         }
                                     );
                                 }

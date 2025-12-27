@@ -133,6 +133,11 @@ class Notification extends Model
      */
     public static function autoMarkAsReadByContext($userId, $context)
     {
+        \Log::info('🔍 Auto-mark query building', [
+            'user_id' => $userId,
+            'context' => $context
+        ]);
+        
         $query = static::forUser($userId)->unread();
         
         switch ($context['type']) {
@@ -165,9 +170,21 @@ class Notification extends Model
                 $query->where('type', 'worker_task')
                      ->where('data->project_id', $context['project_id']);
                 break;
+                
+            case 'project_document_request':
+                \Log::info('📄 Matching project document request notifications');
+                $query->where('type', 'App\\Notifications\\ProjectDocumentRequestNotification')
+                     ->where('data->project_id', $context['project_id']);
+                break;
         }
         
         $notifications = $query->get();
+        
+        \Log::info('🔍 Found notifications to mark', [
+            'count' => $notifications->count(),
+            'notification_ids' => $notifications->pluck('id')->toArray()
+        ]);
+        
         foreach ($notifications as $notification) {
             $notification->markAsRead();
         }

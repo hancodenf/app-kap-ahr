@@ -2,9 +2,10 @@ import { useEffect } from 'react';
 import { usePage } from '@inertiajs/react';
 
 interface UseAutoMarkNotificationsProps {
-    type: 'project_approval' | 'task_approval';
+    type: 'project_approval' | 'task_approval' | 'project_document_request';
     project_id?: string;
     task_id?: string;
+    relatedId?: string; // Generic ID for flexible matching
     enabled?: boolean;
 }
 
@@ -12,15 +13,30 @@ export const useAutoMarkNotifications = ({
     type,
     project_id,
     task_id,
+    relatedId,
     enabled = true
 }: UseAutoMarkNotificationsProps) => {
     const { auth } = usePage().props as any;
 
+    console.log('🎯 useAutoMarkNotifications hook initialized with:', {
+        type,
+        project_id,
+        task_id,
+        relatedId,
+        enabled,
+        hasUser: !!auth.user
+    });
+
     useEffect(() => {
-        if (!enabled || !auth.user) return;
+        console.log('🔄 useEffect triggered - enabled:', enabled, 'hasUser:', !!auth.user);
+        
+        if (!enabled || !auth.user) {
+            console.log('⚠️ Auto-mark skipped:', { enabled, hasUser: !!auth.user });
+            return;
+        }
 
         const autoMarkNotifications = async () => {
-            console.log('🔔 Auto-mark notifications called with:', { type, project_id, task_id });
+            console.log('🔔 Auto-mark notifications called with:', { type, project_id, task_id, relatedId });
             
             try {
                 const response = await fetch('/api/notifications/auto-mark', {
@@ -31,7 +47,7 @@ export const useAutoMarkNotifications = ({
                     },
                     body: JSON.stringify({
                         type,
-                        project_id,
+                        project_id: project_id || relatedId, // Use relatedId as fallback for project_id
                         task_id,
                     }),
                 });
@@ -63,5 +79,5 @@ export const useAutoMarkNotifications = ({
         const timer = setTimeout(autoMarkNotifications, 1000);
 
         return () => clearTimeout(timer);
-    }, [type, project_id, task_id, enabled, auth.user]);
+    }, [type, project_id, task_id, relatedId, enabled, auth.user]);
 };

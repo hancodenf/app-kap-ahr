@@ -79,7 +79,17 @@ class NotificationController extends Controller
         ]);
         
         $context = $request->only(['type', 'project_id', 'task_id']);
+        
+        \Log::info('🔔 Auto-mark API called', [
+            'user_id' => $request->user()->id,
+            'context' => $context
+        ]);
+        
         $count = Notification::autoMarkAsReadByContext($request->user()->id, $context);
+        
+        \Log::info('🔔 Auto-mark completed', [
+            'marked_count' => $count
+        ]);
         
         return response()->json([
             'success' => true,

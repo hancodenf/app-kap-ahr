@@ -43,6 +43,42 @@ class Project extends Model
     ];
 
     /**
+     * Get the route key for the model.
+     *
+     * @return string
+     */
+    public function getRouteKeyName()
+    {
+        return 'slug';
+    }
+
+    /**
+     * Retrieve the model for a bound value.
+     * Support both ID (UUID) and slug for backward compatibility.
+     *
+     * @param  mixed  $value
+     * @param  string|null  $field
+     * @return \Illuminate\Database\Eloquent\Model|null
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        // If field is explicitly specified, use parent behavior
+        if ($field) {
+            return parent::resolveRouteBinding($value, $field);
+        }
+
+        // Try to find by slug first (preferred)
+        $model = $this->where('slug', $value)->first();
+        
+        // If not found and value looks like UUID, try by ID (backward compatibility)
+        if (!$model && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $value)) {
+            $model = $this->where('id', $value)->first();
+        }
+
+        return $model;
+    }
+
+    /**
      * Get the client that owns the project.
      */
     public function client(): BelongsTo

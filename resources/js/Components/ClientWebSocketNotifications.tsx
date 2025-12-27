@@ -159,6 +159,29 @@ const ClientWebSocketNotifications: React.FC<{ className?: string }> = ({ classN
                     fetchNotifications();
                 }, 500); // Small delay to ensure database is updated
             });
+
+            // Listen for project document request notifications
+            channel.listen('.NewProjectDocumentRequest', (event: any) => {
+                console.log('📄 New project document request received:', event);
+                
+                // Show toast notification
+                if (typeof window !== 'undefined' && (window as any).toast) {
+                    (window as any).toast.info(
+                        `📄 ${event.message}`,
+                        {
+                            position: "top-right",
+                            duration: 8000,
+                        }
+                    );
+                } else {
+                    console.log('📄 New document request:', event.message);
+                }
+                
+                // Refresh notifications to update UI
+                setTimeout(() => {
+                    fetchNotifications();
+                }, 500); // Small delay to ensure database is updated
+            });
             
             // ALSO listen to ANY event for debugging
             channel.listen('.', (event: any) => {
@@ -176,6 +199,7 @@ const ClientWebSocketNotifications: React.FC<{ className?: string }> = ({ classN
             return () => {
                 console.log('🧹 Cleaning up client WebSocket listener...');
                 channel.stopListening('.NewClientTaskNotification');
+                channel.stopListening('.NewProjectDocumentRequest');
             };
         } else {
             if (auth.user.role !== 'client') {

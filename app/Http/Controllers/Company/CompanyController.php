@@ -2600,6 +2600,12 @@ class CompanyController extends Controller
             
             $message = str_replace('{count}', count($createdRequests), $message);
 
+            \Log::info('📤 Broadcasting NewProjectDocumentRequest event', [
+                'client_user_ids' => $clientUserIds,
+                'message' => $message,
+                'document_count' => count($createdRequests)
+            ]);
+
             // Broadcast event via WebSocket
             event(new \App\Events\NewProjectDocumentRequest(
                 $createdRequests[0], // Use first request as representative
