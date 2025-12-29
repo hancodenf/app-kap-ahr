@@ -23,6 +23,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'no.cache' => \App\Http\Middleware\NoCacheMiddleware::class,
             'can.manage.task.assignments' => \App\Http\Middleware\CanManageTaskAssignments::class,
         ]);
+
+        // Exclude these routes from CSRF verification
+        $middleware->validateCsrfTokens(except: [
+            'company/client-documents/parse-excel',
+            'api/notifications/auto-mark',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

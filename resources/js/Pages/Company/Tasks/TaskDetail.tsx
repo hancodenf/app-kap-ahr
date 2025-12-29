@@ -3,6 +3,7 @@ import { Head, Link, useForm, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { FormEventHandler, useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { fetchWithCsrf } from '@/utils/csrf';
 
 interface Document {
     id: number;
@@ -333,9 +334,14 @@ export default function TaskDetail({ auth, task, project }: Props) {
     const handleSubmit: FormEventHandler = (e) => {
         e.preventDefault();
         
+        // Sync clientDocInputs to form data before submission
+        const clientDocs = clientDocInputs
+            .filter(doc => doc.name.trim() !== '')
+            .map(doc => ({ name: doc.name, description: doc.description || '' }));
+        
         // Validate
         const hasNewFiles = data.files && data.files.length > 0;
-        const hasClientDocs = data.client_documents && data.client_documents.length > 0;
+        const hasClientDocs = clientDocs.length > 0;
         const hasExistingFiles = fileInputs.some(input => input.existingFilePath);
         
         // If file uploads are enabled, require at least one file or client document
@@ -354,11 +360,43 @@ export default function TaskDetail({ auth, task, project }: Props) {
                 doc_id: input.existingDocId!,
                 label: input.label
             }));
-        
-        data.existing_document_labels = existingDocLabels;
-        data._method = 'PUT';
 
-        post(route('company.tasks.update-status', task.id), {
+        // Create FormData manually to ensure client_documents is included
+        const formData = new FormData();
+        
+        // Add notes
+        formData.append('notes', data.notes || '');
+        
+        // Add files
+        if (data.files) {
+            data.files.forEach((file) => {
+                formData.append('files[]', file);
+            });
+        }
+        
+        // Add file labels
+        if (data.file_labels) {
+            data.file_labels.forEach((label) => {
+                formData.append('file_labels[]', label);
+            });
+        }
+        
+        // Add client documents
+        clientDocs.forEach((doc, index) => {
+            formData.append(`client_documents[${index}][name]`, doc.name);
+            formData.append(`client_documents[${index}][description]`, doc.description);
+        });
+        
+        // Add existing document labels
+        existingDocLabels.forEach((item, index) => {
+            formData.append(`existing_document_labels[${index}][doc_id]`, item.doc_id.toString());
+            formData.append(`existing_document_labels[${index}][label]`, item.label);
+        });
+        
+        formData.append('_method', 'PUT');
+
+        // Submit using router.post with FormData
+        router.post(route('company.tasks.update-status', task.id), formData, {
             preserveScroll: true,
             forceFormData: true,
             onSuccess: () => {
@@ -425,18 +463,10 @@ export default function TaskDetail({ auth, task, project }: Props) {
         formData.append('excel_file', file);
 
         try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            if (!csrfToken) {
-                throw new Error('CSRF token not found. Please refresh the page.');
-            }
-
-            const response = await fetch(route('company.client-documents.parse-excel'), {
+            // Use fetchWithCsrf helper with auto-retry
+            const response = await fetchWithCsrf(route('company.client-documents.parse-excel'), {
                 method: 'POST',
                 body: formData,
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
             });
 
             if (!response.ok) {
@@ -471,8 +501,9 @@ export default function TaskDetail({ auth, task, project }: Props) {
                 toast.error(result.message || 'Failed to parse Excel file');
             }
         } catch (error) {
-            setExcelError('An error occurred while uploading the file');
-            toast.error('An error occurred while uploading the file');
+            const errorMessage = error instanceof Error ? error.message : 'An error occurred while uploading the file';
+            setExcelError(errorMessage);
+            toast.error(errorMessage);
         } finally {
             setIsUploadingExcel(false);
             event.target.value = ''; // Reset file input

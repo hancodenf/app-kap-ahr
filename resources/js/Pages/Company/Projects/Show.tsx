@@ -5,6 +5,7 @@ import { FormEventHandler, useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import SearchableSelect from '@/Components/SearchableSelect';
 import { useAutoMarkNotifications } from '@/hooks/useAutoMarkNotifications';
+import { fetchWithCsrf } from '@/utils/csrf';
 
 interface Document {
     id: number;
@@ -891,18 +892,10 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
         formData.append('excel_file', file);
 
         try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            if (!csrfToken) {
-                throw new Error('CSRF token not found. Please refresh the page.');
-            }
-
-            const response = await fetch(route('company.client-documents.parse-excel'), {
+            // Use fetchWithCsrf helper with auto-retry
+            const response = await fetchWithCsrf(route('company.client-documents.parse-excel'), {
                 method: 'POST',
                 body: formData,
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
             });
 
             if (!response.ok) {
