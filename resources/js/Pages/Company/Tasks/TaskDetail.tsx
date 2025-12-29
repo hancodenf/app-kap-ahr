@@ -344,6 +344,13 @@ export default function TaskDetail({ auth, task, project }: Props) {
         const hasClientDocs = clientDocs.length > 0;
         const hasExistingFiles = fileInputs.some(input => input.existingFilePath);
         
+        // Special validation for tasks with client_interact = 'upload'
+        // Worker MUST request at least 1 document from client
+        if (task.client_interact === 'upload' && !hasClientDocs) {
+            toast.error('You must request at least one document from the client for this task.');
+            return;
+        }
+        
         // If file uploads are enabled, require at least one file or client document
         if (task.can_upload_files && !hasNewFiles && !hasClientDocs && !hasExistingFiles) {
             toast.error('Please upload at least one file or request at least one document from client.');
