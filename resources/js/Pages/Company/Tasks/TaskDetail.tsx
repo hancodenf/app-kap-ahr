@@ -425,13 +425,28 @@ export default function TaskDetail({ auth, task, project }: Props) {
         formData.append('excel_file', file);
 
         try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            if (!csrfToken) {
+                throw new Error('CSRF token not found. Please refresh the page.');
+            }
+
             const response = await fetch(route('company.client-documents.parse-excel'), {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
                 },
             });
+
+            if (!response.ok) {
+                if (response.status === 419) {
+                    throw new Error('Session expired. Please refresh the page and try again.');
+                }
+                const errorText = await response.text();
+                console.error('Parse excel error:', response.status, errorText);
+                throw new Error(`Server error: ${response.status}`);
+            }
 
             const result = await response.json();
 
@@ -443,7 +458,11 @@ export default function TaskDetail({ auth, task, project }: Props) {
                     description: doc.description || '',
                 }));
 
-                setClientDocInputs(prev => [...prev, ...newDocs]);
+                // Filter out empty rows (where both name and description are empty) before adding new docs
+                setClientDocInputs(prev => {
+                    const nonEmptyRows = prev.filter(doc => doc.name.trim() !== '' || doc.description.trim() !== '');
+                    return [...nonEmptyRows, ...newDocs];
+                });
                 setNextClientDocId(prev => prev + result.documents.length);
 
                 toast.success(`Successfully imported ${result.count} document requests!`);

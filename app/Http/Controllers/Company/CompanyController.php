@@ -2471,12 +2471,20 @@ class CompanyController extends Controller
     public function parseClientDocumentExcel(Request $request)
     {
         $request->validate([
-            'excel_file' => 'required|file|mimes:csv,xlsx,xls|max:2048',
+            'excel_file' => 'required|file|max:2048',
         ]);
 
         try {
             $file = $request->file('excel_file');
             $extension = $file->getClientOriginalExtension();
+            
+            // Validate extension manually
+            if (!in_array(strtolower($extension), ['csv', 'xlsx', 'xls'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid file type. Please upload a CSV, XLS, or XLSX file.',
+                ], 422);
+            }
             
             $documents = [];
 
