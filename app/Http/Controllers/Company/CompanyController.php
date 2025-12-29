@@ -2448,12 +2448,12 @@ class CompanyController extends Controller
         $callback = function() use ($headers, $exampleData) {
             $file = fopen('php://output', 'w');
             
-            // Write headers with pipe delimiter
-            fputcsv($file, $headers, '|');
+            // Write headers with semicolon delimiter
+            fputcsv($file, $headers, ';');
             
-            // Write example data with pipe delimiter
+            // Write example data with semicolon delimiter
             foreach ($exampleData as $row) {
-                fputcsv($file, $row, '|');
+                fputcsv($file, $row, ';');
             }
             
             fclose($file);
@@ -2489,11 +2489,11 @@ class CompanyController extends Controller
             $documents = [];
 
             if ($extension === 'csv') {
-                // Parse CSV with pipe delimiter
+                // Parse CSV with semicolon delimiter
                 $handle = fopen($file->getRealPath(), 'r');
-                $headers = fgetcsv($handle, 0, '|'); // Skip header row with pipe delimiter
+                $headers = fgetcsv($handle, 0, ';'); // Skip header row with semicolon delimiter
                 
-                while (($row = fgetcsv($handle, 0, '|')) !== false) {
+                while (($row = fgetcsv($handle, 0, ';')) !== false) {
                     if (!empty($row[0])) { // Check if document name exists
                         $documents[] = [
                             'name' => trim($row[0]),
