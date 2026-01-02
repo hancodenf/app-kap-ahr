@@ -54,5 +54,14 @@ class DatabaseSeeder extends Seeder
         $this->command->info('Creating storage directories...');
         \Illuminate\Support\Facades\Artisan::call('storage:create-directories');
         $this->command->info('Storage directories created successfully!');
+        
+        // Set proper ownership for storage directories
+        $this->command->info('Setting directory ownership to www-data...');
+        exec('sudo chown -R www-data:www-data storage 2>&1', $output, $returnCode);
+        if ($returnCode === 0) {
+            $this->command->info('Ownership set successfully!');
+        } else {
+            $this->command->warn('Could not set ownership (requires sudo). Run manually: sudo chown -R www-data:www-data storage/app/');
+        }
     }
 }
