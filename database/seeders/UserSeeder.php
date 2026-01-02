@@ -57,7 +57,6 @@ class UserSeeder extends Seeder
             ["name" => "Muhammad Luthfian Arif", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "luthfian@kap-ahr.com"],
             ["name" => "Muhammad Husni Faris", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "husnifaris@kap-ahr.com"],
             ["name" => "Ahmad Reski Tiarah", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "ahmadreski@kap-ahr.com"],
-            ["name" => "Fitri Indah Ayuningsih", "position" => "Internship Finance", "user_type" => "Staff", "email" => "fitriindah@kap-ahr.com"],
             ["name" => "Hartono", "position" => "Support", "user_type" => "Staff", "email" => "hartono@kap-ahr.com"],
             ["name" => "Rizka Amelia", "position" => "Junior Auditor", "user_type" => "Staff", "email" => "rizkaamelia@kap-ahr.com"], 
             
@@ -72,10 +71,10 @@ class UserSeeder extends Seeder
             ["name" => "Yusar Sagara", "position" => "Junior Auditor", "user_type" => "Staff", "email" => "yusarsagara@kap-ahr.com"],
             ["name" => "Nur Isnaini", "position" => "Junior Auditor", "user_type" => "Tenaga Ahli", "email" => "nurisnaini@kap-ahr.com"],
             ["name" => "Cavin Valeri Nayotama", "position" => "Internship Auditor", "user_type" => "Tenaga Ahli", "email" => "cavinvaleri@kap-ahr.com"],
-            ["name" => "Kievo Syah Guzman", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "kievosyah@kap-ahr.com"],
             ["name" => "Mohammad Ilham Akbar", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "ilhamakbar@kap-ahr.com"],
             ["name" => "Diva Muzdalipah", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "divamuzdalipah@kap-ahr.com"],
             ["name" => "Zulya Fathul Jannah", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "zulyafathul@kap-ahr.com"],
+            ["name" => "Febrian Naufal Ariqi", "position" => "Internship Auditor", "user_type" => "Staff", "email" => "febriannaufal@kap-ahr.com"],
         ];
 
         foreach ($companyUsers as $index => $userData) {
