@@ -38,6 +38,7 @@ class CreateStorageDirectories extends Command
             $path = $client->getFullStoragePath();
             if (!File::exists($path)) {
                 File::makeDirectory($path, 0755, true);
+                $this->setOwnership($path);
                 $clientCount++;
             }
         }
@@ -50,6 +51,7 @@ class CreateStorageDirectories extends Command
             $path = $project->getFullStoragePath();
             if (!File::exists($path)) {
                 File::makeDirectory($path, 0755, true);
+                $this->setOwnership($path);
                 $projectCount++;
             }
         }
@@ -62,6 +64,7 @@ class CreateStorageDirectories extends Command
             $path = $task->getFullStoragePath();
             if (!File::exists($path)) {
                 File::makeDirectory($path, 0755, true);
+                $this->setOwnership($path);
                 $taskCount++;
             }
         }
@@ -70,5 +73,19 @@ class CreateStorageDirectories extends Command
         $this->info('Done! Storage directories created successfully.');
         
         return Command::SUCCESS;
+    }
+
+    /**
+     * Set ownership of directory to www-data:www-data
+     * Requires sudo/root privileges to work
+     */
+    private function setOwnership($path)
+    {
+        try {
+            @chown($path, 'www-data');
+            @chgrp($path, 'www-data');
+        } catch (\Exception $e) {
+            // Silently fail if no permission (not running as root)
+        }
     }
 }
