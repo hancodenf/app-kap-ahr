@@ -24,12 +24,12 @@ export default function Register() {
 
     return (
         <GuestLayout>
-            <Head title="Daftar Akun - AURA" />
+            <Head title="Daftar Akun - AHR TRACK" />
 
             <div className="mb-6 text-center">
                 <h1 className="text-2xl font-bold text-primary-600 mb-2">Daftar Akun Baru</h1>
                 <p className="text-gray-600 text-sm">
-                    Buat akun klien untuk mengakses platform AURA
+                    Buat akun klien untuk mengakses platform AHR TRACK
                 </p>
             </div>
 

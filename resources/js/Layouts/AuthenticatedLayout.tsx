@@ -315,7 +315,7 @@ export default function Authenticated({
                 <Link href="/" className="flex items-center space-x-3 ml-2 lg:ml-0">
                     <ApplicationLogo className="h-8 w-8" />
                     <div className="flex flex-col">
-                        <span className="text-lg font-bold text-primary-600"><strong>AURA</strong></span>
+                        <span className="text-lg font-bold text-primary-600"><strong>AHR TRACK</strong></span>
                         <span className="text-xs text-gray-500">Audit, Reporting & Analyze</span>
                     </div>
                 </Link>

@@ -132,7 +132,7 @@ export default function Welcome({
             name: 'Budi Santoso',
             position: 'Finance Director',
             company: 'PT Maju Jaya',
-            text: 'AURA has transformed the way we collaborate with auditors. Full transparency and real-time updates make the audit process much more efficient.',
+            text: 'AHR TRACK has transformed the way we collaborate with auditors. Full transparency and real-time updates make the audit process much more efficient.',
             rating: 5
         },
         {
@@ -146,14 +146,14 @@ export default function Welcome({
             name: 'Ahmad Wijaya',
             position: 'Managing Partner',
             company: 'KAP Internal Team',
-            text: 'AURA makes our audit team\'s work more structured. Flexible templates and clear role system are very helpful.',
+            text: 'AHR TRACK makes our audit team\'s work more structured. Flexible templates and clear role system are very helpful.',
             rating: 5
         }
     ];
 
     return (
         <>
-            <Head title="AURA - Professional Audit Management System" />
+            <Head title="AHR TRACK - Professional Audit Management System" />
             <div className="bg-white min-h-screen overflow-hidden">
                 {/* Floating Header */}
                 <header 
@@ -180,7 +180,7 @@ export default function Welcome({
                                             ? 'bg-gradient-to-r from-primary-600 via-primary-500 to-emerald-500 bg-clip-text text-transparent' 
                                             : 'text-white drop-shadow-lg'
                                     }`}>
-                                        AURA
+                                        AHR TRACK
                                     </h1>
                                     <p className={`text-xs font-medium transition-colors duration-300 ${
                                         scrollY > 50 ? 'text-gray-600' : 'text-white/90 drop-shadow'
@@ -368,7 +368,7 @@ export default function Welcome({
                             <div className="relative rounded-2xl overflow-hidden shadow-2xl border-8 border-white/50 backdrop-blur-sm">
                                 <img 
                                     src="/images/dashboard-admin.png" 
-                                    alt="AURA Dashboard Preview" 
+                                    alt="AHR TRACK Dashboard Preview" 
                                     className="w-full h-auto transform hover:scale-105 transition-transform duration-700"
                                 />
                                 
@@ -535,7 +535,7 @@ export default function Welcome({
                                 <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
                                     <img 
                                         src="/images/project-proccess.png" 
-                                        alt="AURA Workflow Process" 
+                                        alt="AHR TRACK Workflow Process" 
                                         className="w-full h-auto"
                                     />
                                 </div>
@@ -594,7 +594,7 @@ export default function Welcome({
                                 Trusted by <span className="bg-gradient-to-r from-primary-600 to-emerald-600 bg-clip-text text-transparent">500+ Clients</span>
                             </h2>
                             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                                See what they say about their experience using AURA
+                                See what they say about their experience using AHR TRACK
                             </p>
                         </div>
 
@@ -665,7 +665,7 @@ export default function Welcome({
                                 Ready to Optimize Your Audit Management?
                             </h2>
                             <p className="text-xl text-white/90 mb-10 drop-shadow-lg">
-                                Join hundreds of audit professionals who trust AURA for their workflow
+                                Join hundreds of audit professionals who trust AHR TRACK for their workflow
                             </p>
                             {!auth.user && (
                                 <Link
@@ -703,7 +703,7 @@ export default function Welcome({
                                     </div>
                                     <div>
                                         <h3 className="text-2xl font-black bg-gradient-to-r from-primary-400 to-emerald-400 bg-clip-text text-transparent">
-                                            AURA
+                                            AHR TRACK
                                         </h3>
                                         <p className="text-sm text-gray-400">Audit Management System</p>
                                     </div>

@@ -46,9 +46,9 @@
         <!-- Logo/Brand -->
         <div class="text-center mb-8">
             <div class="inline-flex items-center gap-3 mb-4">
-                <img src="/logo1x1.png" alt="AURA Logo" class="h-12 w-12">
+                <img src="/logo1x1.png" alt="AHR TRACK Logo" class="h-12 w-12">
                 <div class="text-left">
-                    <h1 class="text-2xl font-bold text-primary-600">AURA</h1>
+                    <h1 class="text-2xl font-bold text-primary-600">AHR TRACK</h1>
                     <p class="text-xs text-gray-500">Audit, Reporting & Analyze</p>
                 </div>
             </div>

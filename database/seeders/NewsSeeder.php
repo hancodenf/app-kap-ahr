@@ -20,13 +20,13 @@ class NewsSeeder extends Seeder
 
         $newsData = [
             [
-                'title' => 'Selamat Datang di Platform AURA - Revolusi Digital Audit Management',
-                'excerpt' => 'Platform AURA (Audit, Reporting & Analyze) adalah solusi terpadu untuk manajemen audit dan pelaporan keuangan yang modern, efisien, dan berbasis cloud. Tingkatkan produktivitas tim audit Anda hingga 300% dengan teknologi terdepan.',
+                'title' => 'Selamat Datang di Platform AHR TRACK - Revolusi Digital Audit Management',
+                'excerpt' => 'Platform AHR TRACK (Audit, Reporting & Analyze) adalah solusi terpadu untuk manajemen audit dan pelaporan keuangan yang modern, efisien, dan berbasis cloud. Tingkatkan produktivitas tim audit Anda hingga 300% dengan teknologi terdepan.',
                 'content' => '
                 <div class="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-6 md:p-8 mb-6 border-l-4 border-blue-500">
-                    <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-4">🚀 Tentang Platform AURA</h2>
+                    <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-4">🚀 Tentang Platform AHR TRACK</h2>
                     <p class="text-base md:text-lg text-gray-800 leading-relaxed mb-6">
-                        Platform AURA dirancang khusus untuk membantu tim audit dalam mengelola proyek-proyek audit dengan lebih efisien, terstruktur, dan akuntabel. Dengan menggabungkan teknologi cloud computing, real-time collaboration, dan advanced analytics, AURA menjadi partner terpercaya untuk setiap tahapan audit Anda.
+                        Platform AHR TRACK dirancang khusus untuk membantu tim audit dalam mengelola proyek-proyek audit dengan lebih efisien, terstruktur, dan akuntabel. Dengan menggabungkan teknologi cloud computing, real-time collaboration, dan advanced analytics, AHR TRACK menjadi partner terpercaya untuk setiap tahapan audit Anda.
                     </p>
                 </div>
 
@@ -89,7 +89,7 @@ class NewsSeeder extends Seeder
                 </div>
 
                 <div class="bg-gradient-to-r from-indigo-600 to-blue-500 rounded-xl p-8 mb-6">
-                    <h3 class="text-2xl font-bold mb-4">💡 Mengapa Memilih AURA?</h3>
+                    <h3 class="text-2xl font-bold mb-4">💡 Mengapa Memilih AHR TRACK?</h3>
                     <ul class="space-y-3">
                         <li class="flex items-start">
                             <span class="text-yellow-300 font-bold text-xl mr-3">✓</span>
@@ -101,7 +101,7 @@ class NewsSeeder extends Seeder
                         </li>
                         <li class="flex items-start">
                             <span class="text-yellow-300 font-bold text-xl mr-3">✓</span>
-                            <span class="text-lg"><strong>Skalabilitas:</strong> Dari startup hingga enterprise, AURA tumbuh bersama bisnis Anda</span>
+                            <span class="text-lg"><strong>Skalabilitas:</strong> Dari startup hingga enterprise, AHR TRACK tumbuh bersama bisnis Anda</span>
                         </li>
                         <li class="flex items-start">
                             <span class="text-yellow-300 font-bold text-xl mr-3">✓</span>
@@ -113,7 +113,7 @@ class NewsSeeder extends Seeder
                 <div class="bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg p-6">
                     <p class="text-lg text-gray-800 font-semibold mb-2">🎯 Siap Memulai?</p>
                     <p class="text-gray-700">
-                        AURA memudahkan Anda dalam menjalankan setiap tahapan audit dari perencanaan, pelaksanaan, hingga pelaporan akhir. Bergabunglah dengan 500+ perusahaan yang telah mempercayai AURA untuk transformasi digital audit mereka.
+                        AHR TRACK memudahkan Anda dalam menjalankan setiap tahapan audit dari perencanaan, pelaksanaan, hingga pelaporan akhir. Bergabunglah dengan 500+ perusahaan yang telah mempercayai AHR TRACK untuk transformasi digital audit mereka.
                     </p>
                 </div>
                 ',
@@ -427,7 +427,7 @@ class NewsSeeder extends Seeder
                                 </ul>
                             </div>
                             <div class="flex items-center justify-between pt-4 border-t border-gray-200">
-                                <span class="text-sm text-gray-600 font-semibold">💡 AURA Tip:</span>
+                                <span class="text-sm text-gray-600 font-semibold">💡 AHR TRACK Tip:</span>
                                 <span class="text-sm text-gray-700">Gunakan Project Template untuk mempercepat planning phase</span>
                             </div>
                         </div>
@@ -462,7 +462,7 @@ class NewsSeeder extends Seeder
                                 </div>
                             </div>
                             <div class="bg-gradient-to-r from-emerald-100 to-teal-100 rounded-lg p-4">
-                                <p class="text-gray-800 font-semibold mb-2">🔧 Best Communication Tools in AURA:</p>
+                                <p class="text-gray-800 font-semibold mb-2">🔧 Best Communication Tools in AHR TRACK:</p>
                                 <div class="flex flex-wrap gap-2">
                                     <span class="px-3 py-1 bg-white rounded-full text-xs font-medium text-gray-700 shadow-sm">Real-time Comments</span>
                                     <span class="px-3 py-1 bg-white rounded-full text-xs font-medium text-gray-700 shadow-sm">Task Mentions @</span>
@@ -554,7 +554,7 @@ class NewsSeeder extends Seeder
                         </div>
                         <div class="p-6">
                             <p class="text-gray-700 mb-4 leading-relaxed text-lg">
-                                Manfaatkan template untuk menghemat waktu setup dan memastikan konsistensi quality across all projects. Template library AURA menyediakan 50+ ready-to-use templates.
+                                Manfaatkan template untuk menghemat waktu setup dan memastikan konsistensi quality across all projects. Template library AHR TRACK menyediakan 50+ ready-to-use templates.
                             </p>
                             <div class="flex items-center justify-between bg-indigo-50 rounded-lg p-4">
                                 <div class="flex items-center">
@@ -639,7 +639,7 @@ class NewsSeeder extends Seeder
                         <div class="ml-6 flex-1">   
                             <h4 class="text-2xl font-bold text-gray-900 mb-3">Siap Menjadi Audit Professional Terbaik?</h4>
                             <p class="text-gray-700 leading-relaxed mb-4">
-                                Implementasikan best practices ini di project Anda berikutnya dan rasakan perbedaannya. AURA menyediakan semua tools dan features yang Anda butuhkan untuk menerapkan 10 best practices ini dengan mudah.
+                                Implementasikan best practices ini di project Anda berikutnya dan rasakan perbedaannya. AHR TRACK menyediakan semua tools dan features yang Anda butuhkan untuk menerapkan 10 best practices ini dengan mudah.
                             </p>
                             <div class="flex flex-wrap gap-3">
                                 <span class="inline-flex items-center px-5 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 font-bold hover:from-indigo-700 hover:to-purple-700 transition-all cursor-pointer shadow-lg">
@@ -658,7 +658,7 @@ class NewsSeeder extends Seeder
             ],
             [
                 'title' => 'Transformasi Digital Audit 2025: Case Study & Success Stories dari Leading Companies',
-                'excerpt' => 'Bagaimana 50+ perusahaan terkemuka meningkatkan efisiensi audit hingga 400% dengan AURA? Eksplorasi case studies mendalam, real numbers, dan testimoni langsung dari C-level executives yang telah merasakan dampak transformasi digital dalam audit management mereka.',
+                'excerpt' => 'Bagaimana 50+ perusahaan terkemuka meningkatkan efisiensi audit hingga 400% dengan AHR TRACK? Eksplorasi case studies mendalam, real numbers, dan testimoni langsung dari C-level executives yang telah merasakan dampak transformasi digital dalam audit management mereka.',
                 'content' => '
                 <div class="relative mb-8">
                     <div class="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl opacity-75"></div>
@@ -681,7 +681,7 @@ class NewsSeeder extends Seeder
                             </span>
                         </h2>
                         <p class="text-xl text-gray-700 leading-relaxed max-w-4xl">
-                            Dari startup hingga Fortune 500 companies, discover bagaimana AURA membantu transformasi audit management dengan hasil yang terukur dan sustainable. Real stories, real impact, real transformation.
+                            Dari startup hingga Fortune 500 companies, discover bagaimana AHR TRACK membantu transformasi audit management dengan hasil yang terukur dan sustainable. Real stories, real impact, real transformation.
                         </p>
                     </div>
                 </div>
@@ -735,7 +735,7 @@ class NewsSeeder extends Seeder
                                 </div>
 
                                 <div class="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl p-6 mb-6">
-                                    <h5 class="text-lg font-bold mb-3">💡 Solution with AURA:</h5>
+                                    <h5 class="text-lg font-bold mb-3">💡 Solution with AHR TRACK:</h5>
                                     <ul class="space-y-2">
                                         <li class="flex items-start">
                                             <svg class="w-6 h-6 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -788,7 +788,7 @@ class NewsSeeder extends Seeder
                                         <div class="text-4xl mr-4">💬</div>
                                         <div>
                                             <p class="text-gray-700 italic leading-relaxed mb-2">
-                                                "AURA mengubah total cara kami melakukan audit. Yang tadinya butuh 3 bulan, sekarang selesai dalam 5 minggu dengan kualitas lebih baik. Tim kami lebih produktif dan clients jauh lebih happy."
+                                                "AHR TRACK mengubah total cara kami melakukan audit. Yang tadinya butuh 3 bulan, sekarang selesai dalam 5 minggu dengan kualitas lebih baik. Tim kami lebih produktif dan clients jauh lebih happy."
                                             </p>
                                             <p class="text-gray-900 font-bold">— Budi Santoso, Head of Internal Audit</p>
                                         </div>
@@ -820,7 +820,7 @@ class NewsSeeder extends Seeder
                                 </div>
 
                                 <div class="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl p-6 mb-6">
-                                    <h5 class="text-lg font-bold mb-3">💡 AURA Implementation:</h5>
+                                    <h5 class="text-lg font-bold mb-3">💡 AHR TRACK Implementation:</h5>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                                             <div class="font-bold mb-2">Phase 1: Foundation</div>
@@ -865,7 +865,7 @@ class NewsSeeder extends Seeder
                                         <div class="text-4xl mr-4">💬</div>
                                         <div>
                                             <p class="text-gray-700 italic leading-relaxed mb-2">
-                                                "Sebagai startup yang berkembang pesat, kami butuh solution yang scalable. AURA tidak hanya solve masalah kami hari ini, tapi juga prepare kami untuk growth di masa depan. Best investment ever!"
+                                                "Sebagai startup yang berkembang pesat, kami butuh solution yang scalable. AHR TRACK tidak hanya solve masalah kami hari ini, tapi juga prepare kami untuk growth di masa depan. Best investment ever!"
                                             </p>
                                             <p class="text-gray-900 font-bold">— Sarah Wijaya, Operations Director</p>
                                         </div>
@@ -938,7 +938,7 @@ class NewsSeeder extends Seeder
                                         <div class="text-4xl mr-4">💬</div>
                                         <div>
                                             <p class="text-gray-700 italic leading-relaxed mb-2">
-                                                "Koordinasi audit lintas 15 kampus dulu seperti mimpi buruk. Dengan AURA, semua jadi transparent dan synchronized. Board of directors impressed dengan improvement yang kami capai!"
+                                                "Koordinasi audit lintas 15 kampus dulu seperti mimpi buruk. Dengan AHR TRACK, semua jadi transparent dan synchronized. Board of directors impressed dengan improvement yang kami capai!"
                                             </p>
                                             <p class="text-gray-900 font-bold">— Dr. Ahmad Rahman, Head of Quality Assurance</p>
                                         </div>

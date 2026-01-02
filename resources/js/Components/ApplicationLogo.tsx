@@ -9,7 +9,7 @@ export default function ApplicationLogo({ className = '', ...props }: Applicatio
         <img
             {...props}
             src="/logo1x1.png"
-            alt="AURA - Audit, Reporting and Analyze"
+            alt="AHR TRACK - Audit, Reporting and Analyze"
             className={`block h-auto w-12 ${className}`}
         />
     );
