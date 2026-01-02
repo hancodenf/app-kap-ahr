@@ -32,7 +32,7 @@ export default function Guest({ children }: PropsWithChildren) {
                 </Link>
             </div>
 
-            <div className="relative z-10 mt-6 w-full overflow-hidden bg-white/95 backdrop-blur-sm px-6 py-4 shadow-2xl sm:max-w-6xl sm:rounded-lg">
+            <div className="relative z-10 mt-6 w-full overflow-hidden bg-white/95 backdrop-blur-sm px-6 py-4 shadow-2xl sm:max-w-md sm:rounded-lg">
                 {children}
             </div>
         </div>
