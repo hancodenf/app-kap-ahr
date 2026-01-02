@@ -531,18 +531,6 @@ class ProjectController extends Controller
             'is_archived' => 'sometimes|boolean',
         ]);
 
-        // Check if project with same client and year already exists (excluding current project)
-        $existingProject = Project::where('client_id', $request->client_id)
-            ->where('year', $request->year)
-            ->where('id', '!=', $bundle->id)
-            ->first();
-        
-        if ($existingProject) {
-            return back()->withErrors([
-                'year' => 'A project for this client in year ' . $request->year . ' already exists: ' . $existingProject->name
-            ])->withInput();
-        }
-
         // Get client for denormalized data
         $client = Client::findOrFail($request->client_id);
 
