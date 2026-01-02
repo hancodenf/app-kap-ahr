@@ -58,7 +58,7 @@ class DatabaseSeeder extends Seeder
         // Set proper ownership for storage directories
         $this->command->info('Setting directory ownership to www-data...');
         exec('sudo chown -R www:www storage 2>&1', $output, $returnCode);
-        exec('sudo chown -R www:www storage 2>&1', $output, $returnCode);
+        exec('sudo chown -R www:www node_modules 2>&1', $output, $returnCode);
         if ($returnCode === 0) {
             $this->command->info('Ownership set successfully!');
         } else {
