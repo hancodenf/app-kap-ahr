@@ -160,9 +160,9 @@ export default function Login({
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* LEFT COLUMN - Login Form */}
-                <div className="lg:pr-8 lg:border-r border-gray-200">
+            <div className="max-w-md mx-auto">
+                {/* Login Form */}
+                <div>
                     {/* Security Warning */}
                     {showWarning && (
                         <div className="mb-4 bg-yellow-50 border border-yellow-400 rounded-lg p-4">
@@ -264,14 +264,11 @@ export default function Login({
                             )}
                         </div>
                     </form>
-
-                    {/* Password hint */}
-                    <div className="mt-6 text-center lg:hidden">
-                        <p className="text-xs text-gray-500">
-                            💡 Demo password: <span className="font-mono font-bold text-gray-700">password</span>
-                        </p>
-                    </div>
                 </div>
+            </div>
+        </GuestLayout>
+    );
+}
 
                 {/* RIGHT COLUMN - Demo Login */}
                 <div className="lg:pl-8">
