@@ -395,6 +395,7 @@ class ProjectController extends Controller
                             'client_interact' => $task->client_interact,
                             'multiple_files' => $task->multiple_files,
                             'approval_type' => $task->approval_type,
+                            'due_date' => $task->due_date ? $task->due_date->format('Y-m-d') : null,
                             'is_assigned_to_me' => true, // Admin can edit all tasks
                             'my_assignment_id' => null,
                             // Task approvals configuration (for dynamic dropdown)
@@ -482,7 +483,33 @@ class ProjectController extends Controller
                 }])->orderBy('order');
             }])
             ->orderBy('order')
-            ->get();
+            ->get()
+            ->map(function($step) {
+                return [
+                    'id' => $step->id,
+                    'name' => $step->name,
+                    'slug' => $step->slug,
+                    'order' => $step->order,
+                    'is_locked' => $step->is_locked,
+                    'tasks' => $step->tasks->map(function($task) {
+                        return [
+                            'id' => $task->id,
+                            'name' => $task->name,
+                            'slug' => $task->slug,
+                            'order' => $task->order,
+                            'is_required' => $task->is_required,
+                            'completion_status' => $task->completion_status,
+                            'client_interact' => $task->client_interact,
+                            'can_upload_files' => $task->can_upload_files,
+                            'multiple_files' => $task->multiple_files,
+                            'approval_type' => $task->approval_type,
+                            'due_date' => $task->due_date ? $task->due_date->format('Y-m-d') : null,
+                            'task_workers' => $task->taskWorkers,
+                            'task_approvals' => $task->taskApprovals,
+                        ];
+                    }),
+                ];
+            });
 
         // Get team members
         $teamMembers = ProjectTeam::where('project_id', $bundle->id)
@@ -690,9 +717,15 @@ class ProjectController extends Controller
             'name' => 'required|string|max:255',
             'working_step_id' => 'required|exists:working_steps,id',
             'client_interact' => 'nullable|string|in:read only,restricted,upload,approval',
+            'approval_type' => 'nullable|in:Once,All Attempts',
             'can_upload_files' => 'boolean',
             'multiple_files' => 'boolean',
             'is_required' => 'boolean',
+            'due_date' => 'nullable|date',
+            'worker_ids' => 'nullable|array',
+            'worker_ids.*' => 'exists:project_teams,id',
+            'approval_roles' => 'nullable|array',
+            'approval_roles.*' => 'in:partner,manager,supervisor,team leader',
         ]);
 
         // Get the working step to get project_id
@@ -722,14 +755,102 @@ class ProjectController extends Controller
             'project_id' => $workingStep->project_id,
             'order' => $nextOrder,
             'client_interact' => $request->client_interact ? $request->client_interact : 'read only',
+            'approval_type' => $request->approval_type ?? 'Once',
             'can_upload_files' => $request->boolean('can_upload_files'),
             'multiple_files' => $request->boolean('multiple_files'),
             'is_required' => $request->boolean('is_required'),
+            'due_date' => $request->due_date ?: null,
             'completion_status' => 'pending',
             'project_name' => $project->name,
             'project_client_name' => $project->client_name,
             'working_step_name' => $workingStep->name,
         ]);
+
+        // Create workers with denormalized data if provided
+        if ($request->has('worker_ids') && !empty($request->worker_ids)) {
+            foreach ($request->worker_ids as $projectTeamId) {
+                $projectTeam = ProjectTeam::find($projectTeamId);
+                
+                if ($projectTeam) {
+                    TaskWorker::create([
+                        'task_id' => $task->id,
+                        'project_team_id' => $projectTeam->id,
+                        'task_name' => $task->name,
+                        'working_step_name' => $workingStep->name,
+                        'project_name' => $project->name,
+                        'project_client_name' => $project->client_name,
+                        'worker_name' => $projectTeam->user_name,
+                        'worker_email' => $projectTeam->user_email,
+                        'worker_role' => $projectTeam->role,
+                    ]);
+                }
+            }
+        }
+
+        // Create approval records if approval roles are provided
+        if ($request->has('approval_roles') && !empty($request->approval_roles)) {
+            // Define role priority order (lower number = higher priority / earlier in workflow)
+            $rolePriority = [
+                'team leader' => 1,
+                'supervisor' => 2,
+                'manager' => 3,
+                'partner' => 4,
+            ];
+            
+            // Define status names for each role
+            $roleStatusNames = [
+                'team leader' => [
+                    'pending' => 'Waiting for Team Leader review',
+                    'progress' => 'Under Review by Team Leader',
+                    'reject' => 'Returned for Revision (by Team Leader)',
+                    'complete' => 'Approved by Team Leader',
+                ],
+                'manager' => [
+                    'pending' => 'Waiting for Manager review',
+                    'progress' => 'Under Review by Manager',
+                    'reject' => 'Returned for Revision (by Manager)',
+                    'complete' => 'Approved by Manager',
+                ],
+                'supervisor' => [
+                    'pending' => 'Waiting for Supervisor review',
+                    'progress' => 'Under Review by Supervisor',
+                    'reject' => 'Returned for Revision (by Supervisor)',
+                    'complete' => 'Approved by Supervisor',
+                ],
+                'partner' => [
+                    'pending' => 'Waiting for Partner review',
+                    'progress' => 'Under Review by Partner',
+                    'reject' => 'Returned for Revision (by Partner)',
+                    'complete' => 'Approved by Partner',
+                ],
+            ];
+            
+            // Sort selected roles by priority BEFORE creating approvals
+            $sortedRoles = $request->approval_roles;
+            usort($sortedRoles, function($a, $b) use ($rolePriority) {
+                return $rolePriority[strtolower($a)] <=> $rolePriority[strtolower($b)];
+            });
+            
+            // Create task approvals with correct order based on priority
+            foreach ($sortedRoles as $role) {
+                $roleLower = strtolower($role);
+                $statusNames = $roleStatusNames[$roleLower];
+                
+                TaskApproval::create([
+                    'task_id' => $task->id,
+                    'role' => $roleLower,
+                    'order' => $rolePriority[$roleLower], // Use role priority as order
+                    'task_name' => $task->name,
+                    'working_step_name' => $workingStep->name,
+                    'project_name' => $project->name,
+                    'project_client_name' => $project->client_name,
+                    'status_name_pending' => $statusNames['pending'],
+                    'status_name_progress' => $statusNames['progress'],
+                    'status_name_reject' => $statusNames['reject'],
+                    'status_name_complete' => $statusNames['complete'],
+                ]);
+            }
+        }
 
         return redirect()->back()->with('success', 'Task created successfully!');
     }
@@ -743,7 +864,7 @@ class ProjectController extends Controller
             'approval_type' => 'required|in:Once,All Attempts',
             'can_upload_files' => 'boolean',
             'multiple_files' => 'boolean',
-            'due_date' => 'nullable|date|after_or_equal:today',
+            'due_date' => 'nullable|date',
             'worker_ids' => 'nullable|array',
             'worker_ids.*' => 'exists:project_teams,id',
             'approval_roles' => 'nullable|array',
@@ -758,7 +879,7 @@ class ProjectController extends Controller
             'can_upload_files' => $request->boolean('can_upload_files'),
             'multiple_files' => $request->boolean('multiple_files'),
             'is_required' => $request->boolean('is_required'),
-            'due_date' => $request->due_date,
+            'due_date' => $request->due_date ?: null,
         ];
         // dd($updateData);
         

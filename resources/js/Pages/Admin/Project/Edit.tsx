@@ -431,6 +431,9 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         can_upload_files: false,
         multiple_files: false,
         is_required: false,
+        due_date: '',
+        worker_ids: [] as number[],
+        approval_roles: [] as Array<'partner' | 'manager' | 'supervisor' | 'team leader'>,
     });
 
     const { data: editStepData, setData: setEditStepData, put: putStep, processing: editStepProcessing, errors: editStepErrors, reset: resetEditStep } = useForm({
@@ -591,12 +594,9 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
             .sort((a, b) => a.order - b.order)
             .map(approval => approval.role);
 
-        // Convert due_date from ISO format to YYYY-MM-DD for HTML5 date input
-        let formattedDueDate = '';
-        if (task.due_date) {
-            const date = new Date(task.due_date);
-            formattedDueDate = date.toISOString().split('T')[0]; // Extract YYYY-MM-DD part
-        }
+        // Backend already sends due_date in YYYY-MM-DD format, use it directly
+        // to avoid timezone conversion issues
+        const formattedDueDate = task.due_date || '';
 
         setEditTaskData({
             name: task.name,
@@ -1429,6 +1429,40 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                         </p>
                                     </div>
 
+                                    <div>
+                                        <label htmlFor="add_task_approval_type" className="block text-sm font-medium text-gray-700 mb-2">
+                                            🔄 Approval Workflow Type
+                                        </label>
+                                        <select
+                                            id="add_task_approval_type"
+                                            value={taskData.approval_type}
+                                            onChange={(e) => setTaskData('approval_type', e.target.value as 'Once' | 'All Attempts')}
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                        >
+                                            <option value="Once">Once - Approval happens only once</option>
+                                            <option value="All Attempts">All Attempts - Approval required for every submission</option>
+                                        </select>
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            Choose when approval is required
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="add_task_due_date" className="block text-sm font-medium text-gray-700 mb-2">
+                                            📅 Due Date
+                                        </label>
+                                        <input
+                                            type="date"
+                                            id="add_task_due_date"
+                                            value={taskData.due_date}
+                                            onChange={(e) => setTaskData('due_date', e.target.value)}
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                        />
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            Optional deadline for this task
+                                        </p>
+                                    </div>
+
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Worker can upload files
                                     </label>
@@ -1476,6 +1510,101 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                             </p>
                                         </div>
                                     </label>
+
+                                    <div>
+                                        <label htmlFor="add_task_workers" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Assign Team Members
+                                        </label>
+                                        <SearchableSelect
+                                            multiple={true}
+                                            options={teamMembers.map(member => ({
+                                                value: member.id,
+                                                label: member.user_name,
+                                                subtitle: `${member.user_email} - ${member.role}`,
+                                            }))}
+                                            value={taskData.worker_ids}
+                                            onChange={(value) => setTaskData('worker_ids', value as number[])}
+                                            placeholder="Select team members..."
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            ✅ Approval Required From
+                                        </label>
+                                        <p className="text-xs text-gray-500 mb-3">
+                                            Select roles that need to approve this task. Will be automatically ordered by priority.
+                                        </p>
+                                        <div className="space-y-2">
+                                            {(['team leader', 'supervisor', 'manager', 'partner'] as const).map((role) => {
+                                                const rolePriority: { [key: string]: number } = {
+                                                    'team leader': 1,
+                                                    'supervisor': 2,
+                                                    'manager': 3,
+                                                    'partner': 4,
+                                                };
+
+                                                const sortedRoles = [...taskData.approval_roles].sort((a, b) =>
+                                                    rolePriority[a] - rolePriority[b]
+                                                );
+
+                                                const orderNumber = sortedRoles.indexOf(role) + 1;
+
+                                                return (
+                                                    <label key={role} className="flex items-center space-x-3 p-2 border rounded hover:bg-gray-50 cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={taskData.approval_roles.includes(role)}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setTaskData('approval_roles', [...taskData.approval_roles, role]);
+                                                                } else {
+                                                                    setTaskData('approval_roles', taskData.approval_roles.filter(r => r !== role));
+                                                                }
+                                                            }}
+                                                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                        />
+                                                        <div className="flex-1 flex items-center justify-between">
+                                                            <span className="text-sm font-medium text-gray-700 capitalize">
+                                                                {role}
+                                                            </span>
+                                                            <span className="text-xs text-gray-400">
+                                                                Priority: {rolePriority[role]}
+                                                            </span>
+                                                        </div>
+                                                        {taskData.approval_roles.includes(role) && (
+                                                            <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                                                                Order: {orderNumber}
+                                                            </span>
+                                                        )}
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                        {taskData.approval_roles.length > 0 && (
+                                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                                <p className="text-xs font-medium text-blue-800 mb-1">✓ Approval Flow (Auto-sorted by priority):</p>
+                                                <p className="text-sm text-blue-700 font-medium">
+                                                    {(() => {
+                                                        const rolePriority: { [key: string]: number } = {
+                                                            'team leader': 1,
+                                                            'supervisor': 2,
+                                                            'manager': 3,
+                                                            'partner': 4,
+                                                        };
+                                                        return [...taskData.approval_roles]
+                                                            .sort((a, b) => rolePriority[a] - rolePriority[b])
+                                                            .map((role, idx) => (
+                                                                <span key={role} className="capitalize">
+                                                                    {idx + 1}. {role}
+                                                                    {idx < taskData.approval_roles.length - 1 ? ' → ' : ''}
+                                                                </span>
+                                                            ));
+                                                    })()}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className="flex justify-end space-x-3 mt-6">

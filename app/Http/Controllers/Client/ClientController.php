@@ -906,7 +906,7 @@ class ClientController extends Controller
                 $request->validate([
                     'client_comment' => 'nullable|string|max:1000',
                     'client_document_files' => 'nullable|array',
-                    'client_document_files.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:10240', // 10MB max
+                    'client_document_files.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,zip,rar|max:10240', // 10MB max
                 ]);
 
                 // Get latest assignment with row-level locking
@@ -1068,7 +1068,7 @@ class ClientController extends Controller
         $request->validate([
             'client_comment' => 'nullable|string|max:1000',
             'files' => 'nullable|array',
-            'files.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:10240', // 10MB max
+            'files.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,zip,rar|max:51080', // 50MB max
             'file_labels' => 'nullable|array',
             'file_labels.*' => 'nullable|string|max:255',
             'client_document_ids' => 'nullable|array',
@@ -1085,14 +1085,12 @@ class ClientController extends Controller
         $hasFiles = $request->hasFile('files');
         $hasComment = !empty($request->client_comment);
         
-        // Always update existing assignment, never create new one
-        // Client reply is filling the existing assignment created by company
-        $latestAssignment->updateSafely([
-            'client_comment' => $request->client_comment,
-            'status' => 'Client Reply',
-            'maker' => 'client',
-            'maker_can_edit' => true,
-        ], $latestAssignment->version);
+        // Update comment if provided, but don't change status yet
+        if ($hasComment) {
+            $latestAssignment->updateSafely([
+                'client_comment' => $request->client_comment,
+            ], $latestAssignment->version);
+        }
         
         $assignment = $latestAssignment;
 
@@ -1136,6 +1134,21 @@ class ClientController extends Controller
             }
         }
 
+        // Check if ALL client documents have been uploaded
+        $allClientDocs = $assignment->clientDocuments;
+        $allUploaded = $allClientDocs->every(function($doc) {
+            return $doc->file !== null;
+        });
+
+        // Only change status to "Client Reply" if ALL files are uploaded
+        if ($allUploaded) {
+            $assignment->updateSafely([
+                'status' => 'Client Reply',
+                'maker' => 'client',
+                'maker_can_edit' => true,
+            ], $assignment->version);
+        }
+
         // Log activity with more specific description
         $actionDescription = '';
         if ($hasComment && $hasFiles) {
@@ -1165,11 +1178,15 @@ class ClientController extends Controller
 
         $successMessage = '';
         if ($hasComment && $hasFiles) {
-            $successMessage = 'Komentar dan file berhasil dikirim!';
+            $successMessage = $allUploaded 
+                ? 'Komentar dan semua file berhasil dikirim! Status berubah menjadi "Client Reply".' 
+                : 'Komentar dan file berhasil dikirim! Silakan upload file yang tersisa.';
         } elseif ($hasComment) {
             $successMessage = 'Komentar berhasil dikirim!';
         } elseif ($hasFiles) {
-            $successMessage = 'File berhasil diupload!';
+            $successMessage = $allUploaded 
+                ? 'Semua file berhasil diupload! Status berubah menjadi "Client Reply".' 
+                : 'File berhasil diupload! Silakan upload file yang tersisa.';
         }
 
         // Trigger worker notification for client reply
@@ -1341,7 +1358,7 @@ class ClientController extends Controller
         }
 
         $request->validate([
-            'file' => 'required|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:10240', // 10MB
+            'file' => 'required|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,zip,rar|max:10240', // 10MB
         ]);
 
         // Get storage path for this project

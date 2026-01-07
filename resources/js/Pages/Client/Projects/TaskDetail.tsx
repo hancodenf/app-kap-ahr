@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { FormEventHandler, useState } from 'react';
+import axios from 'axios';
 
 interface ClientDocument {
     id: number;
@@ -187,32 +188,60 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
 
         setUploadingFileId(docId);
 
-        // Create form data with only this file
+        // Create form data with ONLY this single file (no other files from state)
         const formData = new FormData();
         formData.append('files[]', file);
         formData.append('file_labels[]', pendingClientDocs[docIndex].name);
         formData.append('client_document_ids[]', docId.toString());
-        formData.append('client_comment', data.client_comment || '');
+        formData.append('client_comment', ''); // Empty comment for file-only upload
 
-        router.post(route('klien.tasks.submit-reply', task.id), formData, {
-            preserveScroll: true,
-            onSuccess: () => {
-                // Remove this file from the local state after successful upload
-                const newFiles = [...data.files];
-                const newLabels = [...data.file_labels];
-                newFiles.splice(docIndex, 1);
-                newLabels.splice(docIndex, 1);
-                
-                setData({
-                    ...data,
-                    files: newFiles,
-                    file_labels: newLabels,
-                });
-                setUploadingFileId(null);
+        // Use axios instead of router.post to avoid sending all form state
+        axios.post(route('klien.tasks.submit-reply', task.id), formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
             },
-            onError: () => {
-                setUploadingFileId(null);
-            },
+        })
+        .then(() => {
+            // Remove this file from the local state after successful upload
+            const newFiles = [...data.files];
+            const newLabels = [...data.file_labels];
+            newFiles.splice(docIndex, 1);
+            newLabels.splice(docIndex, 1);
+            
+            setData({
+                ...data,
+                files: newFiles,
+                file_labels: newLabels,
+            });
+            setUploadingFileId(null);
+            
+            // Reload page to show updated data
+            router.reload({ preserveScroll: true });
+        })
+        .catch((error) => {
+            console.error('Upload error:', error);
+            setUploadingFileId(null);
+            alert('Upload failed: ' + (error.response?.data?.message || error.message));
+        });
+    };
+
+    const handleSubmitComment = () => {
+        if (!data.client_comment.trim()) {
+            alert('Please enter a comment');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('client_comment', data.client_comment);
+
+        axios.post(route('klien.tasks.submit-reply', task.id), formData)
+        .then(() => {
+            setData('client_comment', '');
+            router.reload({ preserveScroll: true });
+        })
+        .catch((error) => {
+            console.error('Comment submit error:', error);
+            alert('Failed to send comment: ' + (error.response?.data?.message || error.message));
         });
     };
 
@@ -782,7 +811,7 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                                 hover:file:bg-purple-700
                                                                 border-2 border-gray-300 rounded-lg
                                                                 focus:outline-none focus:border-purple-500"
-                                                                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                                                                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip,.rar"
                                                             />
 
                                                             {data.files[index] && (
@@ -830,36 +859,30 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
                                                 </div>
                                             )}
 
-                                            <div>
+                                            {/* Comment section with its own submit button */}
+                                            <div className="border-t-2 border-gray-200 pt-4">
                                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                    {(task.client_interact === 'restricted' && latestAssignment?.status !== 'Client Reply') ? 'Add Some Comment (Optional)' : 'Your Comment (Optional)'}
+                                                    Your Comment (Optional)
                                                 </label>
                                                 <textarea
                                                     value={data.client_comment}
                                                     onChange={(e) => setData('client_comment', e.target.value)}
                                                     rows={4}
-                                                    placeholder={task.client_interact === 'restricted' ? 'Write your comments or responses...' : 'Write some notes or comments...'}
-                                                    className="w-full border-gray-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                                    placeholder="Write some notes or comments..."
+                                                    className="w-full border-gray-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-primary-500 mb-3"
                                                 />
-                                            </div>
-
-                                            {/* Only show main submit button if there are files to submit or it's restricted mode with comment */}
-                                            {(data.files.length > 0 || (task.client_interact === 'restricted' && data.client_comment)) && (
                                                 <button
-                                                    type="submit"
-                                                    disabled={processing}
-                                                    className="w-full px-4 py-3 text-sm font-semibold text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                                                    type="button"
+                                                    onClick={handleSubmitComment}
+                                                    disabled={!data.client_comment.trim() || processing}
+                                                    className="w-full px-4 py-3 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center justify-center gap-2"
                                                 >
-                                                    {processing
-                                                        ? 'Submitting...'
-                                                        : task.client_interact === 'restricted'
-                                                            ? 'Send Comment'
-                                                            : data.files.length > 1
-                                                                ? `Upload All (${data.files.length} files)`
-                                                                : 'Upload Remaining Files'
-                                                    }
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                                                    </svg>
+                                                    Send Comment
                                                 </button>
-                                            )}
+                                            </div>
                                         </form>
                                     )}
                                 </div>
