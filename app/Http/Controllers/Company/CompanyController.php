@@ -2282,11 +2282,11 @@ class CompanyController extends Controller
                     'project_client_name' => $task->workingStep->project->client->name,
                     'role' => $role,
                     'order' => $index + 1,
-                    'status_name_pending' => "Under Review by " . ucwords($role),
-                    'status_name_progress' => "In Progress by " . ucwords($role),
-                    'status_name_approved' => "Approved by " . ucwords($role),
+                    'status_name_pending' => "Waiting for " . ucwords($role) . " review",
+                    'status_name_progress' => "Under Review by " . ucwords($role),
+                    // 'status_name_approved' => "Approved by " . ucwords($role),
                     'status_name_reject' => "Returned for Revision by " . ucwords($role),
-                    'status_name_complete' => "Completed by " . ucwords($role),
+                    'status_name_complete' => "Approved by " . ucwords($role),
                 ]);
             }
         }
