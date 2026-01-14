@@ -24,6 +24,8 @@ class Document extends Model
         'file',
         'uploaded_at',
         'version',
+        'comment',
+        'status',
         'last_modified_by',
         'last_modified_at',
     ];
@@ -39,6 +41,7 @@ class Document extends Model
             'uploaded_at' => 'datetime',
             'version' => 'integer',
             'last_modified_at' => 'datetime',
+            'status' => 'string',
         ];
     }
 

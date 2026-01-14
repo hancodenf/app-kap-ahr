@@ -812,6 +812,27 @@ class CompanyController extends Controller
                 'comment' => null, // Will be filled by reviewer if rejected
                 'status' => 'Draft', // Initial status
             ]);
+
+            // Copy approved documents from previous assignment if provided
+            if ($request->has('existing_document_labels') && is_array($request->existing_document_labels)) {
+                foreach ($request->existing_document_labels as $docLabel) {
+                    if (isset($docLabel['doc_id'])) {
+                        $originalDoc = \App\Models\Document::find($docLabel['doc_id']);
+                        if ($originalDoc && $originalDoc->status === 'approved') {
+                            // Copy approved document to new assignment
+                            \App\Models\Document::create([
+                                'task_assignment_id' => $taskAssignment->id,
+                                'name' => $originalDoc->name,
+                                'slug' => \Illuminate\Support\Str::slug($originalDoc->name . '-' . time() . '-' . uniqid()),
+                                'file' => $originalDoc->file, // Reuse same file
+                                'uploaded_at' => now(),
+                                'status' => 'approved', // Keep approved status
+                                'comment' => $originalDoc->comment,
+                            ]);
+                        }
+                    }
+                }
+            }
         }
 
         // Handle file uploads (if provided)
@@ -1226,9 +1247,9 @@ class CompanyController extends Controller
             $updates['status'] = $approval->status_name_progress;
         }
         
-        if ($latestAssignment->maker_can_edit === 1) {
-            $updates['maker_can_edit'] = false;
-        }
+        // if ($latestAssignment->maker_can_edit === 1) {
+        //     $updates['maker_can_edit'] = false;
+        // }
         
         // Perform single update if there are any changes
         if (!empty($updates)) {
@@ -1267,6 +1288,8 @@ class CompanyController extends Controller
                         'id' => $doc->id,
                         'name' => $doc->name,
                         'file' => $doc->file,
+                        'status' => $doc->status ?? 'pending',
+                        'comment' => $doc->comment,
                     ];
                 }),
                 'client_documents' => $latestAssignment->clientDocuments->map(function ($clientDoc) {
@@ -1331,7 +1354,8 @@ class CompanyController extends Controller
         $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
         
         // Check if task can be edited
-        $canEdit = false;
+        $canEdit = true;
+        // $canEdit = false;
         $lowestApproval = $task->taskApprovals()->orderBy('order', 'asc')->first();
         
         if ($lowestApproval && $latestAssignment) {
@@ -1349,11 +1373,11 @@ class CompanyController extends Controller
                 $latestAssignment->updateSafely(['maker_can_edit' => false], $latestAssignment->version);
             }
             // Can edit if at lowest approval pending
-            if (!$currentApprovalRole) {
-                $canEdit = $latestAssignment->maker === 'company' && $latestAssignment->maker_can_edit === 1;
-            } else {
-                $canEdit = $latestAssignment->maker === 'company' && $latestAssignment->status === $currentApprovalRole->status_name_pending && $latestAssignment->maker_can_edit === 1;
-            }
+            // if (!$currentApprovalRole) {
+            //     $canEdit = $latestAssignment->maker === 'company' && $latestAssignment->maker_can_edit === 1;
+            // } else {
+            //     $canEdit = $latestAssignment->maker === 'company' && $latestAssignment->status === $currentApprovalRole->status_name_pending && $latestAssignment->maker_can_edit === 1;
+            // }
 
             // Or if rejected at any level
             // if (!$canEdit) {
@@ -1403,6 +1427,8 @@ class CompanyController extends Controller
                         'name' => $doc->name,
                         'file' => $doc->file,
                         'uploaded_at' => $doc->created_at,
+                        'status' => $doc->status ?? 'pending',
+                        'comment' => $doc->comment,
                     ];
                 }),
                 'client_documents' => $latestAssignment->clientDocuments->map(function ($doc) {
@@ -1430,6 +1456,8 @@ class CompanyController extends Controller
                             'name' => $doc->name,
                             'file' => $doc->file,
                             'uploaded_at' => $doc->created_at,
+                            'status' => $doc->status ?? 'pending',
+                            'comment' => $doc->comment,
                         ];
                     }),
                     'client_documents' => $assignment->clientDocuments->map(function ($doc) {
@@ -1792,6 +1820,56 @@ class CompanyController extends Controller
             ]);
             return redirect()->back()->with('error', $e->getMessage());
         }
+    }
+
+    /**
+     * Review individual document (approve or reject)
+     */
+    public function reviewDocument(Request $request, \App\Models\Document $document)
+    {
+        $user = Auth::user();
+
+        // Validate request
+        $request->validate([
+            'status' => 'required|in:approved,rejected',
+            'comment' => 'nullable|string|max:1000',
+        ]);
+
+        // Get task from document
+        $taskAssignment = $document->taskAssignment;
+        if (!$taskAssignment) {
+            return back()->with('error', 'Task assignment not found.');
+        }
+
+        $task = \App\Models\Task::whereHas('taskAssignments', function($q) use ($taskAssignment) {
+            $q->where('id', $taskAssignment->id);
+        })->first();
+
+        if (!$task) {
+            return back()->with('error', 'Task not found.');
+        }
+
+        // Check if user has permission to review (must be team member with approval role)
+        $teamMember = ProjectTeam::where('project_id', $task->project_id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$teamMember) {
+            return back()->with('error', 'You do not have permission to review this document.');
+        }
+
+        // Update document status and comment
+        $document->update([
+            'status' => $request->status,
+            'comment' => $request->comment,
+        ]);
+
+        Log::info('Document reviewed', [
+            'document_id' => $document->id,
+            'status' => $request->status,
+            'reviewed_by' => $user->id,
+        ]);
+
     }
 
     /**
@@ -2285,7 +2363,7 @@ class CompanyController extends Controller
                     'status_name_pending' => "Waiting for " . ucwords($role) . " review",
                     'status_name_progress' => "Under Review by " . ucwords($role),
                     // 'status_name_approved' => "Approved by " . ucwords($role),
-                    'status_name_reject' => "Returned for Revision by " . ucwords($role),
+                    'status_name_reject' => "Returned for Revision (by " . ucwords($role) . ")",
                     'status_name_complete' => "Approved by " . ucwords($role),
                 ]);
             }
@@ -2608,7 +2686,7 @@ class CompanyController extends Controller
             
             $message = str_replace('{count}', count($createdRequests), $message);
 
-            \Log::info('📤 Broadcasting NewProjectDocumentRequest event', [
+            Log::info('📤 Broadcasting NewProjectDocumentRequest event', [
                 'client_user_ids' => $clientUserIds,
                 'message' => $message,
                 'document_count' => count($createdRequests)

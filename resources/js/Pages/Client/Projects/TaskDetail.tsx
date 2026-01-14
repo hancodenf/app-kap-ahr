@@ -216,7 +216,7 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
             setUploadingFileId(null);
             
             // Reload page to show updated data
-            router.reload({ preserveScroll: true });
+            router.reload();
         })
         .catch((error) => {
             console.error('Upload error:', error);
@@ -237,7 +237,7 @@ export default function TaskDetail({ task, project, pendingClientDocs }: Props) 
         axios.post(route('klien.tasks.submit-reply', task.id), formData)
         .then(() => {
             setData('client_comment', '');
-            router.reload({ preserveScroll: true });
+            router.reload();
         })
         .catch((error) => {
             console.error('Comment submit error:', error);

@@ -10,6 +10,8 @@ interface Document {
     name: string;
     file: string;
     uploaded_at: string;
+    status: 'pending' | 'approved' | 'rejected';
+    comment: string | null;
 }
 
 interface ClientDocument {
@@ -90,6 +92,7 @@ export default function TaskDetail({ auth, task, project }: Props) {
         file: File | null; 
         existingDocId?: number; 
         existingFilePath?: string;
+        isApproved?: boolean;
     }>>([{ id: 0, label: '', file: null }]);
     
     const [nextFileId, setNextFileId] = useState(1);
@@ -112,6 +115,31 @@ export default function TaskDetail({ auth, task, project }: Props) {
     const [isUploadingExcel, setIsUploadingExcel] = useState(false);
     const [excelError, setExcelError] = useState<string | null>(null);
 
+    // Helper functions for document status display
+    const getDocumentStatusBadge = (status: 'pending' | 'approved' | 'rejected') => {
+        switch (status) {
+            case 'approved':
+                return 'bg-green-100 text-green-800 border-green-200';
+            case 'rejected':
+                return 'bg-red-100 text-red-800 border-red-200';
+            case 'pending':
+            default:
+                return 'bg-gray-100 text-gray-800 border-gray-200';
+        }
+    };
+
+    const getDocumentStatusText = (status: 'pending' | 'approved' | 'rejected') => {
+        switch (status) {
+            case 'approved':
+                return '✓ Approved';
+            case 'rejected':
+                return '✗ Rejected';
+            case 'pending':
+            default:
+                return '⏳ Pending Review';
+        }
+    };
+
     const { data, setData, post, processing, errors, reset } = useForm<{
         notes: string;
         files: File[];
@@ -133,14 +161,43 @@ export default function TaskDetail({ auth, task, project }: Props) {
         setIsEditMode(false);
         setShowModal(true);
         
-        // Reset form
-        if (task.can_upload_files) {
+        // Auto-include approved documents from latest assignment
+        if (task.can_upload_files && task.latest_assignment) {
+            const approvedDocs = task.latest_assignment.documents.filter(doc => doc.status === 'approved');
+            
+            if (approvedDocs.length > 0) {
+                // Initialize with approved documents
+                const approvedDocInputs = approvedDocs.map((doc, index) => ({
+                    id: index,
+                    label: doc.name,
+                    file: null,
+                    existingDocId: doc.id,
+                    existingFilePath: doc.file,
+                    isApproved: true, // Mark as approved
+                }));
+                
+                // Add one empty input for new file
+                approvedDocInputs.push({
+                    id: approvedDocs.length,
+                    label: '',
+                    file: null,
+                    isApproved: false,
+                } as any);
+                
+                setFileInputs(approvedDocInputs);
+                setNextFileId(approvedDocs.length + 1);
+            } else {
+                setFileInputs([{ id: 0, label: '', file: null }]);
+                setNextFileId(1);
+            }
+        } else if (task.can_upload_files) {
             setFileInputs([{ id: 0, label: '', file: null }]);
             setNextFileId(1);
         } else {
             setFileInputs([]);
             setNextFileId(0);
         }
+        
         setClientDocInputs([{ id: 0, name: '', description: '' }]);
         setNextClientDocId(1);
         setData({
@@ -756,23 +813,36 @@ export default function TaskDetail({ auth, task, project }: Props) {
                                                     </p>
                                                     <div className="space-y-2">
                                                         {selectedSubmission.documents.map((doc) => (
-                                                            <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                                                                <div className="flex items-center space-x-2">
-                                                                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                                    </svg>
-                                                                    <span className="text-sm text-gray-900">{doc.name}</span>
+                                                            <div key={doc.id} className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                                                                <div className="flex items-start justify-between mb-2">
+                                                                    <div className="flex items-center space-x-2 flex-1">
+                                                                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                        </svg>
+                                                                        <span className="text-sm text-gray-900">{doc.name}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getDocumentStatusBadge(doc.status)}`}>
+                                                                            {getDocumentStatusText(doc.status)}
+                                                                        </span>
+                                                                        <a
+                                                                            href={`/storage/${doc.file}`}
+                                                                            download
+                                                                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-800"
+                                                                        >
+                                                                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                                            </svg>
+                                                                            Download
+                                                                        </a>
+                                                                    </div>
                                                                 </div>
-                                                                <a
-                                                                    href={`/storage/${doc.file}`}
-                                                                    download
-                                                                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-800"
-                                                                >
-                                                                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                                                    </svg>
-                                                                    Download
-                                                                </a>
+                                                                {doc.comment && (
+                                                                    <div className="mt-2 p-2 bg-white border border-gray-200 rounded">
+                                                                        <p className="text-xs font-medium text-gray-700 mb-1">Review Comment:</p>
+                                                                        <p className="text-xs text-gray-600 break-words whitespace-pre-wrap">{doc.comment}</p>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         ))}
                                                     </div>
@@ -919,52 +989,62 @@ export default function TaskDetail({ auth, task, project }: Props) {
                                                     <div key={input.id} className="border border-gray-300 rounded-lg p-4">
                                                         <div className="flex items-start gap-3">
                                                             <div className="flex-1 space-y-3">
-                                                                <input
-                                                                    type="text"
-                                                                    placeholder="Document label/name"
-                                                                    value={input.label}
-                                                                    onChange={(e) => handleLabelChange(input.id, e.target.value)}
-                                                                    className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                                                />
+                                                                <div className="flex items-center gap-2">
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="Document label/name"
+                                                                        value={input.label}
+                                                                        onChange={(e) => handleLabelChange(input.id, e.target.value)}
+                                                                        className="flex-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                                        disabled={input.isApproved}
+                                                                    />
+                                                                    {input.isApproved && (
+                                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                                                                            ✓ Already Approved
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                                 
                                                                 {input.existingFilePath && !input.file ? (
                                                                     <div className="space-y-2">
-                                                                        <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded">
+                                                                        <div className={`flex items-center justify-between p-3 rounded border ${input.isApproved ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
                                                                             <div className="flex items-center space-x-2">
-                                                                                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <svg className={`w-5 h-5 ${input.isApproved ? 'text-green-600' : 'text-blue-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                                                 </svg>
-                                                                                <span className="text-sm text-gray-900">Current file</span>
+                                                                                <span className="text-sm text-gray-900">{input.isApproved ? 'Approved file (auto-included)' : 'Current file'}</span>
                                                                             </div>
                                                                             <a
                                                                                 href={`/storage/${input.existingFilePath}`}
                                                                                 target="_blank"
                                                                                 rel="noopener noreferrer"
-                                                                                className="text-xs text-blue-600 hover:text-blue-800"
+                                                                                className={`text-xs hover:underline ${input.isApproved ? 'text-green-600' : 'text-blue-600'}`}
                                                                             >
                                                                                 View
                                                                             </a>
                                                                         </div>
-                                                                        <div
-                                                                            onDrop={(e) => handleFileDrop(input.id, e)}
-                                                                            onDragOver={(e) => e.preventDefault()}
-                                                                            className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-500 transition-colors cursor-pointer"
-                                                                        >
-                                                                            <input
-                                                                                type="file"
-                                                                                id={`file-${input.id}`}
-                                                                                onChange={(e) => handleFileSelect(input.id, e)}
-                                                                                className="hidden"
-                                                                            />
-                                                                            <label htmlFor={`file-${input.id}`} className="cursor-pointer">
-                                                                                <svg className="mx-auto h-8 w-8 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                                                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                                                                                </svg>
-                                                                                <p className="mt-1 text-xs text-gray-600">
-                                                                                    Click to replace file
-                                                                                </p>
-                                                                            </label>
-                                                                        </div>
+                                                                        {!input.isApproved && (
+                                                                            <div
+                                                                                onDrop={(e) => handleFileDrop(input.id, e)}
+                                                                                onDragOver={(e) => e.preventDefault()}
+                                                                                className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-500 transition-colors cursor-pointer"
+                                                                            >
+                                                                                <input
+                                                                                    type="file"
+                                                                                    id={`file-${input.id}`}
+                                                                                    onChange={(e) => handleFileSelect(input.id, e)}
+                                                                                    className="hidden"
+                                                                                />
+                                                                                <label htmlFor={`file-${input.id}`} className="cursor-pointer">
+                                                                                    <svg className="mx-auto h-8 w-8 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                                                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                                                                                    </svg>
+                                                                                    <p className="mt-1 text-xs text-gray-600">
+                                                                                        Click to replace file
+                                                                                    </p>
+                                                                                </label>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 ) : input.file ? (
                                                                     <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded">
@@ -1004,7 +1084,7 @@ export default function TaskDetail({ auth, task, project }: Props) {
                                                                 )}
                                                             </div>
                                                             
-                                                            {fileInputs.length > 1 && (
+                                                            {fileInputs.length > 1 && !input.isApproved && (
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => removeFileInput(input.id)}

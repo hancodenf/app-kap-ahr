@@ -271,6 +271,7 @@ Route::middleware(['auth', 'verified', 'role:company', 'no.cache'])->prefix('com
     Route::get('/tasks/{task}/approval-detail', [CompanyController::class, 'showApprovalDetail'])->name('tasks.approval-detail');
     Route::post('/tasks/{task}/approve', [CompanyController::class, 'approveTask'])->name('tasks.approve');
     Route::post('/tasks/{task}/reject', [CompanyController::class, 'rejectTask'])->name('tasks.reject');
+    Route::post('/documents/{document}/review', [CompanyController::class, 'reviewDocument'])->name('documents.review');
     
     // Task detail page route
     Route::get('/tasks/{task}/detail', [CompanyController::class, 'showTaskDetail'])->name('tasks.detail');
