@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { FormEventHandler, useState, useEffect } from 'react';
+import axios from 'axios';
 
 interface Document {
     id: number;
@@ -147,6 +148,47 @@ export default function ShowProject({ auth, project, workingSteps, teamMembers }
         assignment_status: 'Draft',
     });
 
+    // Handle Excel upload for bulk client document requests
+    const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('excel_file', file);
+
+        try {
+            const response = await axios.post(route('admin.client-documents.parse-excel'), formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            const result = response.data;
+            
+            if (result.documents && Array.isArray(result.documents)) {
+                const newInputs = result.documents.map((doc: { name: string; description: string }, index: number) => ({
+                    id: nextClientDocId + index,
+                    name: doc.name || '',
+                    description: doc.description || ''
+                }));
+                
+                setClientDocInputs(newInputs);
+                setNextClientDocId(nextClientDocId + result.documents.length);
+                
+                alert(`✅ Successfully imported ${result.documents.length} document request(s) from Excel!`);
+            } else {
+                alert('❌ Invalid Excel format. Please use the provided template.');
+            }
+        } catch (error: any) {
+            console.error('Excel upload error:', error);
+            const errorMessage = error.response?.data?.message || error.message || 'An error occurred while uploading the Excel file';
+            alert(`❌ ${errorMessage}`);
+        }
+
+        // Reset file input
+        e.target.value = '';
+    };
+
     const toggleStep = (stepId: number) => {
         setExpandedSteps(prev =>
             prev.includes(stepId)
@@ -164,34 +206,8 @@ export default function ShowProject({ auth, project, workingSteps, teamMembers }
             return; // Can't interact with tasks not assigned to me
         }
 
-        setSelectedTask(task);
-        
-        // ADMIN ALWAYS SHOW FORM (editable regardless of status)
-        // Admin has full control over all tasks
-        setShowForm(true);
-        
-        // Expand latest submission by default
-        if (task.assignments && task.assignments.length > 0) {
-            setExpandedSubmissions([task.assignments[0].id]);
-        } else {
-            setExpandedSubmissions([]);
-        }
-        
-        setUploadMode('upload');
-        setFileInputs([{ id: 0, label: '', file: null }]);
-        setClientDocInputs([{ id: 0, name: '', description: '' }]);
-        setNextFileId(1);
-        setNextClientDocId(1);
-        setData({
-            notes: task.latest_assignment?.notes || '',
-            files: [],
-            file_labels: [],
-            upload_mode: 'upload',
-            client_documents: [],
-            completion_status: task.completion_status, // Set task completion status
-            assignment_status: task.latest_assignment?.status || 'Draft', // Set assignment status
-        });
-        setShowTaskModal(true);
+        // Redirect to task detail page instead of opening modal
+        router.visit(route('admin.tasks.detail', task.id));
     };
     
     const toggleSubmission = (submissionId: number) => {
@@ -1157,19 +1173,56 @@ export default function ShowProject({ auth, project, workingSteps, teamMembers }
                                                     📋 Request Documents from Client
                                                     <span className="ml-2 text-xs text-gray-500">(Optional)</span>
                                                 </label>
-                                                {selectedTask.multiple_files && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={addClientDocInput}
-                                                        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                                                <div className="flex items-center gap-2">
+                                                    {/* Download Template Button */}
+                                                    <a
+                                                        href={route('admin.client-documents.template')}
+                                                        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
                                                     >
                                                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                                         </svg>
-                                                        Add Document Request
-                                                    </button>
-                                                )}
+                                                        Download Template
+                                                    </a>
+                                                    {selectedTask.multiple_files && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={addClientDocInput}
+                                                            className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                                                        >
+                                                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                            </svg>
+                                                            Add Document Request
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
+                                            
+                                            {/* Upload Excel for Bulk Add */}
+                                            {selectedTask.multiple_files && (
+                                                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                                    <div className="flex items-start gap-3">
+                                                        <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                        </svg>
+                                                        <div className="flex-1">
+                                                            <p className="text-sm font-medium text-blue-900 mb-2">
+                                                                💡 Bulk Upload Multiple Document Requests
+                                                            </p>
+                                                            <p className="text-xs text-blue-700 mb-3">
+                                                                Download the template, fill in the document names and descriptions, then upload the Excel file to automatically add multiple document requests at once.
+                                                            </p>
+                                                            <input
+                                                                type="file"
+                                                                accept=".xlsx,.xls"
+                                                                onChange={handleExcelUpload}
+                                                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                             
                                             <div className="space-y-4">
                                                 {clientDocInputs.map((input, index) => (

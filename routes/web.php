@@ -196,7 +196,12 @@ Route::middleware(['auth', 'verified', 'role:admin', 'no.cache'])->prefix('admin
     });
 
     // Admin Task Management (full access to all tasks)
+    Route::get('/tasks/{task}/detail', [ProjectController::class, 'showTaskDetail'])->name('tasks.detail');
     Route::post('/tasks/{task}/update-status', [ProjectController::class, 'updateTaskStatus'])->name('tasks.update-status');
+
+    // Client Document Request - Bulk Upload Routes
+    Route::get('/client-documents/template', [ProjectController::class, 'downloadClientDocumentTemplate'])->name('client-documents.template');
+    Route::post('/client-documents/parse-excel', [ProjectController::class, 'parseClientDocumentExcel'])->name('client-documents.parse-excel');
 
     // Audit Management Routes (Old routes - might be deprecated)
     Route::get('/project', [ProjectController::class, 'index'])->name('project.index');

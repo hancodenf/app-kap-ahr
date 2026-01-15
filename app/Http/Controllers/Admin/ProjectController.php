@@ -1250,4 +1250,222 @@ class ProjectController extends Controller
         
         return back()->with('success', 'Task updated successfully - Completion: ' . $request->completion_status . ', Assignment: ' . $request->assignment_status);
     }
+
+    /**
+     * Show task detail page for admin
+     */
+    public function showTaskDetail(Task $task)
+    {
+        // Admin has full access - no need to check project team membership
+        
+        // Get latest assignment
+        $latestAssignment = $task->taskAssignments()->orderBy('created_at', 'desc')->first();
+        
+        // Admin can always edit
+        $canEdit = true;
+
+        // Build task data
+        $taskData = [
+            'id' => $task->id,
+            'name' => $task->name,
+            'slug' => $task->slug,
+            'status' => $latestAssignment ? $latestAssignment->status : 'Draft',
+            'completion_status' => $task->completion_status,
+            'client_interact' => $task->client_interact,
+            'multiple_files' => $task->multiple_files,
+            'can_upload_files' => $task->can_upload_files,
+            'can_edit' => $canEdit,
+            'working_step' => [
+                'id' => $task->workingStep->id,
+                'name' => $task->workingStep->name,
+            ],
+            'latest_assignment' => $latestAssignment ? [
+                'id' => $latestAssignment->id,
+                'time' => $latestAssignment->time,
+                'notes' => $latestAssignment->notes,
+                'comment' => $latestAssignment->comment,
+                'client_comment' => $latestAssignment->client_comment,
+                'status' => $latestAssignment->status,
+                'created_at' => $latestAssignment->created_at,
+                'documents' => $latestAssignment->documents->map(function ($doc) {
+                    return [
+                        'id' => $doc->id,
+                        'name' => $doc->name,
+                        'file' => $doc->file,
+                        'uploaded_at' => $doc->created_at,
+                        'status' => $doc->status ?? 'pending',
+                        'comment' => $doc->comment,
+                    ];
+                }),
+                'client_documents' => $latestAssignment->clientDocuments->map(function ($doc) {
+                    return [
+                        'id' => $doc->id,
+                        'name' => $doc->name,
+                        'description' => $doc->description,
+                        'file' => $doc->file,
+                        'uploaded_at' => $doc->updated_at,
+                    ];
+                }),
+            ] : null,
+            'assignments' => $task->taskAssignments()->orderBy('created_at', 'desc')->get()->map(function ($assignment) {
+                return [
+                    'id' => $assignment->id,
+                    'time' => $assignment->time,
+                    'notes' => $assignment->notes,
+                    'comment' => $assignment->comment,
+                    'client_comment' => $assignment->client_comment,
+                    'status' => $assignment->status,
+                    'created_at' => $assignment->created_at,
+                    'documents' => $assignment->documents->map(function ($doc) {
+                        return [
+                            'id' => $doc->id,
+                            'name' => $doc->name,
+                            'file' => $doc->file,
+                            'uploaded_at' => $doc->created_at,
+                            'status' => $doc->status ?? 'pending',
+                            'comment' => $doc->comment,
+                        ];
+                    }),
+                    'client_documents' => $assignment->clientDocuments->map(function ($doc) {
+                        return [
+                            'id' => $doc->id,
+                            'name' => $doc->name,
+                            'description' => $doc->description,
+                            'file' => $doc->file,
+                            'uploaded_at' => $doc->updated_at,
+                        ];
+                    }),
+                ];
+            }),
+            'task_workers' => $task->taskWorkers->filter(function ($worker) {
+                return $worker->user !== null;
+            })->map(function ($worker) {
+                return [
+                    'id' => $worker->id,
+                    'worker_name' => $worker->user->name,
+                    'worker_email' => $worker->user->email,
+                    'worker_role' => $worker->user->role,
+                ];
+            })->values(),
+        ];
+
+        // Get project data
+        $project = $task->workingStep->project;
+        $projectData = [
+            'id' => $project->id,
+            'name' => $project->name,
+            'slug' => $project->slug,
+            'status' => $project->status,
+        ];
+
+        return Inertia::render('Admin/Tasks/TaskDetail', [
+            'task' => $taskData,
+            'project' => $projectData,
+        ]);
+    }
+
+    /**
+     * Download client document request template (CSV)
+     */
+    public function downloadClientDocumentTemplate()
+    {
+        $headers = [
+            'Document Name',
+            'Description',
+        ];
+
+        $exampleData = [
+            ['NPWP Perusahaan', 'Salinan NPWP yang masih berlaku'],
+            ['KTP Direktur', 'KTP Direktur Utama (scan berwarna)'],
+            ['Akta Pendirian', 'Akta pendirian perusahaan'],
+        ];
+
+        $callback = function() use ($headers, $exampleData) {
+            $file = fopen('php://output', 'w');
+            
+            // Write headers with semicolon delimiter
+            fputcsv($file, $headers, ';');
+            
+            // Write example data with semicolon delimiter
+            foreach ($exampleData as $row) {
+                fputcsv($file, $row, ';');
+            }
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="client_document_template.csv"',
+        ]);
+    }
+
+    /**
+     * Parse uploaded Excel file and return client documents data
+     */
+    public function parseClientDocumentExcel(Request $request)
+    {
+        $request->validate([
+            'excel_file' => 'required|file|max:2048',
+        ]);
+
+        try {
+            $file = $request->file('excel_file');
+            $extension = $file->getClientOriginalExtension();
+            
+            // Validate extension manually
+            if (!in_array(strtolower($extension), ['csv', 'xlsx', 'xls'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid file type. Please upload a CSV, XLS, or XLSX file.',
+                ], 422);
+            }
+            
+            $documents = [];
+
+            if ($extension === 'csv') {
+                // Parse CSV with semicolon delimiter
+                $handle = fopen($file->getRealPath(), 'r');
+                $headers = fgetcsv($handle, 0, ';'); // Skip header row with semicolon delimiter
+                
+                while (($row = fgetcsv($handle, 0, ';')) !== false) {
+                    if (!empty($row[0])) { // Check if document name exists
+                        $documents[] = [
+                            'name' => trim($row[0]),
+                            'description' => isset($row[1]) ? trim($row[1]) : '',
+                        ];
+                    }
+                }
+                
+                fclose($handle);
+            } else {
+                // Parse Excel using Maatwebsite/Excel
+                $data = \Maatwebsite\Excel\Facades\Excel::toArray(new \stdClass(), $file)[0];
+                
+                // Skip header row
+                array_shift($data);
+                
+                foreach ($data as $row) {
+                    if (!empty($row[0])) { // Check if document name exists
+                        $documents[] = [
+                            'name' => trim($row[0]),
+                            'description' => isset($row[1]) ? trim($row[1]) : '',
+                        ];
+                    }
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'documents' => $documents,
+                'count' => count($documents),
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to parse file: ' . $e->getMessage(),
+            ], 422);
+        }
+    }
 }
