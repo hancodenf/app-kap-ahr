@@ -3,7 +3,6 @@ import { Bell, CheckCircle, Clock, AlertTriangle, X, Eye } from 'lucide-react';
 import { useRealTimeUpdates } from '../hooks/useRealTimeUpdates';
 
 const RealTimeNotifications = ({ className = "" }) => {
-    // console.log('RealTimeNotifications component loaded!'); // Debug log - disabled
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('approvals');
 

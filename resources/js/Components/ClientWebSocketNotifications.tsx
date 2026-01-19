@@ -114,7 +114,6 @@ const ClientWebSocketNotifications: React.FC<{ className?: string }> = ({ classN
 
     // WebSocket integration for real-time notifications
     useEffect(() => {
-        console.log('🔍 Client WebSocket useEffect triggered with:', {
             hasEcho: !!window.Echo,
             userId: auth.user.id,
             userRole: auth.user.role
@@ -122,24 +121,19 @@ const ClientWebSocketNotifications: React.FC<{ className?: string }> = ({ classN
         
         // Only setup WebSocket for client users
         if (auth.user.role === 'client' && window.Echo) {
-            console.log('✅ Setting up WebSocket listener for client task notifications...');
-            console.log('👤 Current client user ID:', auth.user.id);
             
             const echo = window.Echo;
             
             // Listen to private channel for client task notifications
             const channelName = `user.${auth.user.id}`;
-            console.log('🔊 Subscribing to client channel:', channelName);
             const channel = echo.private(channelName);
             
             // Test connection
             channel.subscribed(() => {
-                console.log('🎯 Successfully subscribed to client channel:', channelName);
             });
             
             // Listen for client task notifications
             channel.listen('.NewClientTaskNotification', (event: any) => {
-                console.log('🔔 New client task notification received:', event);
                 
                 // Show toast notification
                 if (typeof window !== 'undefined' && (window as any).toast) {
@@ -151,7 +145,6 @@ const ClientWebSocketNotifications: React.FC<{ className?: string }> = ({ classN
                         }
                     );
                 } else {
-                    console.log('📋 New task notification:', event.message);
                 }
                 
                 // Refresh notifications to update UI
@@ -162,7 +155,6 @@ const ClientWebSocketNotifications: React.FC<{ className?: string }> = ({ classN
 
             // Listen for project document request notifications
             channel.listen('.NewProjectDocumentRequest', (event: any) => {
-                console.log('📄 New project document request received:', event);
                 
                 // Show toast notification
                 if (typeof window !== 'undefined' && (window as any).toast) {
@@ -174,7 +166,6 @@ const ClientWebSocketNotifications: React.FC<{ className?: string }> = ({ classN
                         }
                     );
                 } else {
-                    console.log('📄 New document request:', event.message);
                 }
                 
                 // Refresh notifications to update UI
@@ -185,7 +176,6 @@ const ClientWebSocketNotifications: React.FC<{ className?: string }> = ({ classN
             
             // ALSO listen to ANY event for debugging
             channel.listen('.', (event: any) => {
-                console.log('🎧 RECEIVED ANY CLIENT EVENT:', event);
             });
             
             // Add error handling for channel
@@ -193,19 +183,15 @@ const ClientWebSocketNotifications: React.FC<{ className?: string }> = ({ classN
                 console.error('💥 Client WebSocket channel error:', error);
             });
             
-            console.log('🎉 Client WebSocket listener setup complete');
             
             // Cleanup on unmount
             return () => {
-                console.log('🧹 Cleaning up client WebSocket listener...');
                 channel.stopListening('.NewClientTaskNotification');
                 channel.stopListening('.NewProjectDocumentRequest');
             };
         } else {
             if (auth.user.role !== 'client') {
-                console.log('⚠️ Not a client user, WebSocket listener not set up');
             } else if (!window.Echo) {
-                console.log('⚠️ Echo not available, client WebSocket listener not set up');
             }
         }
     }, [auth.user.id, auth.user.role]);

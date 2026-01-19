@@ -38,7 +38,6 @@ export async function refreshCsrfToken(): Promise<void> {
             const metaTag = document.querySelector('meta[name="csrf-token"]');
             if (metaTag) {
                 metaTag.setAttribute('content', freshToken);
-                console.log('✅ CSRF meta tag updated with fresh token');
             }
         }
     } catch (error) {
@@ -78,7 +77,6 @@ export async function getFreshCsrfToken(): Promise<string> {
         throw new Error('CSRF token not found after refresh. Please reload the page.');
     }
     
-    console.log('🔑 Using fresh CSRF token:', token.substring(0, 10) + '...');
     return token;
 }
 
@@ -88,7 +86,6 @@ export async function getFreshCsrfToken(): Promise<string> {
  */
 export async function initializeCsrfToken(): Promise<void> {
     await refreshCsrfToken();
-    console.log('✅ CSRF token initialized');
 }
 
 /**
@@ -116,7 +113,6 @@ export async function fetchWithCsrf(url: string, options: RequestInit = {}, retr
     
     // If 419 and haven't retried yet, refresh token and retry once
     if (response.status === 419 && retryCount === 0) {
-        console.log('🔄 Got 419, refreshing token and retrying...');
         await new Promise(resolve => setTimeout(resolve, 300)); // Wait a bit
         return fetchWithCsrf(url, options, retryCount + 1);
     }

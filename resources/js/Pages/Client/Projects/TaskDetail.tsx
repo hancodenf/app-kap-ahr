@@ -110,7 +110,6 @@ interface Props extends PageProps {
 export default function TaskDetail({ task, project, pendingClientDocs }: Props) {
     // Check if project is active (only allow interactions for In Progress projects)
 
-    console.log(pendingClientDocs);
     
     const isProjectActive = project.status === 'In Progress';
 

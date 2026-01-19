@@ -1430,24 +1430,6 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     </div>
 
                                     <div>
-                                        <label htmlFor="add_task_approval_type" className="block text-sm font-medium text-gray-700 mb-2">
-                                            🔄 Approval Workflow Type
-                                        </label>
-                                        <select
-                                            id="add_task_approval_type"
-                                            value={taskData.approval_type}
-                                            onChange={(e) => setTaskData('approval_type', e.target.value as 'Once' | 'All Attempts')}
-                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                        >
-                                            <option value="Once">Once - Approval happens only once</option>
-                                            <option value="All Attempts">All Attempts - Approval required for every submission</option>
-                                        </select>
-                                        <p className="mt-1 text-xs text-gray-500">
-                                            Choose when approval is required
-                                        </p>
-                                    </div>
-
-                                    <div>
                                         <label htmlFor="add_task_due_date" className="block text-sm font-medium text-gray-700 mb-2">
                                             📅 Due Date
                                         </label>
@@ -1604,6 +1586,26 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                                 </p>
                                             </div>
                                         )}
+                                    </div>
+                                    <div>
+                                        <label htmlFor="add_task_approval_type" className="block text-sm font-medium text-gray-700 mb-2">
+                                            🔄 Approval Workflow Type
+                                        </label>
+                                        <select
+                                            id="add_task_approval_type"
+                                            value={taskData.approval_type}
+                                            onChange={(e) => setTaskData('approval_type', e.target.value as 'Once' | 'All Attempts')}
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                        >
+                                            <option value="Once">Once - Approval happens only once</option>
+                                            <option value="All Attempts">All Attempts - Approval required for every submission</option>
+                                        </select>
+                                        <p className="mt-3 text-xs text-gray-500">
+                                            Once - Once submission approval status is approved by highest role on this task, no need to start approval workflow from beginning when it rejected by client or need to ask client for re-upload files
+                                        </p>
+                                        <p className="mt-3 text-xs text-gray-500">
+                                            All Attempts - All rejections by client or request for re-upload files will require a new approval workflow
+                                        </p>
                                     </div>
                                 </div>
 

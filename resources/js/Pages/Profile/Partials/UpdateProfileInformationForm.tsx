@@ -173,10 +173,8 @@ export default function UpdateProfileInformation({
                 canvas.toBlob((currentBlob) => {
                     if (!currentBlob) return;
 
-                    console.log(`Compression attempt - Quality: ${(quality * 100).toFixed(0)}%, Size: ${(currentBlob.size / 1024).toFixed(2)} KB`);
 
                     if (currentBlob.size <= maxSizeBytes || quality <= 0.1) {
-                        console.log(`Final compressed size: ${(currentBlob.size / 1024).toFixed(2)} KB`);
                         resolve(currentBlob);
                     } else {
                         quality -= 0.05;

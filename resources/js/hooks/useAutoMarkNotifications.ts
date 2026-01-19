@@ -19,7 +19,6 @@ export const useAutoMarkNotifications = ({
 }: UseAutoMarkNotificationsProps) => {
     const { auth } = usePage().props as any;
 
-    console.log('🎯 useAutoMarkNotifications hook initialized with:', {
         type,
         project_id,
         task_id,
@@ -29,15 +28,12 @@ export const useAutoMarkNotifications = ({
     });
 
     useEffect(() => {
-        console.log('🔄 useEffect triggered - enabled:', enabled, 'hasUser:', !!auth.user);
         
         if (!enabled || !auth.user) {
-            console.log('⚠️ Auto-mark skipped:', { enabled, hasUser: !!auth.user });
             return;
         }
 
         const autoMarkNotifications = async () => {
-            console.log('🔔 Auto-mark notifications called with:', { type, project_id, task_id, relatedId });
             
             try {
                 // Get fresh CSRF token from server
@@ -62,7 +58,6 @@ export const useAutoMarkNotifications = ({
                 if (response.ok) {
                     const data = await response.json();
                     if (data.marked_count > 0) {
-                        console.log(`✅ Auto-marked ${data.marked_count} notifications as read`);
                         
                         // Trigger a refresh of notification count in other components
                         window.dispatchEvent(new CustomEvent('notification-updated'));

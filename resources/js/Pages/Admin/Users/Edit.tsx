@@ -251,7 +251,6 @@ export default function Edit({ user, roles, positions, userTypes, clients }: Edi
             
             // Show file size info
             const sizeKB = (croppedImageBlob.size / 1024).toFixed(2);
-            console.log(`Compressed image size: ${sizeKB} KB`);
             
             setData('profile_photo', croppedFile);
             

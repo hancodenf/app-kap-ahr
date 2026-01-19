@@ -103,27 +103,17 @@ const WebSocketNotifications: React.FC<{ className?: string }> = ({ className = 
             const maxRetries = 5;
             
             const tryInitialize = () => {
-                console.log('Trying to initialize Echo...', {
-                    'window.Echo exists': !!window.Echo,
-                    'auth.user exists': !!auth.user,
-                    'auth.user.id': auth.user?.id
-                });
-                
                 if (window.Echo && auth.user?.id) {
-                    console.log('Echo initialized, listening for notifications...');
                     
                     // Listen to private channel for current user (using new format)
                     const shownApprovalNotifications = new Set();
                     
                     window.Echo.private(`user.${auth.user.id}`)
                         .listen('.NewApprovalNotification', (data: any) => {
-                        console.log('🔔 Bell notification - New approval notification:', data);
-                        
                         // Create unique key for deduplication
                         const notificationKey = `approval-${data.task?.id}-${Date.now()}`;
                         
                         if (shownApprovalNotifications.has(notificationKey)) {
-                            console.log('🚫 Duplicate approval notification prevented:', notificationKey);
                             return;
                         }
                         
@@ -152,7 +142,6 @@ const WebSocketNotifications: React.FC<{ className?: string }> = ({ className = 
                         }
                     })
                         .listen('.NewWorkerTaskNotification', (data: any) => {
-                        console.log('🔔 Bell notification - New worker task notification:', data);
                         
                         // Refresh notifications from database to get the persistent version
                         fetchNotifications();
@@ -193,7 +182,6 @@ const WebSocketNotifications: React.FC<{ className?: string }> = ({ className = 
                         }
                     })
                     .listen('.ProjectDocumentUploaded', (data: any) => {
-                        console.log('📤 Bell notification - Client uploaded document:', data);
                         
                         // Refresh notifications from database to get the persistent version
                         fetchNotifications();
@@ -225,13 +213,11 @@ const WebSocketNotifications: React.FC<{ className?: string }> = ({ className = 
                         
                         window.Echo.private(`user.${auth.user.id}`)
                             .listen('.NewClientTaskNotification', (data: any) => {
-                                console.log('🔔 Bell notification - New client task notification:', data);
                                 
                                 // Create unique key for deduplication
                                 const notificationKey = `${data.task?.id}-${data.timestamp}`;
                                 
                                 if (shownNotifications.has(notificationKey)) {
-                                    console.log('🚫 Duplicate notification prevented:', notificationKey);
                                     return;
                                 }
                                 
@@ -272,7 +258,6 @@ const WebSocketNotifications: React.FC<{ className?: string }> = ({ className = 
                                 }
                             })
                             .listen('.NewProjectDocumentRequest', (data: any) => {
-                                console.log('📄 Bell notification - New project document request:', data);
                                 
                                 // Refresh notifications from database
                                 fetchNotifications();
@@ -300,7 +285,6 @@ const WebSocketNotifications: React.FC<{ className?: string }> = ({ className = 
                     
                     window.Echo.private(`user.${auth.user.id}`)
                     .listen('TaskAssigned', (data: any) => {
-                        console.log('Task assigned:', data);
                         
                         const newNotification: Notification = {
                             id: Date.now().toString(),
@@ -316,7 +300,6 @@ const WebSocketNotifications: React.FC<{ className?: string }> = ({ className = 
                 } else {
                     retryCount++;
                     if (retryCount < maxRetries) {
-                        console.log(`Echo not ready, retrying... (${retryCount}/${maxRetries})`);
                         setTimeout(tryInitialize, 1000);
                     } else {
                         console.warn('Echo not available after retries, falling back to polling');

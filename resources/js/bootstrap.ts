@@ -12,14 +12,6 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
-console.log('Bootstrap.ts loading...');
-console.log('Environment variables:', {
-    VITE_REVERB_APP_KEY: import.meta.env.VITE_REVERB_APP_KEY,
-    VITE_REVERB_HOST: import.meta.env.VITE_REVERB_HOST,
-    VITE_REVERB_PORT: import.meta.env.VITE_REVERB_PORT,
-    VITE_REVERB_SCHEME: import.meta.env.VITE_REVERB_SCHEME,
-});
-
 window.Pusher = Pusher;
 
 try {
@@ -33,32 +25,28 @@ try {
         enabledTransports: ['ws', 'wss'],
     });
     
-    console.log('Echo initialized successfully:', window.Echo);
-    
     // Debug: Log all WebSocket events
     if (window.Echo.connector && window.Echo.connector.pusher && window.Echo.connector.pusher.connection) {
-        console.log('🔌 Adding WebSocket debug listeners...');
-        
         const connection = window.Echo.connector.pusher.connection;
         
         connection.bind_global((event: string, data: any) => {
-            console.log('🔍 RAW WEBSOCKET EVENT:', event, data);
+            // WebSocket event received
         });
         
         connection.bind('connected', () => {
-            console.log('✅ WebSocket connected successfully');
+            // WebSocket connected
         });
         
         connection.bind('disconnected', () => {
-            console.log('❌ WebSocket disconnected');
+            // WebSocket disconnected
         });
         
         connection.bind('error', (error: any) => {
-            console.log('🚨 WebSocket error:', error);
+            console.error('WebSocket error:', error);
         });
         
         connection.bind('message', (message: any) => {
-            console.log('📨 WebSocket raw message:', message);
+            // WebSocket message received
         });
     }
     

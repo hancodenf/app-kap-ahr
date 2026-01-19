@@ -177,9 +177,7 @@ export const useRealTimeUpdates = (options = {}) => {
         try {
             const audio = new Audio('/sounds/notification.mp3'); // You'll need to add this sound file
             audio.volume = 0.3;
-            audio.play().catch(e => console.log('Sound play failed:', e));
         } catch (error) {
-            console.log('Notification sound not available');
         }
     };
 

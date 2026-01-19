@@ -135,7 +135,6 @@ export default function CompanyDashboard({
 			const response = await fetch('/company/dashboard/pending-approvals');
 			const data = await response.json();
 			setTasksPendingApproval(data.tasksPendingApproval || []);
-			console.log('🔄 Dashboard pending approvals refreshed:', data.tasksPendingApproval?.length || 0);
 		} catch (error) {
 			console.error('Failed to fetch pending approvals:', error);
 		} finally {
@@ -147,13 +146,11 @@ export default function CompanyDashboard({
 	useEffect(() => {
 		if (!window.Echo || !auth.user?.id) return;
 
-		console.log('🔊 Setting up dashboard WebSocket listeners...');
 
 		// Listen for approval notifications
 		const channel = window.Echo.private(`user.${auth.user.id}`);
 		
 		channel.listen('.NewApprovalNotification', (event: any) => {
-			console.log('🔔 Dashboard received approval notification:', event);
 			
 			// Refresh pending approvals list
 			setTimeout(() => {
