@@ -400,12 +400,6 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
 
     // WebSocket integration for real-time approval notifications
     useEffect(() => {
-            needsApprovalTab,
-            hasEcho: !!window.Echo,
-            userId: auth.user.id,
-            projectId: project.id
-        });
-        
         if (needsApprovalTab && window.Echo) {
             
             const echo = window.Echo;

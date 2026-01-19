@@ -114,11 +114,6 @@ const ClientWebSocketNotifications: React.FC<{ className?: string }> = ({ classN
 
     // WebSocket integration for real-time notifications
     useEffect(() => {
-            hasEcho: !!window.Echo,
-            userId: auth.user.id,
-            userRole: auth.user.role
-        });
-        
         // Only setup WebSocket for client users
         if (auth.user.role === 'client' && window.Echo) {
             

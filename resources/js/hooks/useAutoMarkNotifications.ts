@@ -19,16 +19,7 @@ export const useAutoMarkNotifications = ({
 }: UseAutoMarkNotificationsProps) => {
     const { auth } = usePage().props as any;
 
-        type,
-        project_id,
-        task_id,
-        relatedId,
-        enabled,
-        hasUser: !!auth.user
-    });
-
     useEffect(() => {
-        
         if (!enabled || !auth.user) {
             return;
         }
