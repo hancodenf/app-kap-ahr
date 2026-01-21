@@ -790,9 +790,10 @@ class CompanyController extends Controller
                 }
             }
 
-            // Only delete old documents if new files are being uploaded
+            // When uploading new files, only delete rejected documents
+            // Keep approved and pending documents
             if ($hasFiles) {
-                $taskAssignment->documents()->delete();
+                $taskAssignment->documents()->where('status', 'rejected')->delete();
             }
 
             // Only delete old client documents if new requests are being made
