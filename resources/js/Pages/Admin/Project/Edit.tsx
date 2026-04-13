@@ -418,12 +418,12 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         setSteps(workingSteps || []);
     }, [workingSteps]);
 
-    const { data: stepData, setData: setStepData, post: postStep, reset: resetStep } = useForm({
+    const { data: stepData, setData: setStepData, post: postStep, reset: resetStep, processing: postStepProcessing } = useForm({
         name: '',
         bundle_id: bundle.id, // Send as bundle_id as expected by controller
     });
 
-    const { data: taskData, setData: setTaskData, post: postTask, reset: resetTask } = useForm({
+    const { data: taskData, setData: setTaskData, post: postTask, reset: resetTask, processing: postTaskProcessing } = useForm({
         name: '',
         working_step_id: 0,
         client_interact: 'read only' as 'read only' | 'restricted' | 'upload' | 'approval',
@@ -470,7 +470,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
         });
     }, [editTemplateData.client_id, clients]);
 
-    const { data: editTaskData, setData: setEditTaskData, put: putTask, reset: resetEditTask } = useForm({
+    const { data: editTaskData, setData: setEditTaskData, put: putTask, reset: resetEditTask, processing: editTaskProcessing } = useForm({
         name: '',
         client_interact: 'read only' as 'read only' | 'restricted' | 'upload' | 'approval',
         approval_type: 'Once' as 'Once' | 'All Attempts',
@@ -483,13 +483,13 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     });
 
     // Team Member Forms
-    const { data: teamMemberData, setData: setTeamMemberData, post: postTeamMember, reset: resetTeamMember } = useForm({
+    const { data: teamMemberData, setData: setTeamMemberData, post: postTeamMember, reset: resetTeamMember, processing: postTeamMemberProcessing } = useForm({
         project_id: bundle.id,
         user_id: 0,
         role: 'member' as 'partner' | 'manager' | 'supervisor' | 'team leader' | 'member',
     });
 
-    const { data: editTeamMemberData, setData: setEditTeamMemberData, put: putTeamMember, reset: resetEditTeamMember } = useForm({
+    const { data: editTeamMemberData, setData: setEditTeamMemberData, put: putTeamMember, reset: resetEditTeamMember, processing: editTeamMemberProcessing } = useForm({
         role: 'member' as 'partner' | 'manager' | 'supervisor' | 'team leader' | 'member',
     });
 
@@ -1373,7 +1373,8 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded hover:bg-primary-700 transition-all duration-200 hover:shadow-sm"
+                                        disabled={postStepProcessing}
+                                        className="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded hover:bg-primary-700 transition-all duration-200 hover:shadow-sm disabled:opacity-50"
                                     >
                                         Create Working Step
                                     </button>
@@ -1619,7 +1620,8 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
+                                        disabled={postTaskProcessing}
+                                        className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50"
                                     >
                                         Add Task
                                     </button>
@@ -2042,7 +2044,8 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
+                                        disabled={editTaskProcessing}
+                                        className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50"
                                     >
                                         Update Task
                                     </button>
@@ -2130,7 +2133,8 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
+                                        disabled={postTeamMemberProcessing}
+                                        className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50"
                                     >
                                         Add Member
                                     </button>
@@ -2203,7 +2207,8 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+                                        disabled={editTeamMemberProcessing}
+                                        className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
                                     >
                                         Update Role
                                     </button>

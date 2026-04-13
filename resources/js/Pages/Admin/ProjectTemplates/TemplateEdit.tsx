@@ -330,12 +330,12 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
         setSteps(workingSteps || []);
     }, [workingSteps]);
 
-    const { data: stepData, setData: setStepData, post: postStep, reset: resetStep } = useForm({
+    const { data: stepData, setData: setStepData, post: postStep, reset: resetStep, processing: postStepProcessing } = useForm({
         name: '',
         bundle_id: bundle.id, // Send as bundle_id as expected by controller
     });
 
-    const { data: taskData, setData: setTaskData, post: postTask, reset: resetTask } = useForm({
+    const { data: taskData, setData: setTaskData, post: postTask, reset: resetTask, processing: postTaskProcessing } = useForm({
         name: '',
         template_working_step_id: 0,
         client_interact: 'read only' as 'read only' | 'restricted' | 'upload' | 'approval',
@@ -355,7 +355,7 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
         name: '',
     });
 
-    const { data: editTaskData, setData: setEditTaskData, put: putTask, reset: resetEditTask } = useForm({
+    const { data: editTaskData, setData: setEditTaskData, put: putTask, reset: resetEditTask, processing: editTaskProcessing } = useForm({
         name: '',
         client_interact: 'read only' as 'read only' | 'restricted' | 'upload' | 'approval',
         can_upload_files: false,
@@ -984,7 +984,8 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
+                                        disabled={postStepProcessing}
+                                        className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50"
                                     >
                                         Create Working Step
                                     </button>
@@ -1198,7 +1199,8 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
+                                        disabled={postTaskProcessing}
+                                        className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50"
                                     >
                                         Add Task
                                     </button>
@@ -1502,7 +1504,8 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
+                                        disabled={editTaskProcessing}
+                                        className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50"
                                     >
                                         Update Task
                                     </button>
