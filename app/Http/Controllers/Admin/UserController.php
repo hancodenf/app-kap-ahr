@@ -153,7 +153,7 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'role_id' => 'required|in:admin,client,company',
-            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
             'whatsapp' => ['nullable', 'string', 'max:20', 'unique:users,whatsapp'],
         ];
 
@@ -377,7 +377,7 @@ class UserController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => 'nullable|string|min:8|confirmed',
             'role_id' => 'required|in:admin,client,company',
-            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
             'whatsapp' => ['nullable', 'string', 'max:20', Rule::unique('users', 'whatsapp')->ignore($user->id)],
         ];
 

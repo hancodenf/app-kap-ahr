@@ -97,7 +97,6 @@ interface ClientDashboardProps extends PageProps {
     };
     recentProjects: RecentProject[];
     tasksRequiringAction: TaskRequiringAction[];
-    taskTrend: TaskTrendItem[];
     recentActivities: RecentActivity[];
     latestNews: NewsItem[];
 }
@@ -107,7 +106,6 @@ export default function Dashboard({
     statistics, 
     recentProjects, 
     tasksRequiringAction,
-    taskTrend,
     recentActivities,
     latestNews
 }: ClientDashboardProps) {
@@ -158,8 +156,6 @@ export default function Dashboard({
     const projectActiveRate = statistics.projects.total > 0
         ? Math.round((statistics.projects.open / statistics.projects.total) * 100)
         : 0;
-
-    const maxTrendValue = Math.max(...taskTrend.map(item => item.count), 1);
 
     return (
         <AuthenticatedLayout
@@ -330,29 +326,6 @@ export default function Dashboard({
                                     <p className="text-xs text-gray-500 mt-0.5">Dokumen</p>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    {/* Task Completion Trend - Clean Chart */}
-                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                        <h3 className="text-base font-semibold text-gray-900 mb-6">Tren Penyelesaian Tugas (7 Hari Terakhir)</h3>
-                        <div className="flex items-end justify-between h-48 gap-3">
-                            {taskTrend.map((item, index) => {
-                                const height = maxTrendValue > 0 ? (item.count / maxTrendValue) * 100 : 0;
-                                return (
-                                    <div key={index} className="flex-1 flex flex-col items-center gap-3">
-                                        <div className="w-full bg-gray-100 rounded-t-lg relative group" style={{ height: `${height}%`, minHeight: height > 0 ? '24px' : '4px' }}>
-                                            <div className="absolute inset-0 bg-gradient-to-t from-green-500 to-emerald-400 rounded-t-lg"></div>
-                                            <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-2.5 py-1.5 rounded-lg text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg">
-                                                {item.count} tugas
-                                            </div>
-                                        </div>
-                                        <div className="text-xs text-gray-500 text-center font-medium">
-                                            {new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-                                        </div>
-                                    </div>
-                                );
-                            })}
                         </div>
                     </div>
 

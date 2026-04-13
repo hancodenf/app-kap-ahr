@@ -156,6 +156,8 @@ export default function TaskDetail({ auth, task, project }: Props) {
         _method: 'PUT',
     });
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     // Open Add New Modal
     const openAddModal = () => {
         setIsEditMode(false);
@@ -459,6 +461,10 @@ export default function TaskDetail({ auth, task, project }: Props) {
         
         formData.append('_method', 'PUT');
 
+        // Prevent double click by using state
+        if (isSubmitting) return;
+
+        setIsSubmitting(true);
         // Submit using router.post with FormData
         router.post(route('company.tasks.update-status', task.id), formData, {
             preserveScroll: true,
@@ -466,6 +472,9 @@ export default function TaskDetail({ auth, task, project }: Props) {
             onSuccess: () => {
                 setShowModal(false);
                 window.location.reload();
+            },
+            onFinish: () => {
+                setIsSubmitting(false);
             },
         });
     };
@@ -1228,10 +1237,10 @@ export default function TaskDetail({ auth, task, project }: Props) {
                                         </button>
                                         <button
                                             type="submit"
-                                            disabled={processing}
+                                            disabled={isSubmitting || processing}
                                             className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
                                         >
-                                            {processing ? 'Saving...' : isEditMode ? 'Save Changes' : 'Submit'}
+                                            {isSubmitting || processing ? 'Saving...' : isEditMode ? 'Save Changes' : 'Submit'}
                                         </button>
                                     </div>
                                 </div>

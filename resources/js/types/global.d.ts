@@ -7,7 +7,6 @@ declare global {
     interface Window {
         axios: AxiosInstance;
         Echo: any;
-        Pusher: any;
         Laravel: {
             user: any;
         };

@@ -1145,7 +1145,7 @@ class ProjectController extends Controller
             // TWO separate status fields - Admin can override both
             'completion_status' => 'required|string|in:pending,in_progress,completed', // for tasks table
             'assignment_status' => 'required|string', // for task_assignments table
-            'files.*' => 'nullable|file|max:10240', // Max 10MB per file
+            'files.*' => 'nullable|file|max:512000', // Max 500MB per file
             'file_labels' => 'nullable|array',
             'file_labels.*' => 'nullable|string|max:255',
             'client_documents' => 'nullable|array',
@@ -1406,7 +1406,7 @@ class ProjectController extends Controller
     public function parseClientDocumentExcel(Request $request)
     {
         $request->validate([
-            'excel_file' => 'required|file|max:2048',
+            'excel_file' => 'required|file|max:512000',
         ]);
 
         try {

@@ -56,7 +56,7 @@ class ClientController extends Controller
             'kementrian' => 'required|in:Kementerian Kesehatan,Kementerian Perhubungan,Kementerian Agama,Kementerian Pendidikan,Kementerian Pertanian,Kementerian Keuangan',
             'kode_satker' => 'required|string|max:255',
             'type' => 'required|in:BLU,BLUD,PTNBH',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:512000',
         ]);
 
         // Generate unique slug from name
@@ -121,7 +121,7 @@ class ClientController extends Controller
             'kementrian' => 'required|in:Kementerian Kesehatan,Kementerian Perhubungan,Kementerian Agama,Kementerian Pendidikan,Kementerian Pertanian,Kementerian Keuangan',
             'kode_satker' => 'required|string|max:255',
             'type' => 'required|in:BLU,BLUD,PTNBH',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:512000',
         ]);
 
         // Handle logo upload

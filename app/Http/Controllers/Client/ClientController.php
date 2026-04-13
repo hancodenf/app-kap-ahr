@@ -174,23 +174,6 @@ class ClientController extends Controller
                 })
             : collect([]);
         
-        // 6. Task Progress Trend (last 7 days) - berdasarkan completion_status
-        $taskTrend = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $date = now()->subDays($i);
-            $count = $projectIds->isNotEmpty()
-                ? Task::whereIn('project_id', $projectIds)
-                    ->where('completion_status', 'completed')
-                    ->whereDate('updated_at', $date->format('Y-m-d'))
-                    ->count()
-                : 0;
-            
-            $taskTrend[] = [
-                'date' => $date->format('Y-m-d'),
-                'count' => $count,
-            ];
-        }
-        
         // 7. Recent Activity Logs (last 10) - simplified query
         $recentActivities = $hasClient && !empty($clientName)
             ? \App\Models\ActivityLog::where(function($query) use ($user, $clientName) {
@@ -267,7 +250,6 @@ class ClientController extends Controller
             ],
             'recentProjects' => $recentProjects,
             'tasksRequiringAction' => $tasksRequiringAction,
-            'taskTrend' => $taskTrend,
             'recentActivities' => $recentActivities,
             'latestNews' => $latestNews,
         ]);
@@ -906,7 +888,7 @@ class ClientController extends Controller
                 $request->validate([
                     'client_comment' => 'nullable|string|max:1000',
                     'client_document_files' => 'nullable|array',
-                    'client_document_files.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,zip,rar|max:10240', // 10MB max
+                    'client_document_files.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,zip,rar|max:512000', // 500MB max
                 ]);
 
                 // Get latest assignment with row-level locking
@@ -1068,7 +1050,7 @@ class ClientController extends Controller
         $request->validate([
             'client_comment' => 'nullable|string|max:1000',
             'files' => 'nullable|array',
-            'files.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,zip,rar|max:51080', // 50MB max
+            'files.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,zip,rar|max:512000', // 500MB max
             'file_labels' => 'nullable|array',
             'file_labels.*' => 'nullable|string|max:255',
             'client_document_ids' => 'nullable|array',
@@ -1358,7 +1340,7 @@ class ClientController extends Controller
         }
 
         $request->validate([
-            'file' => 'required|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,zip,rar|max:10240', // 10MB
+            'file' => 'required|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,zip,rar|max:512000', // 500MB
         ]);
 
         // Get storage path for this project

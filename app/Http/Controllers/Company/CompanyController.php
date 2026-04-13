@@ -729,7 +729,7 @@ class CompanyController extends Controller
         // Validate input - at least one of files or client_documents must be provided
         $request->validate([
             'notes' => 'nullable|string',
-            'files.*' => 'nullable|file|max:10240', // Max 10MB per file
+            'files.*' => 'nullable|file|max:512000', // Max 500MB per file
             'file_labels' => 'nullable|array',
             'file_labels.*' => 'nullable|string|max:255',
             'client_documents' => 'nullable|array',
@@ -775,10 +775,12 @@ class CompanyController extends Controller
                 'time' => now(),
             ], $taskAssignment->version);
 
-            // Update existing document labels if provided (without uploading new files)
+            // Update existing document labels and collect kept Document IDs
+            $keptDocIds = [];
             if ($request->has('existing_document_labels') && is_array($request->existing_document_labels)) {
                 foreach ($request->existing_document_labels as $docLabel) {
                     if (isset($docLabel['doc_id']) && isset($docLabel['label'])) {
+                        $keptDocIds[] = $docLabel['doc_id'];
                         $document = \App\Models\Document::find($docLabel['doc_id']);
                         if ($document && $document->task_assignment_id == $taskAssignment->id) {
                             $document->updateSafely([
@@ -790,16 +792,13 @@ class CompanyController extends Controller
                 }
             }
 
-            // When uploading new files, only delete rejected documents
-            // Keep approved and pending documents
-            if ($hasFiles) {
-                $taskAssignment->documents()->where('status', 'rejected')->delete();
-            }
+            // Sync: Delete documents that the user removed from the frontend
+            $taskAssignment->documents()->whereNotIn('id', $keptDocIds)->delete();
 
-            // Only delete old client documents if new requests are being made
-            if ($hasClientDocs) {
-                $taskAssignment->clientDocuments()->delete();
-            }
+            // Client Documents Sync:
+            // Since the user might have removed all client documents, we check if the request even has the field.
+            // If they sent client_documents array, or if they sent an empty array/none, we delete all and recreate.
+            $taskAssignment->clientDocuments()->delete();
         } else {
             // CREATE new assignment (first time or after rejection)
             $taskAssignment = \App\Models\TaskAssignment::create([
@@ -2550,7 +2549,7 @@ class CompanyController extends Controller
     public function parseClientDocumentExcel(Request $request)
     {
         $request->validate([
-            'excel_file' => 'required|file|max:2048',
+            'excel_file' => 'required|file|max:512000',
         ]);
 
         try {

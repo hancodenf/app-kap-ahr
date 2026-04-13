@@ -416,15 +416,6 @@ export default function ShowProject({ auth, project, workingSteps, myRole, teamM
             channel.notification((notification: any) => {
             });
             
-            // Also try listening to the raw pusher channel
-            if (channel.pusher) {
-                const pusherChannel = channel.pusher.channel(`private-${channelName}`);
-                if (pusherChannel && pusherChannel.bind_global) {
-                    pusherChannel.bind_global((event: string, data: any) => {
-                    });
-                }
-            }
-            
             // Listen for approval notifications using dot notation (this works!)
             channel.listen('.NewApprovalNotification', (event: any) => {
                 

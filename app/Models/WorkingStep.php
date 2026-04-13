@@ -65,21 +65,32 @@ class WorkingStep extends Model
      */
     public function checkAndUnlockNextStep(): void
     {
+        $shouldUnlock = false;
+
         // Get all required tasks in this step
         $requiredTasksCount = $this->tasks()->where('is_required', true)->count();
         
-        // If no required tasks, nothing to check
         if ($requiredTasksCount === 0) {
-            return;
+            // Jika TIDAK ADA task yang required di step ini, 
+            // maka cukup SATU task saja yang completed, step selanjutnya akan terbuka.
+            $completedAnyTasksCount = $this->tasks()->where('completion_status', 'completed')->count();
+            if ($completedAnyTasksCount > 0) {
+                $shouldUnlock = true;
+            }
+        } else {
+            // Jika ADA task required, maka SEMUA task required tersebut harus completed.
+            $completedRequiredTasksCount = $this->tasks()
+                ->where('is_required', true)
+                ->where('completion_status', 'completed')
+                ->count();
+            
+            if ($requiredTasksCount === $completedRequiredTasksCount) {
+                $shouldUnlock = true;
+            }
         }
         
-        $completedRequiredTasksCount = $this->tasks()
-            ->where('is_required', true)
-            ->where('completion_status', 'completed')
-            ->count();
-        
-        // If all required tasks are completed
-        if ($requiredTasksCount === $completedRequiredTasksCount) {
+        // Jika syarat terpenuhi, buka step selanjutnya
+        if ($shouldUnlock) {
             // Find and unlock the next step
             $nextStep = self::where('project_id', $this->project_id)
                 ->where('order', '>', $this->order)
