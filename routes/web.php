@@ -234,6 +234,7 @@ Route::middleware(['auth', 'verified', 'role:admin', 'no.cache'])->prefix('admin
         Route::post('/', [ProjectTemplateController::class, 'storeBundle'])->name('template-bundles.store');
         Route::get('/{templateBundle}', [ProjectTemplateController::class, 'showBundle'])->name('template-bundles.show');
         Route::get('/{templateBundle}/edit', [ProjectTemplateController::class, 'editBundle'])->name('template-bundles.edit');
+        Route::put('/{templateBundle}/request-files', [ProjectTemplateController::class, 'updateRequestFiles'])->name('template-bundles.update-files');
         Route::put('/{templateBundle}', [ProjectTemplateController::class, 'updateBundle'])->name('template-bundles.update');
         Route::delete('/{templateBundle}', [ProjectTemplateController::class, 'destroyBundle'])->name('template-bundles.destroy');
 

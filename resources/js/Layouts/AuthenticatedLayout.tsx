@@ -1,6 +1,7 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import Toast from '@/Components/Toast';
 import WebSocketNotifications from '@/Components/WebSocketNotifications';
+import GlobalUploadProgress from '@/Components/GlobalUploadProgress';
 import { Link, usePage, router } from '@inertiajs/react';
 import { PropsWithChildren, ReactNode, useState, useEffect } from 'react';
 import axios from 'axios';
@@ -298,6 +299,8 @@ export default function Authenticated({
         <div className="h-screen bg-gray-100 flex flex-col overflow-hidden">
             {/* Toast Notifications */}
             <Toast />
+            <WebSocketNotifications />
+            <GlobalUploadProgress />
 
             {/* Top Navbar - Fixed for all screen sizes */}
             <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 h-16 flex items-center px-4">

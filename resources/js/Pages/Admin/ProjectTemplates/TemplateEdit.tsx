@@ -62,9 +62,16 @@ interface TemplateBundle {
     project_templates?: any[]; // Keep for backward compatibility
 }
 
+interface TemplateRequestFile {
+    id: string;
+    project_template_id: number;
+    request_list: string[] | null;
+}
+
 interface Props extends PageProps {
     bundle: TemplateBundle;
     workingSteps: TemplateWorkingStep[];
+    templateRequestFile?: TemplateRequestFile | null;
 }
 
 // Draggable Step Component
@@ -232,10 +239,33 @@ function DraggableTask({ task, onEdit, onDelete }: {
     );
 }
 
-export default function Show({ auth, bundle, workingSteps }: Props) {
+export default function Show({ auth, bundle, workingSteps, templateRequestFile }: Props) {
     const [steps, setSteps] = useState(workingSteps || []);
     const [activeStep, setActiveStep] = useState<TemplateWorkingStep | null>(null);
     const [activeTask, setActiveTask] = useState<TemplateTask | null>(null);
+    
+    // Request Files states
+    const { data: requestFilesData, setData: setRequestFilesData, put: putRequestFiles, processing: requestFilesProcessing } = useForm({
+        request_list: templateRequestFile?.request_list || [],
+    });
+    const [newRequestFile, setNewRequestFile] = useState('');
+
+    const handleAddRequestFile = () => {
+        if (!newRequestFile.trim()) return;
+        setRequestFilesData('request_list', [...requestFilesData.request_list, newRequestFile.trim()]);
+        setNewRequestFile('');
+    };
+
+    const handleRemoveRequestFile = (indexToRemove: number) => {
+        setRequestFilesData('request_list', requestFilesData.request_list.filter((_, idx) => idx !== indexToRemove));
+    };
+
+    const handleSaveRequestFiles = () => {
+        putRequestFiles(route('admin.project-templates.template-bundles.update-files', bundle.id), {
+            preserveScroll: true
+        });
+    };
+
     const [showAddStepModal, setShowAddStepModal] = useState(false);
     const [showAddTaskModal, setShowAddTaskModal] = useState(false);
     const [showEditStepModal, setShowEditStepModal] = useState(false);
@@ -784,6 +814,69 @@ export default function Show({ auth, bundle, workingSteps }: Props) {
                                     </svg>
                                     Edit Template Name
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Requested Document List */}
+                    <div className="mb-6">
+                        <div className="bg-white shadow-sm sm:rounded-lg p-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <div>
+                                    <h3 className="text-lg font-medium text-gray-900">Requested Files List</h3>
+                                    <p className="text-sm text-gray-600">Daftar file yang dibutuhkan dari klien</p>
+                                </div>
+                                <button
+                                    onClick={handleSaveRequestFiles}
+                                    disabled={requestFilesProcessing}
+                                    className="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+                                >
+                                    {requestFilesProcessing ? 'Menyimpan...' : 'Simpan Daftar Berkas'}
+                                </button>
+                            </div>
+                            
+                            <div className="space-y-4">
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        value={newRequestFile}
+                                        onChange={(e) => setNewRequestFile(e.target.value)}
+                                        placeholder="Tulis nama berkas yang dibutuhkan lalu klik tombol Tambah..."
+                                        onKeyDown={(e) => e.key === 'Enter' && handleAddRequestFile()}
+                                        className="flex-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                    />
+                                    <button 
+                                        onClick={handleAddRequestFile}
+                                        className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium transition-colors"
+                                    >
+                                        Tambah
+                                    </button>
+                                </div>
+
+                                <ul className="divide-y divide-gray-200 border border-gray-200 rounded-md overflow-hidden">
+                                    {requestFilesData.request_list && requestFilesData.request_list.length > 0 ? (
+                                        requestFilesData.request_list.map((item, idx) => (
+                                            <li key={idx} className="flex justify-between items-center p-3 bg-gray-50 hover:bg-white transition-colors">
+                                                <span className="text-sm text-gray-800">
+                                                    <span className="font-bold mr-2">{idx + 1}.</span>
+                                                    {item}
+                                                </span>
+                                                <button 
+                                                    onClick={() => handleRemoveRequestFile(idx)}
+                                                    className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </li>
+                                        ))
+                                    ) : (
+                                        <li className="p-4 text-center text-sm text-gray-500 bg-gray-50">
+                                            Belum ada dokumen requested list. Tambahkan formulir di atas.
+                                        </li>
+                                    )}
+                                </ul>
                             </div>
                         </div>
                     </div>

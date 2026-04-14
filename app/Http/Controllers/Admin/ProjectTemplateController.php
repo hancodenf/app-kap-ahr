@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ProjectTemplate;
 use App\Models\TemplateWorkingStep;
 use App\Models\TemplateTask;
+use App\Models\TemplateRequestFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -87,9 +88,12 @@ class ProjectTemplateController extends Controller
         // Initialize project_templates as empty array for compatibility with frontend
         $templateBundle->project_templates = [];
 
+        $templateRequestFile = TemplateRequestFile::where('project_template_id', $templateBundle->id)->first();
+
         return Inertia::render('Admin/ProjectTemplates/TemplateEdit', [
             'bundle' => $templateBundle,
             'workingSteps' => $workingSteps,
+            'templateRequestFile' => $templateRequestFile,
         ]);
     }
 
@@ -103,6 +107,27 @@ class ProjectTemplateController extends Controller
 
         return redirect()->route('admin.project-templates.template-bundles.edit', $templateBundle->id)
             ->with('success', 'Template bundle updated successfully!');
+    }
+
+    public function updateRequestFiles(Request $request, ProjectTemplate $templateBundle)
+    {
+        $request->validate([
+            'request_list' => 'present|array',
+            'request_list.*' => 'string|max:255',
+        ]);
+
+        $templateRequestFile = TemplateRequestFile::where('project_template_id', $templateBundle->id)->first();
+        
+        if (!$templateRequestFile) {
+            $templateRequestFile = new TemplateRequestFile();
+            $templateRequestFile->project_template_id = $templateBundle->id;
+        }
+
+        $templateRequestFile->request_list = $request->request_list;
+        $templateRequestFile->save();
+
+        return redirect()->back()
+            ->with('success', 'Request files list updated successfully!');
     }
 
     public function destroyBundle(ProjectTemplate $templateBundle)
