@@ -22,10 +22,11 @@ return new class extends Migration
                 'Kementerian Agama',
                 'Kementerian Pendidikan',
                 'Kementerian Pertanian',
-                'Kementerian Keuangan'
+                'Kementerian Keuangan',
+                'Lainnya'
             ]);
             $table->string('kode_satker');
-            $table->enum('type', ['BLU', 'BLUD', 'PTNBH']);
+            $table->enum('type', ['BLU', 'BLUD', 'PTNBH', 'Lembaga', 'Yayasan', 'Perusahaan Swasta', 'BUMN']);
             $table->string('logo')->nullable();
             $table->timestamps();
         });

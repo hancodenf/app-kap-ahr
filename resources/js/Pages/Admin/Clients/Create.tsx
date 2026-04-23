@@ -23,10 +23,11 @@ export default function Create() {
 		'Kementerian Agama',
 		'Kementerian Pendidikan',
 		'Kementerian Pertanian',
-		'Kementerian Keuangan'
+		'Kementerian Keuangan',
+		'Lainnya'
 	];
 
-	const typeOptions = ['BLU', 'BLUD', 'PTNBH'];
+	const typeOptions = ['BLU', 'BLUD', 'PTNBH', 'Lembaga', 'Yayasan', 'Perusahaan Swasta', 'BUMN'];
 
 	const [logoPreview, setLogoPreview] = React.useState<string | null>(null);
 

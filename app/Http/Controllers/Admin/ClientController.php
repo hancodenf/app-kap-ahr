@@ -53,9 +53,9 @@ class ClientController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'alamat' => 'required|string|max:255',
-            'kementrian' => 'required|in:Kementerian Kesehatan,Kementerian Perhubungan,Kementerian Agama,Kementerian Pendidikan,Kementerian Pertanian,Kementerian Keuangan',
+            'kementrian' => 'required|in:Kementerian Kesehatan,Kementerian Perhubungan,Kementerian Agama,Kementerian Pendidikan,Kementerian Pertanian,Kementerian Keuangan,Lainnya',
             'kode_satker' => 'required|string|max:255',
-            'type' => 'required|in:BLU,BLUD,PTNBH',
+            'type' => 'required|in:BLU,BLUD,PTNBH,Lembaga,Yayasan,Perusahaan Swasta,BUMN',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:512000',
         ]);
 
@@ -118,9 +118,9 @@ class ClientController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'alamat' => 'required|string|max:255',
-            'kementrian' => 'required|in:Kementerian Kesehatan,Kementerian Perhubungan,Kementerian Agama,Kementerian Pendidikan,Kementerian Pertanian,Kementerian Keuangan',
+            'kementrian' => 'required|in:Kementerian Kesehatan,Kementerian Perhubungan,Kementerian Agama,Kementerian Pendidikan,Kementerian Pertanian,Kementerian Keuangan,Lainnya',
             'kode_satker' => 'required|string|max:255',
-            'type' => 'required|in:BLU,BLUD,PTNBH',
+            'type' => 'required|in:BLU,BLUD,PTNBH,Lembaga,Yayasan,Perusahaan Swasta,BUMN',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:512000',
         ]);
 

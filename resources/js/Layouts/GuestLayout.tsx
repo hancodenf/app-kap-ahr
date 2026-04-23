@@ -1,3 +1,4 @@
+import HelpdeskFloatingButton from "@/Components/HelpdeskFloatingButton";
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import { Link } from '@inertiajs/react';
 import { PropsWithChildren, useEffect } from 'react';
@@ -35,6 +36,9 @@ export default function Guest({ children }: PropsWithChildren) {
             <div className="relative z-10 mt-6 w-full overflow-hidden bg-white/95 backdrop-blur-sm px-6 py-4 shadow-2xl sm:max-w-[50rem] sm:rounded-lg">
                 {children}
             </div>
+
+            {/* Helpdesk Floating Button */}
+            <HelpdeskFloatingButton />
         </div>
     );
 }
