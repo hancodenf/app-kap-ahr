@@ -115,13 +115,8 @@ class WorkingStep extends Model
         if ($user->role === 'admin') {
             return true;
         }
-        
-        // First step is always accessible
-        if ($this->order === 1) {
-            return true;
-        }
-        
-        // Check if step is unlocked
+
+        // Company/staff users can access only when the step is unlocked
         return !$this->is_locked;
     }
 

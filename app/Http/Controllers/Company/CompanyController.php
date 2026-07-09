@@ -151,17 +151,50 @@ class CompanyController extends Controller
             ->filter(function ($taskWorker) {
                 return $taskWorker->task !== null;
             })
-            ->map(function ($taskWorker) {
+            ->map(function ($taskWorker) use ($user) {
                 $latestAssignment = $taskWorker->task->taskAssignments->first();
+                $workingStep = $taskWorker->task->workingStep;
+                $lockReason = null;
+
+                if ($workingStep && $workingStep->is_locked) {
+                    $previousStep = WorkingStep::where('project_id', $workingStep->project_id)
+                        ->where('order', '<', $workingStep->order)
+                        ->orderBy('order', 'desc')
+                        ->first();
+
+                    if ($previousStep) {
+                        $requiredProgress = $previousStep->getRequiredTasksProgress();
+                        $completedAnyTasks = $previousStep->tasks()->where('completion_status', 'completed')->count();
+
+                        if ($requiredProgress['total'] > 0 && $requiredProgress['completed'] < $requiredProgress['total']) {
+                            $remaining = $requiredProgress['total'] - $requiredProgress['completed'];
+                            $lockReason = "Complete {$remaining} more required task(s) in the previous step";
+                        } elseif ($requiredProgress['total'] === 0 && $completedAnyTasks === 0) {
+                            $lockReason = 'Complete at least one task in the previous step';
+                        } else {
+                            $lockReason = 'Waiting for admin to unlock this step';
+                        }
+                    } else {
+                        $lockReason = 'Waiting for admin to unlock this step';
+                    }
+                }
+
                 return [
                     'id' => $taskWorker->task->id,
                     'name' => $taskWorker->task->name,
                     'project_id' => $taskWorker->task->project_id,
                     'project_name' => $taskWorker->task->project_name,
                     'working_step_name' => $taskWorker->task->working_step_name,
+                    'working_step' => $workingStep ? [
+                        'id' => $workingStep->id,
+                        'name' => $workingStep->name,
+                        'is_locked' => $workingStep->is_locked,
+                        'can_access' => $workingStep->canAccess($user),
+                    ] : null,
                     'completion_status' => $taskWorker->task->completion_status,
                     'status' => $latestAssignment->status ?? 'Draft',
                     'is_required' => $taskWorker->task->is_required,
+                    'lock_reason' => $lockReason,
                     'created_at' => $taskWorker->created_at,
                 ];
             })
@@ -495,6 +528,7 @@ class CompanyController extends Controller
             ->map(function ($step) use ($user, $teamMember) {
                 // Check if user can access this step
                 $canAccess = $step->canAccess($user);
+                $lockReason = null;
 
                 // Get required tasks progress for previous step (to show unlock info)
                 $requiredProgress = null;
@@ -506,6 +540,18 @@ class CompanyController extends Controller
 
                     if ($previousStep) {
                         $requiredProgress = $previousStep->getRequiredTasksProgress();
+                        $completedAnyTasks = $previousStep->tasks()->where('completion_status', 'completed')->count();
+
+                        if ($requiredProgress['total'] > 0 && $requiredProgress['completed'] < $requiredProgress['total']) {
+                            $remaining = $requiredProgress['total'] - $requiredProgress['completed'];
+                            $lockReason = "Complete {$remaining} more required task(s) in the previous step";
+                        } elseif ($requiredProgress['total'] === 0 && $completedAnyTasks === 0) {
+                            $lockReason = 'Complete at least one task in the previous step';
+                        } else {
+                            $lockReason = 'Waiting for admin to unlock this step';
+                        }
+                    } else {
+                        $lockReason = 'Waiting for admin to unlock this step';
                     }
                 }
 
@@ -517,6 +563,7 @@ class CompanyController extends Controller
                     'is_locked' => $step->is_locked,
                     'can_access' => $canAccess,
                     'required_progress' => $requiredProgress,
+                    'lock_reason' => $lockReason,
                     'tasks' => $step->tasks->map(function ($task) use ($user, $teamMember) {
                         // Check if this user is assigned to this task
                         // TaskWorker has project_team_id, so we need to check if any worker's project_team_id matches our teamMember->id
@@ -1412,6 +1459,8 @@ class CompanyController extends Controller
             'working_step' => [
                 'id' => $task->workingStep->id,
                 'name' => $task->workingStep->name,
+                'is_locked' => $task->workingStep->is_locked,
+                'can_access' => $task->workingStep->canAccess($user),
             ],
             'latest_assignment' => $latestAssignment ? [
                 'id' => $latestAssignment->id,

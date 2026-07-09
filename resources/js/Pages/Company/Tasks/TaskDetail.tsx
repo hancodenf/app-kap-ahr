@@ -54,6 +54,8 @@ interface Task {
     working_step: {
         id: number;
         name: string;
+        is_locked: boolean;
+        can_access: boolean;
     };
     latest_assignment: TaskAssignment | null;
     assignments: TaskAssignment[];
@@ -75,6 +77,7 @@ interface Props extends PageProps {
 export default function TaskDetail({ auth, task, project }: Props) {
     // Check if project is active (only allow actions for In Progress projects)
     const isProjectActive = project.status === 'In Progress';
+    const isStepLocked = task.working_step?.is_locked && !task.working_step?.can_access;
     
     // State for selected submission
     const [selectedSubmission, setSelectedSubmission] = useState<TaskAssignment | null>(
@@ -160,6 +163,11 @@ export default function TaskDetail({ auth, task, project }: Props) {
 
     // Open Add New Modal
     const openAddModal = () => {
+        if (isStepLocked) {
+            toast.error('Step ini masih locked. Selesaikan task required di step sebelumnya atau tunggu admin unlock step ini.');
+            return;
+        }
+
         setIsEditMode(false);
         setShowModal(true);
         
@@ -634,6 +642,26 @@ export default function TaskDetail({ auth, task, project }: Props) {
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
+
+                    {isStepLocked && (
+                        <div className="bg-white shadow-sm sm:rounded-lg border border-amber-200 overflow-hidden">
+                            <div className="bg-amber-50 px-4 py-4 flex items-start gap-3">
+                                <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.72 3h16.92a2 2 0 001.72-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                                    </svg>
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-sm font-semibold text-amber-900">
+                                        Step ini masih locked
+                                    </h3>
+                                    <p className="mt-1 text-sm text-amber-800">
+                                        Task di step ini belum bisa dibuka untuk upload. Selesaikan task required di step sebelumnya atau tunggu admin mengubah status step ini menjadi unlocked.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     
                     {/* Assigned Team Members */}
                     {task.task_workers && task.task_workers.length > 0 && (
@@ -679,6 +707,7 @@ export default function TaskDetail({ auth, task, project }: Props) {
                             {isProjectActive ? (
                                 <button
                                     onClick={openAddModal}
+                                    disabled={isStepLocked}
                                     className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
                                 >
                                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

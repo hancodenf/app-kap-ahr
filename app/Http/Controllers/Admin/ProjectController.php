@@ -631,6 +631,7 @@ class ProjectController extends Controller
             
             $request->validate([
                 'name' => 'required|string|max:255',
+                'is_locked' => 'sometimes|boolean',
             ]);
 
             // Validate project exists
@@ -662,6 +663,7 @@ class ProjectController extends Controller
                 'order' => $nextOrder,
                 'project_name' => $project->name,
                 'project_client_name' => $project->client_name,
+                'is_locked' => $request->has('is_locked') ? $request->boolean('is_locked') : false,
             ]);
 
             return redirect()->back()->with('success', 'Working step created successfully!');
@@ -674,11 +676,13 @@ class ProjectController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'is_locked' => 'sometimes|boolean',
         ]);
 
         // Generate new slug if name changed
         $updateData = [
             'name' => $request->name,
+            'is_locked' => $request->has('is_locked') ? $request->boolean('is_locked') : $workingStep->is_locked,
         ];
 
         if ($workingStep->name !== $request->name) {

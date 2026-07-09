@@ -34,6 +34,7 @@ interface WorkingStep {
     slug: string;
     order: number;
     project_id: number;
+    is_locked: boolean;
     tasks?: Task[];
 }
 
@@ -328,7 +329,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     const [showAddTeamMemberModal, setShowAddTeamMemberModal] = useState(false);
     const [showEditTeamMemberModal, setShowEditTeamMemberModal] = useState(false);
     const [selectedStepId, setSelectedStepId] = useState<number | null>(null);
-    const [editingStep, setEditingStep] = useState<{ id: number; name: string } | null>(null);
+    const [editingStep, setEditingStep] = useState<{ id: number; name: string; is_locked: boolean } | null>(null);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [editingTeamMember, setEditingTeamMember] = useState<TeamMember | null>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -421,6 +422,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     const { data: stepData, setData: setStepData, post: postStep, reset: resetStep, processing: postStepProcessing } = useForm({
         name: '',
         bundle_id: bundle.id, // Send as bundle_id as expected by controller
+        is_locked: false,
     });
 
     const { data: taskData, setData: setTaskData, post: postTask, reset: resetTask, processing: postTaskProcessing } = useForm({
@@ -438,6 +440,7 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
 
     const { data: editStepData, setData: setEditStepData, put: putStep, processing: editStepProcessing, errors: editStepErrors, reset: resetEditStep } = useForm({
         name: '',
+        is_locked: false,
     });
 
     // Edit Template Form
@@ -613,9 +616,10 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
     };
 
     const handleEditStep = (step: WorkingStep) => {
-        setEditingStep({ id: step.id, name: step.name });
+        setEditingStep({ id: step.id, name: step.name, is_locked: step.is_locked });
         setEditStepData({
             name: step.name,
+            is_locked: step.is_locked,
         });
         setShowEditStepModal(true);
     };
@@ -1359,6 +1363,40 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                     </p>
                                 </div>
 
+                                <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-700">Step Access</p>
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                Locked steps cannot be opened by company/staff users.
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setStepData('is_locked', !stepData.is_locked)}
+                                            className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${stepData.is_locked ? 'bg-red-600' : 'bg-emerald-600'}`}
+                                            aria-pressed={stepData.is_locked}
+                                        >
+                                            <span
+                                                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${stepData.is_locked ? 'translate-x-6' : 'translate-x-1'}`}
+                                            />
+                                        </button>
+                                    </div>
+                                    <div className="mt-3 space-y-2 text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${stepData.is_locked ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                                {stepData.is_locked ? 'Locked' : 'Unlocked'}
+                                            </span>
+                                            <span className="text-gray-600">
+                                                {stepData.is_locked ? 'Staff cannot open tasks in this step.' : 'Staff can open tasks in this step.'}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-gray-500">
+                                            Locked means this step stays closed until you unlock it manually, unlike required tasks which can unlock the next step automatically after completion.
+                                        </p>
+                                    </div>
+                                </div>
+
                                 <div className="flex justify-end space-x-3">
                                     <button
                                         type="button"
@@ -1779,6 +1817,36 @@ export default function Show({ auth, bundle, workingSteps, teamMembers, availabl
                                 {editStepErrors.name && (
                                     <p className="mt-1 text-sm text-red-600">{editStepErrors.name}</p>
                                 )}
+                            </div>
+                            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                                <div className="flex items-center justify-between gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Step Access
+                                        </label>
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            Locked steps cannot be opened by company/staff users.
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditStepData('is_locked', !editStepData.is_locked)}
+                                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${editStepData.is_locked ? 'bg-red-600' : 'bg-emerald-600'}`}
+                                        aria-pressed={editStepData.is_locked}
+                                    >
+                                        <span
+                                            className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${editStepData.is_locked ? 'translate-x-6' : 'translate-x-1'}`}
+                                        />
+                                    </button>
+                                </div>
+                                <div className="mt-3 flex items-center gap-2 text-sm">
+                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${editStepData.is_locked ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                        {editStepData.is_locked ? 'Locked' : 'Unlocked'}
+                                    </span>
+                                    <span className="text-gray-600">
+                                        {editStepData.is_locked ? 'Staff cannot open tasks in this step.' : 'Staff can open tasks in this step.'}
+                                    </span>
+                                </div>
                             </div>
                             <div className="flex justify-end space-x-3 pt-4">
                                 <button

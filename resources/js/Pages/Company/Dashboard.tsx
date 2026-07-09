@@ -39,6 +39,13 @@ interface AssignedTask {
 	project_id: string;
 	project_name: string;
 	working_step_name: string;
+	working_step?: {
+		id: string;
+		name: string;
+		is_locked: boolean;
+		can_access: boolean;
+	} | null;
+	lock_reason?: string | null;
 	completion_status: string;
 	status: string;
 	is_required: boolean;
@@ -222,6 +229,67 @@ export default function CompanyDashboard({
 			<span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${roleConfig.bg} ${roleConfig.text}`}>
 				{roleConfig.label}
 			</span>
+		);
+	};
+
+	const renderAssignedTaskCard = (task: AssignedTask) => {
+		const stepLocked = !!task.working_step?.is_locked && !task.working_step?.can_access;
+
+		const content = (
+			<>
+				<div className="flex items-start justify-between mb-2">
+					<div className="flex-1">
+						<h4 className="text-sm font-medium text-gray-900 flex items-center gap-2">
+							{task.name}
+							{task.is_required && (
+								<span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold rounded bg-red-100 text-red-700">
+									REQUIRED
+								</span>
+							)}
+						</h4>
+						<p className="text-xs text-gray-600 mt-1">{task.project_name}</p>
+						<p className="text-xs text-gray-500 mt-0.5">{task.working_step_name}</p>
+						{task.working_step && (
+							<div className="mt-2 flex items-center gap-2">
+								<span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-semibold rounded-full ${stepLocked ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+									{stepLocked ? 'Locked' : 'Unlocked'}
+								</span>
+								<span className="text-[10px] text-gray-500">
+									{stepLocked ? (task.lock_reason || 'Waiting for step unlock') : 'Ready to open'}
+								</span>
+							</div>
+						)}
+					</div>
+				</div>
+				<div className="flex items-center justify-between gap-2 mt-2">
+					<div className="flex items-center gap-2">
+						{getStatusBadge(task.completion_status)}
+						{getStatusBadge(task.status)}
+					</div>
+					<span className="text-[10px] text-gray-400">{formatDate(task.created_at)}</span>
+				</div>
+			</>
+		);
+
+		if (stepLocked) {
+			return (
+				<div
+					key={task.id}
+					className="block p-3 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-200 opacity-80 cursor-not-allowed"
+				>
+					{content}
+				</div>
+			);
+		}
+
+		return (
+			<Link
+				key={task.id}
+				href={route('company.tasks.detail', task.id)}
+				className="block p-3 bg-gradient-to-r from-blue-50 to-white rounded-lg border border-blue-200 hover:from-blue-100 hover:to-blue-50 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
+			>
+				{content}
+			</Link>
 		);
 	};
 
@@ -495,35 +563,7 @@ export default function CompanyDashboard({
 							</div>
 							<div className="space-y-3 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
 								{myAssignedTasks.length > 0 ? (
-									myAssignedTasks.map((task) => (
-										<Link
-											key={task.id}
-											href={route('company.tasks.detail', task.id)}
-											className="block p-3 bg-gradient-to-r from-blue-50 to-white rounded-lg border border-blue-200 hover:from-blue-100 hover:to-blue-50 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
-										>
-											<div className="flex items-start justify-between mb-2">
-												<div className="flex-1">
-													<h4 className="text-sm font-medium text-gray-900 flex items-center gap-2">
-														{task.name}
-														{task.is_required && (
-															<span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold rounded bg-red-100 text-red-700">
-																REQUIRED
-															</span>
-														)}
-													</h4>
-													<p className="text-xs text-gray-600 mt-1">{task.project_name}</p>
-													<p className="text-xs text-gray-500 mt-0.5">{task.working_step_name}</p>
-												</div>
-											</div>
-											<div className="flex items-center justify-between gap-2 mt-2">
-												<div className="flex items-center gap-2">
-													{getStatusBadge(task.completion_status)}
-													{getStatusBadge(task.status)}
-												</div>
-												<span className="text-[10px] text-gray-400">{formatDate(task.created_at)}</span>
-											</div>
-										</Link>
-									))
+									myAssignedTasks.map((task) => renderAssignedTaskCard(task))
 								) : (
 									<div className="text-center py-8">
 										<svg className="w-12 h-12 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
