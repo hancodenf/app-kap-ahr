@@ -137,14 +137,13 @@ class CompanyController extends Controller
                 ];
             });
 
-        // 4. My Assigned Tasks (tasks assigned to me via task_workers - not completed, ordered by newest)
+        // 4. My Assigned Tasks (tasks assigned to me via task_workers, ordered by newest)
         $myAssignedTasks = $hasProjects
             ? \App\Models\TaskWorker::whereIn('project_team_id', $projectTeamIds)
             ->with(['task' => function ($query) {
                 $query->with(['workingStep', 'taskAssignments' => function ($q) {
                     $q->latest();
-                }])
-                    ->where('completion_status', '!=', 'completed');
+                }]);
             }])
             ->latest('created_at')
             ->get()
